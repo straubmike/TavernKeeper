@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { LOCALHOST_ADDRESSES } from '../contracts/addresses';
-import TownPosseManagerABI from '../../../../packages/contracts/artifacts/contracts/TownPosseManager.sol/TownPosseManager.json';
-import KeepTokenABI from '../../../../packages/contracts/artifacts/contracts/KeepToken.sol/KeepToken.json';
+import TownPosseManagerABI from '../abis/TownPosseManager.json';
+import KeepTokenABI from '../abis/KeepToken.json';
 
 const TOWN_POSSE_ADDRESS = LOCALHOST_ADDRESSES.TOWN_POSSE_MANAGER;
 const KEEP_TOKEN_ADDRESS = LOCALHOST_ADDRESSES.KEEP_TOKEN;

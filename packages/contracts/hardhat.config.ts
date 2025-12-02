@@ -51,16 +51,18 @@ const config: HardhatUserConfig = {
         },
     },
     etherscan: {
-        apiKey: {
-            monad: "empty" // Monad explorer doesn't require an API key yet, or use any string
-        },
+        apiKey: process.env.ETHERSCAN_API_KEY || "empty",
         customChains: [
             {
                 network: "monad",
                 chainId: parseInt(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || "10143"),
                 urls: {
-                    apiURL: "https://testnet-scan.monad.xyz/api", // Verify this URL
-                    browserURL: "https://testnet.monadexplorer.com"
+                    apiURL: parseInt(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || "10143") === 143
+                        ? "https://api.monadscan.com/api"
+                        : "https://api-testnet.monadscan.com/api",
+                    browserURL: parseInt(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || "10143") === 143
+                        ? "https://monadscan.com"
+                        : "https://testnet.monadscan.com"
                 }
             }
         ]

@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
 import { LOCALHOST_ADDRESSES } from '../contracts/addresses';
-import TavernRegularsManagerABI from '../../../../packages/contracts/artifacts/contracts/TavernRegularsManager.sol/TavernRegularsManager.json';
-import CellarHookABI from '../../../../packages/contracts/artifacts/contracts/hooks/CellarHook.sol/CellarHook.json';
-import KeepTokenABI from '../../../../packages/contracts/artifacts/contracts/KeepToken.sol/KeepToken.json';
+import TavernRegularsManagerABI from '../abis/TavernRegularsManager.json';
+import CellarHookABI from '../abis/CellarHook.json';
+import KeepTokenABI from '../abis/KeepToken.json';
 
 const TAVERN_REGULARS_ADDRESS = LOCALHOST_ADDRESSES.TAVERN_REGULARS_MANAGER;
 const CELLAR_HOOK_ADDRESS = LOCALHOST_ADDRESSES.THE_CELLAR;
