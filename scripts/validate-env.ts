@@ -10,8 +10,6 @@ const requiredEnvVars: Record<string, string[]> = {
     'REDIS_URL',
     'NEXTAUTH_SECRET',
     'NEXTAUTH_URL',
-    'ELIZA_URL',
-    'ELIZA_API_KEY',
     'OPENAI_API_KEY',
     'NEXT_PUBLIC_USE_LOCALHOST',
     'NEXT_PUBLIC_MONAD_CHAIN_ID',
@@ -20,8 +18,6 @@ const requiredEnvVars: Record<string, string[]> = {
   worker: [
     'DATABASE_URL',
     'REDIS_URL',
-    'ELIZA_URL',
-    'ELIZA_API_KEY',
     'OPENAI_API_KEY',
   ],
   'discord-bot': [
@@ -29,20 +25,27 @@ const requiredEnvVars: Record<string, string[]> = {
     'DISCORD_CLIENT_ID',
     'DISCORD_GUILD_ID',
     'DATABASE_URL',
-    'ELIZA_URL',
-    'ELIZA_API_KEY',
     'OPENAI_API_KEY',
   ],
 };
 
 const optionalEnvVars: Record<string, string[]> = {
   web: [
+    'ELIZA_URL',
+    'ELIZA_API_KEY',
     'FARCASTER_SIGNER_KEY',
     'NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS',
     'NEXT_PUBLIC_PRICING_SIGNER_ADDRESS',
   ],
-  worker: [],
-  'discord-bot': ['DISCORD_API_BASE_URL'],
+  worker: [
+    'ELIZA_URL',
+    'ELIZA_API_KEY',
+  ],
+  'discord-bot': [
+    'ELIZA_URL',
+    'ELIZA_API_KEY',
+    'DISCORD_API_BASE_URL',
+  ],
 };
 
 function validateEnv(service: 'web' | 'worker' | 'discord-bot'): boolean {
@@ -62,6 +65,16 @@ function validateEnv(service: 'web' | 'worker' | 'discord-bot'): boolean {
       missing.push(varName);
       console.log(`❌ MISSING (REQUIRED): ${varName}`);
     } else {
+      // Special validation for NEXTAUTH_URL
+      if (varName === 'NEXTAUTH_URL' && (value.includes('127.0.0.1') || value.includes('localhost') || value === 'http://127.0.0.1:3000')) {
+        console.log(`⚠️  ${varName} is set to localhost - update to your Render URL after deployment`);
+      }
+
+      // Special validation for NEXTAUTH_SECRET
+      if (varName === 'NEXTAUTH_SECRET' && (value === 'replace-me-with-random-string' || value.length < 32)) {
+        console.log(`⚠️  ${varName} should be a random string (32+ chars) - generate with: openssl rand -base64 32`);
+      }
+
       present.push(varName);
       // Mask sensitive values
       const masked = varName.includes('KEY') || varName.includes('TOKEN') || varName.includes('SECRET') || varName.includes('PASSWORD')
