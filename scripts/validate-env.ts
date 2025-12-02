@@ -14,27 +14,37 @@ function loadEnvFile(): void {
     '/etc/secrets/.env', // Render secret files location
     path.join(process.cwd(), '.env'), // App root
     path.join(__dirname, '../.env'), // Script relative
+    path.join(process.cwd(), '..', '.env'), // Parent directory
   ];
 
   for (const envPath of envPaths) {
-    if (fs.existsSync(envPath)) {
-      console.log(`📄 Found .env file at: ${envPath}`);
-      const content = fs.readFileSync(envPath, 'utf8');
-      const lines = content.split('\n');
+    try {
+      if (fs.existsSync(envPath)) {
+        console.log(`📄 Found .env file at: ${envPath}`);
+        const content = fs.readFileSync(envPath, 'utf8');
+        const lines = content.split('\n');
+        let loadedCount = 0;
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-          const [key, ...valueParts] = trimmed.split('=');
-          const value = valueParts.join('=').trim();
-          if (key && value && !process.env[key]) {
-            process.env[key] = value;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+            const [key, ...valueParts] = trimmed.split('=');
+            const value = valueParts.join('=').trim().replace(/^["']|["']$/g, ''); // Remove quotes
+            if (key && value && !process.env[key]) {
+              process.env[key] = value;
+              loadedCount++;
+            }
           }
         }
+        console.log(`✅ Loaded ${loadedCount} environment variables from .env file`);
+        return;
       }
-      break;
+    } catch (error) {
+      // Continue to next path if this one fails
+      continue;
     }
   }
+  console.log(`⚠️  No .env file found in expected locations`);
 }
 
 // Load .env file before validation
