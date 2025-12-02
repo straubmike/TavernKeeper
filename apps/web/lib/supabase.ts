@@ -1,31 +1,22 @@
 // Supabase REST API client - direct API calls, no dependencies needed
 // This replaces Prisma and the Supabase client library
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  process.env.SUPABASE_PROJECT_URL ||
-  '';
+// Lazy load config to prevent build-time errors during module evaluation
+const getSupabaseConfig = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.SUPABASE_PROJECT_URL ||
+    '';
 
-const SUPABASE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_API_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_KEY ||
-  '';
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_API_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_KEY ||
+    '';
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Supabase Env Vars Missing:', {
-    url: !!SUPABASE_URL,
-    key: !!SUPABASE_KEY,
-    env: process.env.NODE_ENV
-  });
-  // Don't throw immediately in dev to allow for better debugging or build time
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('Missing Supabase environment variables. Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY');
-  }
-}
+  return { url, key };
+};
 
-const API_BASE = `${SUPABASE_URL}/rest/v1`;
+
 
 export interface SupabaseResponse<T> {
   data: T | null;
@@ -54,11 +45,20 @@ async function supabaseRequest<T>(
   table: string,
   options: QueryOptions = {}
 ): Promise<SupabaseResponse<T>> {
-  const url = new URL(`${API_BASE}/${table}`);
+  const { url: baseUrl, key } = getSupabaseConfig();
+
+  if (!baseUrl || !key) {
+    console.error('Supabase Env Vars Missing');
+    return { data: null, error: { message: 'Missing Supabase Configuration' } };
+  }
+
+  const url = new URL(`${baseUrl}/rest/v1/${table}`);
 
   if (options.select) {
     url.searchParams.set('select', options.select);
   }
+  // ... (rest of the params logic is fine, we just need to update the headers usage below)
+
   if (options.eq) {
     options.eq.forEach(filter => {
       url.searchParams.set(`${filter.column}`, `eq.${filter.value}`);
@@ -102,8 +102,8 @@ async function supabaseRequest<T>(
 
   try {
     const headers: Record<string, string> = {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
       'Content-Type': 'application/json',
     };
 

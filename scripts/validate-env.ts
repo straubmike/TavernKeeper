@@ -60,11 +60,15 @@ const requiredEnvVars: Record<string, string[]> = {
     'NEXT_PUBLIC_USE_LOCALHOST',
     'NEXT_PUBLIC_MONAD_CHAIN_ID',
     'NEXT_PUBLIC_MONAD_RPC_URL',
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   ],
   worker: [
     'DATABASE_URL',
     'REDIS_URL',
     'OPENAI_API_KEY',
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   ],
   'discord-bot': [
     'DISCORD_BOT_TOKEN',
