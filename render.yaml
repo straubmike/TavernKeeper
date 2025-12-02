@@ -4,7 +4,7 @@ services:
     env: node
     plan: starter
     region: oregon
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter './packages/*' build && pnpm --filter @innkeeper/web build
+    buildCommand: npm install -g pnpm tsx && pnpm install --frozen-lockfile && RENDER_SERVICE_TYPE=web tsx scripts/validate-env.ts web && pnpm -r --filter './packages/*' build && pnpm --filter @innkeeper/web build
     startCommand: cd apps/web && pnpm start
     rootDir: ./
     healthCheckPath: /
@@ -13,27 +13,33 @@ services:
         value: production
       - key: NEXT_PUBLIC_USE_LOCALHOST
         value: "false"
+      - key: RENDER_SERVICE_TYPE
+        value: web
 
   - type: worker
     name: innkeeper-workers
     env: node
     plan: starter
     region: oregon
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter './packages/*' build
+    buildCommand: npm install -g pnpm tsx && pnpm install --frozen-lockfile && RENDER_SERVICE_TYPE=worker tsx scripts/validate-env.ts worker && pnpm -r --filter './packages/*' build
     startCommand: cd apps/web && pnpm start-worker
     rootDir: ./
     envVars:
       - key: NODE_ENV
         value: production
+      - key: RENDER_SERVICE_TYPE
+        value: worker
 
   - type: web
     name: innkeeper-discord-bot
     env: node
     plan: starter
     region: oregon
-    buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @innkeeper/discord-bot build
+    buildCommand: npm install -g pnpm tsx && pnpm install --frozen-lockfile && RENDER_SERVICE_TYPE=discord-bot tsx scripts/validate-env.ts discord-bot && pnpm --filter @innkeeper/discord-bot build
     startCommand: cd packages/discord-bot && node dist/index.js
     rootDir: ./
     envVars:
       - key: NODE_ENV
         value: production
+      - key: RENDER_SERVICE_TYPE
+        value: discord-bot
