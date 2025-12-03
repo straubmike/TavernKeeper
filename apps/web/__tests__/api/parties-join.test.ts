@@ -1,11 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '@/app/api/parties/[id]/join/route';
-import { NextRequest } from 'next/server';
-import * as partyServiceModule from '@/lib/services/partyService';
+import * as registryModule from '@/lib/contracts/registry';
 import * as heroOwnershipModule from '@/lib/services/heroOwnership';
+import * as partyServiceModule from '@/lib/services/partyService';
+import { NextRequest } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/services/partyService');
 vi.mock('@/lib/services/heroOwnership');
+vi.mock('@/lib/contracts/registry');
 
 describe('POST /api/parties/[id]/join', () => {
   beforeEach(() => {
@@ -14,7 +16,8 @@ describe('POST /api/parties/[id]/join', () => {
 
   it('should join party successfully', async () => {
     (heroOwnershipModule.verifyOwnership as any) = vi.fn().mockResolvedValue(true);
-    (partyServiceModule.joinParty as any) = vi.fn().mockResolvedValue(true);
+    (partyServiceModule.joinParty as any) = vi.fn().mockResolvedValue({ success: true });
+    (registryModule.getContractAddress as any) = vi.fn().mockReturnValue('0xcontract123');
 
     const request = new NextRequest('http://localhost/api/parties/party-123/join', {
       method: 'POST',
@@ -53,6 +56,7 @@ describe('POST /api/parties/[id]/join', () => {
 
   it('should return 403 if user does not own hero', async () => {
     (heroOwnershipModule.verifyOwnership as any) = vi.fn().mockResolvedValue(false);
+    (registryModule.getContractAddress as any) = vi.fn().mockReturnValue('0xcontract123');
 
     const request = new NextRequest('http://localhost/api/parties/party-123/join', {
       method: 'POST',
@@ -74,7 +78,8 @@ describe('POST /api/parties/[id]/join', () => {
 
   it('should return 400 if party is full or not found', async () => {
     (heroOwnershipModule.verifyOwnership as any) = vi.fn().mockResolvedValue(true);
-    (partyServiceModule.joinParty as any) = vi.fn().mockResolvedValue(false);
+    (partyServiceModule.joinParty as any) = vi.fn().mockResolvedValue({ success: false });
+    (registryModule.getContractAddress as any) = vi.fn().mockReturnValue('0xcontract123');
 
     const request = new NextRequest('http://localhost/api/parties/party-123/join', {
       method: 'POST',
@@ -95,6 +100,7 @@ describe('POST /api/parties/[id]/join', () => {
 
   it('should handle errors gracefully', async () => {
     (heroOwnershipModule.verifyOwnership as any) = vi.fn().mockRejectedValue(new Error('Network error'));
+    (registryModule.getContractAddress as any) = vi.fn().mockReturnValue('0xcontract123');
 
     const request = new NextRequest('http://localhost/api/parties/party-123/join', {
       method: 'POST',

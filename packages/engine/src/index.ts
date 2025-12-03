@@ -17,7 +17,14 @@ export * from './engine';
 export * from './map-loader';
 
 // Spatial
-export * from './spatial';
+// Spatial - specific exports to avoid conflicts
+export {
+    checkRoomTransition,
+    generateRoomTransitionEvents,
+    validateMovement,
+    calculateDistance,
+    getDistance
+} from './spatial';
 
 // DM Manager
 export * from './dm-manager';

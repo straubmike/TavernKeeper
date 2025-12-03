@@ -5,11 +5,11 @@
  */
 
 import type {
-    AgentMemory,
-    CombatEvent,
-    ExplorationEvent,
-    GameEvent,
-    InteractionEvent,
+  AgentMemory,
+  CombatEvent,
+  ExplorationEvent,
+  GameEvent,
+  InteractionEvent,
 } from '@innkeeper/lib';
 
 export interface AgentMemoryUpdate {
@@ -235,7 +235,7 @@ export function mergeMemoryUpdates(
         ...(updates.longTerm?.reputations || {}),
       },
       lore: [
-        ...existingMemory.longTerm.lore,
+        ...(existingMemory.longTerm.lore || []),
         ...(updates.longTerm?.lore || []),
       ],
       relationships: {

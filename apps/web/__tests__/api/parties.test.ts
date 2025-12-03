@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { POST, GET } from '@/app/api/parties/route';
-import { NextRequest } from 'next/server';
+import { GET, POST } from '@/app/api/parties/route';
 import * as partyServiceModule from '@/lib/services/partyService';
+import { NextRequest } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/services/partyService');
 
@@ -33,7 +33,7 @@ describe('POST /api/parties', () => {
 
     expect(response.status).toBe(200);
     expect(data).toEqual(mockParty);
-    expect(partyServiceModule.createParty).toHaveBeenCalledWith('user-123', 'dungeon-456');
+    expect(partyServiceModule.createParty).toHaveBeenCalledWith('user-123', 'dungeon-456', undefined);
   });
 
   it('should return 400 if ownerId is missing', async () => {

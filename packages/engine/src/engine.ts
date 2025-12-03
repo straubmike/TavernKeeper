@@ -1,16 +1,17 @@
 import type { ElizaAgentConfig } from '@innkeeper/agents';
 import { AgentWrapper, GameActionPluginImpl, getAgentConfig, MemoryPluginImpl } from '@innkeeper/agents';
 import type {
-    Action,
-    CombatEvent,
-    DungeonMap,
-    DungeonState,
-    Entity,
-    ExplorationEvent,
-    GameEvent,
-    InteractionEvent,
-    SystemEvent,
-    Turn
+  Action,
+  CombatEvent,
+  DungeonMap,
+  DungeonState,
+  Entity,
+  ExplorationEvent,
+  GameEvent,
+  InteractionEvent,
+  SystemEvent,
+  Turn,
+  Room
 } from '@innkeeper/lib';
 import { getAbilityModifier } from '@innkeeper/lib';
 import { validateAction } from './action-validator';
@@ -23,10 +24,10 @@ import { areAllObjectivesComplete, isPartyWiped } from './objectives';
 import type { RNG } from './rng';
 import { d, generateSeed, makeRng } from './rng';
 import {
-    getAvailableActions,
-    getConnectedRooms,
-    getEntitiesInRoom,
-    getRoomDetails,
+  getAvailableActions,
+  getConnectedRooms,
+  getEntitiesInRoom,
+  getRoomDetails,
 } from './room-context';
 import { checkRoomTransition, generateRoomTransitionEvents, validateMovement } from './spatial';
 
@@ -77,7 +78,7 @@ function initializeEntitiesFromMap(
   if (map.levels && map.levels.length > 0) {
     // Multi-level map - find entrance level (z = -1 for dungeons, z = 1 for towers)
     const entranceLevel = map.levels.find((level) => {
-      const hasEntrance = level.rooms.some((room) => room.type === 'room' || room.type === 'entrance');
+      const hasEntrance = level.rooms.some((room) => (room.type as string) === 'room' || (room.type as string) === 'entrance');
       return hasEntrance && (level.z === -1 || level.z === 1);
     }) || map.levels[0];
     initialLevelZ = entranceLevel.z;
@@ -88,7 +89,7 @@ function initializeEntitiesFromMap(
   if (map.levels && initialLevelZ !== undefined) {
     const level = map.levels.find((l) => l.z === initialLevelZ);
     if (level) {
-      entryRoom = level.rooms.find((r) => r.type === 'room' || r.type === 'entrance') || level.rooms[0];
+      entryRoom = level.rooms.find((r) => (r.type as string) === 'room' || (r.type as string) === 'entrance') || level.rooms[0];
     }
   } else {
     entryRoom = map.rooms.find((r) => r.type === 'room' && r.id !== 'boss') || map.rooms[0];
@@ -503,7 +504,7 @@ export async function simulateRun(config: SimulationConfig): Promise<SimulationR
               worldState: {
                 entities: state.entities,
                 map: state.dungeonState?.map,
-                currentRoom: currentRoom || undefined,
+                currentRoom: (currentRoom || undefined) as any,
                 currentLevelZ: entityLevelZ,
                 objectives: state.dungeonState?.map.objectives,
                 nearbyEntities: entity.roomId

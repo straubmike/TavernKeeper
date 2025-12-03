@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { heroMinting } from '../../lib/services/heroMinting';
 import { metadataStorage } from '../../lib/services/metadataStorage';
 
@@ -34,6 +34,22 @@ vi.mock('viem', async () => {
         http: vi.fn(),
     };
 });
+
+vi.mock('../../lib/services/rpgService', () => ({
+    rpgService: {
+        mintHero: vi.fn().mockResolvedValue('0xhash'),
+        getCurrentTier: vi.fn().mockResolvedValue(1),
+        getPriceSignature: vi.fn().mockResolvedValue({
+            amount: '1000000000000000000',
+            amountWei: '1000000000000000000',
+            deadline: '9999999999',
+            signature: '0xsignature',
+            monPrice: 1,
+            usdPrice: 1,
+            tier: 1,
+        }),
+    },
+}));
 
 describe('heroMinting', () => {
     describe('generateMetadata', () => {
