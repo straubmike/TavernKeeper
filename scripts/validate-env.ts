@@ -10,6 +10,7 @@ import * as path from 'path';
 
 // Load .env file if it exists (Render Secret Files)
 function loadEnvFile(): void {
+  console.log('Current working directory:', process.cwd());
   const envPaths = [
     '/etc/secrets/.env', // Render secret files location
     path.join(process.cwd(), '.env'), // App root
@@ -21,6 +22,15 @@ function loadEnvFile(): void {
     try {
       if (fs.existsSync(envPath)) {
         console.log(`📄 Found .env file at: ${envPath}`);
+      } else if (envPath.startsWith('/etc/secrets')) {
+        console.log(`Checking ${envPath}... not found.`);
+        if (fs.existsSync('/etc/secrets')) {
+          console.log('Contents of /etc/secrets:', fs.readdirSync('/etc/secrets'));
+        } else {
+          console.log('/etc/secrets directory does not exist');
+        }
+      }
+      if (fs.existsSync(envPath)) {
         const content = fs.readFileSync(envPath, 'utf8');
         const lines = content.split('\n');
         let loadedCount = 0;
