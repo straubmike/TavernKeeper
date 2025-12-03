@@ -25,3 +25,12 @@ export * from './dm-manager';
 // Objectives
 export * from './objectives';
 
+// Map converter
+export * from './map-converter';
+
+// Room context
+export * from './room-context';
+
+// Memory processor
+export * from './memory-processor';
+

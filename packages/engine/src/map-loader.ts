@@ -1,4 +1,5 @@
 import type { DungeonMap } from '@innkeeper/lib';
+import { convertDungeonToDungeonMap } from './map-converter';
 import cellarMap from './maps/cellar.json';
 import goblinWarrenMap from './maps/goblin-warren.json';
 
@@ -9,13 +10,44 @@ const MAPS: Record<string, DungeonMap> = {
 
 /**
  * Load a dungeon map by ID
+ * Supports both static maps and generated maps (prefixed with "generated-")
  */
 export function loadMap(mapId: string): DungeonMap | null {
+  // Check if it's a generated map
+  if (mapId.startsWith('generated-')) {
+    // Generated maps should be loaded via loadGeneratedMap
+    // This function will return null for generated maps
+    return null;
+  }
+
+  // Load static map
   const map = MAPS[mapId];
   if (!map) {
     return null;
   }
   return map;
+}
+
+/**
+ * Load a generated map from Mike's Dungeon format
+ * This function converts Mike's format to engine format
+ */
+export function loadGeneratedMap(mikesDungeon: unknown): DungeonMap | null {
+  try {
+    // Type assertion - in production, this would be properly typed
+    const dungeon = mikesDungeon as Parameters<typeof convertDungeonToDungeonMap>[0];
+    return convertDungeonToDungeonMap(dungeon);
+  } catch (error) {
+    console.error('Error loading generated map:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if a map ID refers to a generated map
+ */
+export function isGeneratedMap(mapId: string): boolean {
+  return mapId.startsWith('generated-');
 }
 
 /**

@@ -1,5 +1,4 @@
-import type { AgentPersona, AgentMemory, AgentManifest } from '@innkeeper/lib';
-import type { Action } from '@innkeeper/lib';
+import type { Action, AgentMemory, AgentPersona } from '@innkeeper/lib';
 
 /**
  * ElizaOS agent configuration
@@ -37,6 +36,15 @@ export interface MemoryPlugin {
   writeMemory(agentId: string, memory: AgentMemory): Promise<void>;
   updateShortTerm(agentId: string, eventId: string): Promise<void>;
   addEpisodic(agentId: string, runId: string, summary: string): Promise<void>;
+  updateMemory?(agentId: string, memoryUpdate: {
+    shortTerm?: Array<{ eventId: string; timestamp: number }>;
+    episodic?: Array<{ runId: string; summary: string }>;
+    longTerm?: {
+      reputations?: Record<string, number>;
+      lore?: string[];
+      relationships?: Record<string, string>;
+    };
+  }): Promise<void>;
 }
 
 /**

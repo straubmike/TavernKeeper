@@ -1,5 +1,4 @@
-import type { DungeonMap, Room, Position, Entity } from '@innkeeper/lib';
-import type { ExplorationEvent } from '@innkeeper/lib';
+import type { DungeonLevel, DungeonMap, Entity, ExplorationEvent, LevelConnection, Position, Room } from '@innkeeper/lib';
 
 /**
  * Check if a position is within a room's boundaries
@@ -14,10 +13,46 @@ export function isPositionInRoom(position: Position, room: Room): boolean {
 }
 
 /**
- * Find which room a position is in
+ * Get current level by z-coordinate
  */
-export function findRoomForPosition(position: Position, map: DungeonMap): Room | null {
+export function getCurrentLevel(map: DungeonMap, levelZ?: number): DungeonLevel | null {
+  if (!map.levels || levelZ === undefined) {
+    return null;
+  }
+  return map.levels.find((level) => level.z === levelZ) || null;
+}
+
+/**
+ * Get level connections for a specific z-level
+ */
+export function getLevelConnections(map: DungeonMap, levelZ: number): LevelConnection[] {
+  const level = getCurrentLevel(map, levelZ);
+  return level?.connections || [];
+}
+
+/**
+ * Find which room a position is in (considering z-level)
+ */
+export function findRoomForPosition(position: Position, map: DungeonMap, levelZ?: number): Room | null {
+  // If multi-level map, filter rooms by level
+  if (map.levels && levelZ !== undefined) {
+    const level = getCurrentLevel(map, levelZ);
+    if (level) {
+      for (const room of level.rooms) {
+        if (isPositionInRoom(position, room)) {
+          return room;
+        }
+      }
+      return null;
+    }
+  }
+
+  // Fallback to flat room list (backward compatibility)
   for (const room of map.rooms) {
+    // Check if room matches levelZ if specified
+    if (levelZ !== undefined && room.levelZ !== undefined && room.levelZ !== levelZ) {
+      continue;
+    }
     if (isPositionInRoom(position, room)) {
       return room;
     }
@@ -26,28 +61,95 @@ export function findRoomForPosition(position: Position, map: DungeonMap): Room |
 }
 
 /**
- * Check if two positions are in the same room
+ * Check if two positions are in the same room (considering z-level)
  */
 export function arePositionsInSameRoom(
   pos1: Position,
   pos2: Position,
   map: DungeonMap
 ): boolean {
-  const room1 = findRoomForPosition(pos1, map);
-  const room2 = findRoomForPosition(pos2, map);
+  // Must be on same z-level
+  if (pos1.z !== pos2.z) {
+    return false;
+  }
+  const room1 = findRoomForPosition(pos1, map, pos1.z);
+  const room2 = findRoomForPosition(pos2, map, pos2.z);
   return room1 !== null && room2 !== null && room1.id === room2.id;
 }
 
 /**
- * Check if a room transition should occur based on movement
+ * Check if a level transition should occur based on movement
+ */
+export function checkLevelTransition(
+  entity: Entity,
+  newPosition: Position,
+  map: DungeonMap,
+  currentLevelZ?: number
+): { transitioned: boolean; fromLevelZ?: number; toLevelZ?: number; connection?: LevelConnection } {
+  const newLevelZ = newPosition.z;
+
+  // No z-coordinate change
+  if (newLevelZ === undefined || newLevelZ === currentLevelZ) {
+    return { transitioned: false };
+  }
+
+  // Check if level transition is valid via connections
+  if (currentLevelZ !== undefined) {
+    const connections = getLevelConnections(map, currentLevelZ);
+    const validConnection = connections.find((conn) => conn.toZ === newLevelZ);
+
+    if (!validConnection) {
+      return { transitioned: false };
+    }
+
+    return {
+      transitioned: true,
+      fromLevelZ: currentLevelZ,
+      toLevelZ: newLevelZ,
+      connection: validConnection,
+    };
+  }
+
+  // First time entering a level
+  return {
+    transitioned: true,
+    toLevelZ: newLevelZ,
+  };
+}
+
+/**
+ * Check if a room transition should occur based on movement (handles level transitions)
  */
 export function checkRoomTransition(
   entity: Entity,
   newPosition: Position,
   map: DungeonMap,
-  currentRoomId?: string
-): { transitioned: boolean; fromRoom?: string; toRoom?: string } {
-  const newRoom = findRoomForPosition(newPosition, map);
+  currentRoomId?: string,
+  currentLevelZ?: number
+): { transitioned: boolean; fromRoom?: string; toRoom?: string; levelTransition?: { fromLevelZ: number; toLevelZ: number } } {
+  const newLevelZ = newPosition.z;
+  const entityLevelZ = currentLevelZ ?? entity.position?.z;
+
+  // Check for level transition first
+  const levelTransition = checkLevelTransition(entity, newPosition, map, entityLevelZ);
+  if (levelTransition.transitioned && levelTransition.fromLevelZ !== undefined && levelTransition.toLevelZ !== undefined) {
+    // Level transition occurred - find room in new level
+    const newRoom = findRoomForPosition(newPosition, map, levelTransition.toLevelZ);
+    if (newRoom) {
+      return {
+        transitioned: true,
+        fromRoom: currentRoomId,
+        toRoom: newRoom.id,
+        levelTransition: {
+          fromLevelZ: levelTransition.fromLevelZ,
+          toLevelZ: levelTransition.toLevelZ,
+        },
+      };
+    }
+  }
+
+  // Same level - check room transition
+  const newRoom = findRoomForPosition(newPosition, map, entityLevelZ);
 
   if (!newRoom) {
     // Position is outside all rooms - invalid movement
@@ -61,7 +163,10 @@ export function checkRoomTransition(
 
   // Check if rooms are connected
   if (currentRoomId) {
-    const currentRoom = map.rooms.find((r) => r.id === currentRoomId);
+    const currentRoom = map.levels
+      ? getCurrentLevel(map, entityLevelZ)?.rooms.find((r) => r.id === currentRoomId)
+      : map.rooms.find((r) => r.id === currentRoomId);
+
     if (currentRoom && !currentRoom.connections.includes(newRoom.id)) {
       // Rooms are not connected - invalid transition
       return { transitioned: false };
@@ -76,22 +181,36 @@ export function checkRoomTransition(
 }
 
 /**
- * Validate movement within room boundaries
+ * Validate movement within room boundaries (including level transitions)
  */
 export function validateMovement(
   entity: Entity,
   targetPosition: Position,
-  map: DungeonMap
+  map: DungeonMap,
+  currentLevelZ?: number
 ): { valid: boolean; reason?: string } {
-  const targetRoom = findRoomForPosition(targetPosition, map);
+  const entityLevelZ = currentLevelZ ?? entity.position?.z;
+  const targetLevelZ = targetPosition.z;
+  const targetRoom = findRoomForPosition(targetPosition, map, targetLevelZ);
 
   if (!targetRoom) {
     return { valid: false, reason: 'Target position is outside all rooms' };
   }
 
+  // Check level transition if z-level changed
+  if (targetLevelZ !== undefined && entityLevelZ !== undefined && targetLevelZ !== entityLevelZ) {
+    const levelTransition = checkLevelTransition(entity, targetPosition, map, entityLevelZ);
+    if (!levelTransition.transitioned) {
+      return { valid: false, reason: 'Level transition not allowed - no connection between levels' };
+    }
+  }
+
   // If entity is in a room, check if target is in same room or connected room
   if (entity.roomId) {
-    const currentRoom = map.rooms.find((r) => r.id === entity.roomId);
+    const currentRoom = map.levels
+      ? getCurrentLevel(map, entityLevelZ)?.rooms.find((r) => r.id === entity.roomId)
+      : map.rooms.find((r) => r.id === entity.roomId);
+
     if (currentRoom) {
       if (currentRoom.id === targetRoom.id) {
         // Same room - valid
@@ -108,13 +227,14 @@ export function validateMovement(
 }
 
 /**
- * Generate room transition events
+ * Generate room transition events (including level transitions)
  */
 export function generateRoomTransitionEvents(
   entityId: string,
   fromRoomId: string | undefined,
   toRoomId: string,
-  timestamp: number
+  timestamp: number,
+  levelTransition?: { fromLevelZ: number; toLevelZ: number }
 ): ExplorationEvent[] {
   const events: ExplorationEvent[] = [];
 
@@ -126,6 +246,20 @@ export function generateRoomTransitionEvents(
       actorId: entityId,
       action: 'exit_room',
       roomId: fromRoomId,
+      fromLevelZ: levelTransition?.fromLevelZ,
+    });
+  }
+
+  // Add level transition event if applicable
+  if (levelTransition) {
+    events.push({
+      type: 'exploration',
+      id: `level-transition-${timestamp}-${entityId}`,
+      timestamp,
+      actorId: entityId,
+      action: 'level_transition',
+      fromLevelZ: levelTransition.fromLevelZ,
+      toLevelZ: levelTransition.toLevelZ,
     });
   }
 
@@ -136,13 +270,14 @@ export function generateRoomTransitionEvents(
     actorId: entityId,
     action: 'enter_room',
     roomId: toRoomId,
+    toLevelZ: levelTransition?.toLevelZ,
   });
 
   return events;
 }
 
 /**
- * Check if two entities are in the same room (for interactions/attacks)
+ * Check if two entities are in the same room (for interactions/attacks, considering z-level)
  */
 export function areEntitiesInSameRoom(
   entity1: Entity,
@@ -152,16 +287,37 @@ export function areEntitiesInSameRoom(
   if (!entity1.roomId || !entity2.roomId) {
     return false;
   }
-  return entity1.roomId === entity2.roomId;
+
+  // Must be in same room AND same z-level
+  if (entity1.roomId !== entity2.roomId) {
+    return false;
+  }
+
+  // Check z-level if specified
+  if (entity1.position?.z !== undefined && entity2.position?.z !== undefined) {
+    return entity1.position.z === entity2.position.z;
+  }
+
+  return true;
 }
 
 /**
- * Get all entities in a specific room
+ * Get all entities in a specific room (optionally filtered by z-level)
  */
 export function getEntitiesInRoom(
   roomId: string,
-  entities: Map<string, Entity>
+  entities: Map<string, Entity>,
+  levelZ?: number
 ): Entity[] {
-  return Array.from(entities.values()).filter((e) => e.roomId === roomId);
+  return Array.from(entities.values()).filter((e) => {
+    if (e.roomId !== roomId) {
+      return false;
+    }
+    // Filter by z-level if specified
+    if (levelZ !== undefined && e.position?.z !== undefined) {
+      return e.position.z === levelZ;
+    }
+    return true;
+  });
 }
 

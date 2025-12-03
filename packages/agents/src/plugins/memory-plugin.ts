@@ -73,5 +73,56 @@ export class MemoryPluginImpl implements MemoryPlugin {
     });
     await this.writeMemory(agentId, memory);
   }
+
+  /**
+   * Update memory with new updates (merges with existing memory)
+   */
+  async updateMemory(agentId: string, memoryUpdate: {
+    shortTerm?: Array<{ eventId: string; timestamp: number }>;
+    episodic?: Array<{ runId: string; summary: string }>;
+    longTerm?: {
+      reputations?: Record<string, number>;
+      lore?: string[];
+      relationships?: Record<string, string>;
+    };
+  }): Promise<void> {
+    const memory = await this.readMemory(agentId);
+
+    // Merge short-term memory
+    if (memoryUpdate.shortTerm) {
+      memory.shortTerm = [
+        ...memory.shortTerm,
+        ...memoryUpdate.shortTerm,
+      ].slice(-10); // Keep only last 10
+    }
+
+    // Merge episodic memory
+    if (memoryUpdate.episodic) {
+      memory.episodic = [
+        ...memory.episodic,
+        ...memoryUpdate.episodic,
+      ];
+    }
+
+    // Merge long-term memory
+    if (memoryUpdate.longTerm) {
+      memory.longTerm = {
+        reputations: {
+          ...memory.longTerm.reputations,
+          ...memoryUpdate.longTerm.reputations,
+        },
+        lore: [
+          ...(memory.longTerm.lore || []),
+          ...(memoryUpdate.longTerm.lore || []),
+        ],
+        relationships: {
+          ...memory.longTerm.relationships,
+          ...memoryUpdate.longTerm.relationships,
+        },
+      };
+    }
+
+    await this.writeMemory(agentId, memory);
+  }
 }
 

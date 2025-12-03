@@ -20,9 +20,11 @@ export interface CombatEvent extends BaseEvent {
 export interface ExplorationEvent extends BaseEvent {
   type: 'exploration';
   actorId: string;
-  action: 'move' | 'discover' | 'enter_room' | 'exit_room';
-  location?: { x: number; y: number };
+  action: 'move' | 'discover' | 'enter_room' | 'exit_room' | 'level_transition';
+  location?: { x: number; y: number; z?: number };
   roomId?: string;
+  fromLevelZ?: number;
+  toLevelZ?: number;
 }
 
 export interface InteractionEvent extends BaseEvent {

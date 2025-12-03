@@ -38,11 +38,26 @@ export interface Room {
   items: MapItem[]; // Items in this room
   enemies: MapEnemy[]; // Enemies in this room
   entities?: string[]; // Entity IDs currently in this room
+  levelZ?: number; // Z-coordinate for multi-level dungeons
 }
 
 export interface DungeonObjective {
   type: 'defeat_boss' | 'retrieve_item' | 'clear_room' | 'survive';
   target: string; // Entity ID or item ID
+}
+
+export interface LevelConnection {
+  fromZ: number;
+  toZ: number;
+  type: 'staircase' | 'ladder' | 'portal' | 'elevator';
+  description?: string;
+}
+
+export interface DungeonLevel {
+  z: number;
+  rooms: Room[];
+  connections: LevelConnection[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface DungeonMap {
@@ -53,12 +68,14 @@ export interface DungeonMap {
   width: number;
   height: number;
   objectives: DungeonObjective[];
+  levels?: DungeonLevel[]; // Multi-level structure (optional for backward compatibility)
 }
 
 export interface DungeonState {
   map: DungeonMap;
-  entities: Record<string, { roomId: string; position: { x: number; y: number } }>;
+  entities: Record<string, { roomId: string; position: { x: number; y: number; z?: number } }>;
   currentRoom?: string;
+  currentLevelZ?: number; // Current z-level for multi-level dungeons
   discoveredRooms: Set<string>;
 }
 
