@@ -101,6 +101,7 @@ const optionalEnvVars: Record<string, string[]> = {
     'FARCASTER_SIGNER_KEY',
     'NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS',
     'NEXT_PUBLIC_PRICING_SIGNER_ADDRESS',
+    'NEXT_PUBLIC_PRIVY_APP_ID',
   ],
   worker: [
     'ELIZA_URL',
