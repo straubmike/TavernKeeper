@@ -8,8 +8,8 @@ import { Address } from 'viem';
  * - THE_CELLAR: CellarHook contract receiving 15% from TavernKeeper Office fees (pot)
  */
 
-// Monad Testnet Addresses
-const MONAD_ADDRESSES = {
+// Monad Testnet Addresses (Chain ID: 10143)
+const MONAD_TESTNET_ADDRESSES = {
     // Infrastructure
     ERC6551_REGISTRY: '0xca3f315D82cE6Eecc3b9E29Ecc8654BA61e7508C' as Address,
     ERC6551_IMPLEMENTATION: '0x9B5980110654dcA57a449e2D6BEc36fE54123B0F' as Address,
@@ -33,13 +33,13 @@ const MONAD_ADDRESSES = {
     TOWN_POSSE_MANAGER: '0xEa0F26c751b27504Df2D6D99Aa225e8f0D79Be58' as Address,
 };
 
-// Localhost Addresses (populated by deployment script)
-export const LOCALHOST_ADDRESSES = {
+// Monad Mainnet Addresses (Chain ID: 143) - From FIRSTDEPLOYMENT.md
+const MONAD_MAINNET_ADDRESSES = {
     // Infrastructure
     ERC6551_REGISTRY: '0xE74D0b9372e81037e11B4DEEe27D063C24060Ea9' as Address,
     ERC6551_IMPLEMENTATION: '0xb7160ebCd3C85189ee950570EABfA4dC22234Ec7' as Address,
 
-    // Game Contracts (Proxies) - FROM YOUR DEPLOYMENT OUTPUT
+    // Game Contracts (Proxies)
     KEEP_TOKEN: '0x2D1094F5CED6ba279962f9676d32BE092AFbf82E' as Address,
     INVENTORY: '0xcB11EFb6E697b5eD7841717b4C994D3edC8393b4' as Address,
     ADVENTURER: '0xb138Bf579058169e0657c12Fd9cc1267CAFcb935' as Address,
@@ -58,11 +58,56 @@ export const LOCALHOST_ADDRESSES = {
     TOWN_POSSE_MANAGER: '0xE46592D8185975888b4A301DBD9b24A49933CC7D' as Address,
 };
 
-// Choose addresses based on USE_LOCALHOST flag
-const USE_LOCALHOST = process.env.NEXT_PUBLIC_USE_LOCALHOST === 'true';
+// Localhost Addresses (for local development)
+export const LOCALHOST_ADDRESSES = {
+    // Infrastructure
+    ERC6551_REGISTRY: '0xE74D0b9372e81037e11B4DEEe27D063C24060Ea9' as Address,
+    ERC6551_IMPLEMENTATION: '0xb7160ebCd3C85189ee950570EABfA4dC22234Ec7' as Address,
 
-// CONTRACT_ADDRESSES switches between Monad and Localhost
-export const CONTRACT_ADDRESSES = USE_LOCALHOST ? LOCALHOST_ADDRESSES : MONAD_ADDRESSES;
+    // Game Contracts (Proxies) - These should be from local deployment
+    KEEP_TOKEN: '0x2D1094F5CED6ba279962f9676d32BE092AFbf82E' as Address,
+    INVENTORY: '0xcB11EFb6E697b5eD7841717b4C994D3edC8393b4' as Address,
+    ADVENTURER: '0xb138Bf579058169e0657c12Fd9cc1267CAFcb935' as Address,
+    TAVERNKEEPER: '0x56B81A60Ae343342685911bd97D1331fF4fa2d29' as Address,
+    DUNGEON_GATEKEEPER: '0xf454A4A4f2F960a5d5b7583A289dCAE765d57355' as Address,
+
+    // Treasury / Mechanics
+    THE_CELLAR: '0x6c7612F44B71E5E6E2bA0FEa799A23786A537755' as Address,
+    CELLAR_ZAP: '0xf7248a01051bf297Aa56F12a05e7209C60Fc5863' as Address,
+    POOL_MANAGER: '0x27e98f6A0D3315F9f3ECDaFE0187a7637F41c7c2' as Address,
+    // Fee recipient from env (NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS), fallback to Cellar if not set
+    FEE_RECIPIENT: (process.env.NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS as Address | undefined) || '0x6c7612F44B71E5E6E2bA0FEa799A23786A537755' as Address,
+
+    // Group LP Management
+    TAVERN_REGULARS_MANAGER: '0x9f455Ad562e080CC745f9E97c469a86E1bBF8db8' as Address,
+    TOWN_POSSE_MANAGER: '0xE46592D8185975888b4A301DBD9b24A49933CC7D' as Address,
+};
+
+// Get chain ID from environment (143 = mainnet, 10143 = testnet)
+const getChainId = (): number => {
+    const chainId = process.env.NEXT_PUBLIC_MONAD_CHAIN_ID;
+    if (!chainId) return 143; // Default to mainnet
+    const parsed = parseInt(chainId, 10);
+    return isNaN(parsed) ? 143 : parsed;
+};
+
+// Choose addresses based on USE_LOCALHOST flag and chain ID
+const USE_LOCALHOST = process.env.NEXT_PUBLIC_USE_LOCALHOST === 'true';
+const chainId = getChainId();
+
+// CONTRACT_ADDRESSES switches based on localhost flag and chain ID
+let CONTRACT_ADDRESSES: typeof MONAD_MAINNET_ADDRESSES;
+if (USE_LOCALHOST) {
+    CONTRACT_ADDRESSES = LOCALHOST_ADDRESSES;
+} else if (chainId === 143) {
+    // Mainnet
+    CONTRACT_ADDRESSES = MONAD_MAINNET_ADDRESSES;
+} else {
+    // Testnet (10143) or fallback
+    CONTRACT_ADDRESSES = MONAD_TESTNET_ADDRESSES;
+}
+
+export { CONTRACT_ADDRESSES };
 
 // CRITICAL VALIDATION: Ensure no zero addresses in production
 if (typeof window === 'undefined') {
@@ -71,6 +116,7 @@ if (typeof window === 'undefined') {
         if (address === '0x0000000000000000000000000000000000000000') {
             console.error(`🚨 CRITICAL ERROR: ${key} address is ZERO! This will break in production!`);
             console.error(`   USE_LOCALHOST=${USE_LOCALHOST}`);
+            console.error(`   Chain ID=${chainId}`);
             console.error(`   Set NEXT_PUBLIC_USE_LOCALHOST=true for localhost or ensure addresses are correct`);
         }
     }
