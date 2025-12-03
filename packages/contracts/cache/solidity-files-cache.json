@@ -2680,46 +2680,6 @@
         "Ownable"
       ]
     },
-    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TheCellar.sol": {
-      "lastModificationDate": 1764702554105,
-      "contentHash": "c8b944e2a18c841265e1badb32b2af5f",
-      "sourceName": "contracts/TheCellar.sol",
-      "solcConfig": {
-        "version": "0.8.26",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "cancun",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "storageLayout"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "@openzeppelin/contracts/access/Ownable.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "TheCellar"
-      ]
-    },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\legacy\\TheCellar.sol": {
       "lastModificationDate": 1764703294316,
       "contentHash": "a994553be934ce6b79b70aeb8cbaa26e",
@@ -4261,8 +4221,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\hooks\\CellarHook.sol": {
-      "lastModificationDate": 1764703294316,
-      "contentHash": "deecd6d75543de656901cb89145070cd",
+      "lastModificationDate": 1764768800397,
+      "contentHash": "153890389f3a6bed79da8b3255cd6053",
       "sourceName": "contracts/hooks/CellarHook.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -4361,8 +4321,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\TavernKeeper.sol": {
-      "lastModificationDate": 1764712374386,
-      "contentHash": "7b0e3c3ce99d9c9731ea569e5b18f50a",
+      "lastModificationDate": 1764768798380,
+      "contentHash": "8d2cc213573f955ae76bd74ef42308de",
       "sourceName": "contracts/TavernKeeper.sol",
       "solcConfig": {
         "version": "0.8.26",

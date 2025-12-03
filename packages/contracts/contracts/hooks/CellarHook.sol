@@ -326,7 +326,8 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
             return minInitPrice;
         }
 
-        return slot0Cache.initPrice - slot0Cache.initPrice * timePassed / epochPeriod;
+        uint256 calculatedPrice = slot0Cache.initPrice - slot0Cache.initPrice * timePassed / epochPeriod;
+        return calculatedPrice < minInitPrice ? minInitPrice : calculatedPrice;
     }
 
     function getAuctionPrice() public view returns (uint256) {

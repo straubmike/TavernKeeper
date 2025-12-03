@@ -185,9 +185,13 @@ export const tavernKeeperService = {
         // The contract refunds any excess payment, so it is safe to send more.
         // We add 5% buffer to the current price to handle any price increase between fetch and tx.
         const currentPriceWei = parseEther(state.currentPrice);
+        const minPriceWei = parseEther('1.0');
 
-        const buffer = (currentPriceWei * 5n) / 100n;
-        const safePrice = currentPriceWei + buffer;
+        // Enforce minimum price of 1 MON
+        const effectivePriceWei = currentPriceWei < minPriceWei ? minPriceWei : currentPriceWei;
+
+        const buffer = (effectivePriceWei * 5n) / 100n;
+        const safePrice = effectivePriceWei + buffer;
 
         // We set maxPrice to the safePrice to allow for the slippage
         const maxPrice = safePrice;

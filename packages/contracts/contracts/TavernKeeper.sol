@@ -387,10 +387,11 @@ contract TavernKeeper is Initializable, ERC721Upgradeable, ERC721URIStorageUpgra
         uint256 timePassed = block.timestamp - slot0Cache.startTime;
 
         if (timePassed > EPOCH_PERIOD) {
-            return 0;
+            return MIN_INIT_PRICE;
         }
 
-        return slot0Cache.initPrice - slot0Cache.initPrice * timePassed / EPOCH_PERIOD;
+        uint256 calculatedPrice = slot0Cache.initPrice - slot0Cache.initPrice * timePassed / EPOCH_PERIOD;
+        return calculatedPrice < MIN_INIT_PRICE ? MIN_INIT_PRICE : calculatedPrice;
     }
 
 

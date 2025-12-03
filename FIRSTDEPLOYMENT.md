@@ -1,4 +1,4 @@
-gi=== DEPLOYING TO MONAD ===
+=== DEPLOYING TO MONAD ===
 Deployer: 0xD515674a7fE63dFDfd43Fb5647E8B04eEfCEdCAa
 
 --- Address Configuration ---
@@ -100,4 +100,21 @@ Tavern Regulars Manager: 0x9f455Ad562e080CC745f9E97c469a86E1bBF8db8
 Town Posse Manager: 0xE46592D8185975888b4A301DBD9b24A49933CC7D
 
 ✅ Deployment finished!
-PS C:\Users\epj33\Desktop\InnKeeper\packages\contracts>
+
+---
+
+## Upgrade History (Mainnet)
+
+### 2025-12-03: Pricing Logic Fix (Hotfix)
+- **Reason**: Fixed Dutch Auction logic to enforce minimum price floor (1 MON) instead of decaying to 0.
+- **Contracts Upgraded**:
+  - **TavernKeeper**:
+    - Proxy: `0x56B81A60Ae343342685911bd97D1331fF4fa2d29`
+    - Old Impl: `0xA33dF761f3A72eDe5D38310a17fc8CF70798e0Be`
+    - New Impl: `0x48D8aeB5AD8175c701910A9Cf0aB25a9AeB048C6`
+  - **CellarHook (The Cellar)**:
+    - Proxy: `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755`
+    - Old Impl: `0x7C1Dce56106DB26fB117966AEc66c86d5933B2D6`
+    - New Impl: `0x9b08076b569b0bDB56Ae630ca3587fE5A3cF09C4`
+- **Status**: ✅ Success
+- **Notes**: Frontend addresses updated automatically.
