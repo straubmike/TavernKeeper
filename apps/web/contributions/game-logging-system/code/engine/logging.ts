@@ -250,7 +250,7 @@ export function createKeyEventEntry(
     actorId: 'actorId' in event ? event.actorId : undefined,
     targetId: 'targetId' in event ? event.targetId : undefined,
     summary,
-    payload: event as Record<string, unknown>,
+    payload: (event as unknown) as Record<string, unknown>,
     timestamp: new Date(event.timestamp),
     runId,
     agentId,
