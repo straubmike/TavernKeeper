@@ -7,12 +7,12 @@
     "miniapp": {
         "version": "1",
         "name": "InnKeeper",
-        "iconUrl": "https://innkeeper.game/icon.png",
-        "homeUrl": "https://innkeeper.game/miniapp",
-        "imageUrl": "https://innkeeper.game/image.png",
+        "iconUrl": "https://tavernkeeper.xyz/icon.png",
+        "homeUrl": "https://tavernkeeper.xyz/miniapp",
+        "imageUrl": "https://tavernkeeper.xyz/image.png",
         "buttonTitle": "Play InnKeeper",
-        "splashImageUrl": "https://innkeeper.game/splash.png",
+        "splashImageUrl": "https://tavernkeeper.xyz/splash.png",
         "splashBackgroundColor": "#2a1d17",
-        "webhookUrl": "https://innkeeper.game/api/webhook"
+        "webhookUrl": "https://tavernkeeper.xyz/api/webhook"
     }
 }

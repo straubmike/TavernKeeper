@@ -4,14 +4,14 @@ import '../globals.css';
 // Farcaster Miniapp Frame Metadata
 const frame = {
     version: "1",
-    imageUrl: "https://innkeeper.game/image.png",
+    imageUrl: "https://tavernkeeper.xyz/image.png",
     button: {
         title: "Play InnKeeper",
         action: {
             type: "launch_frame",
             name: "InnKeeper",
-            url: "https://innkeeper.game/miniapp",
-            splashImageUrl: "https://innkeeper.game/icon.png",
+            url: "https://tavernkeeper.xyz/miniapp",
+            splashImageUrl: "https://tavernkeeper.xyz/icon.png",
             splashBackgroundColor: "#2a1d17"
         }
     }
