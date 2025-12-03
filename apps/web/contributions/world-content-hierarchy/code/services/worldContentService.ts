@@ -57,10 +57,10 @@ export class WorldContentService {
         const entry = await this.getContent(id);
         if (!entry) return null;
         return {
-          id: entry.content.id,
+          contentId: entry.content.id,
           name: entry.content.name,
           type: entry.content.type,
-          parentId: entry.content.parentId,
+          relationship: 'parent', // Default relationship
         };
       }
     );
