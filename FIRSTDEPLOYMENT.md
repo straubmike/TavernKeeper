@@ -105,6 +105,16 @@ Town Posse Manager: 0xE46592D8185975888b4A301DBD9b24A49933CC7D
 
 ## Upgrade History (Mainnet)
 
+### 2025-01-XX: Added 1:3 MON:KEEP ratio validation
+- **Reason**: Added 1:3 MON:KEEP ratio validation to addLiquidity
+- **Contracts Upgraded**:
+  - **CellarHook (The Cellar)**:
+    - Proxy: `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755`
+    - Old Impl: `0x9b08076b569b0bDB56Ae630ca3587fE5A3cF09C4`
+    - New Impl: `0x9aAc7082B18733a6951e0885C26DdD0Efa2b8C05`
+- **Status**: ✅ Success
+- **Notes**: Frontend addresses unchanged (proxy address stays the same). Enforces 1:3 MON:KEEP ratio when minting LP tokens.
+
 ### 2025-01-XX: Added updateTokenURI function
 - **Reason**: Added updateTokenURI function for metadata updates
 - **Contracts Upgraded**:

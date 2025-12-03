@@ -6,7 +6,7 @@
     },
     "miniapp": {
         "version": "1",
-        "name": "InnKeeper",
+        "name": "TavernKeeper",
         "iconUrl": "https://tavernkeeper.xyz/icon.png",
         "homeUrl": "https://tavernkeeper.xyz/miniapp",
         "imageUrl": "https://tavernkeeper.xyz/image.png",

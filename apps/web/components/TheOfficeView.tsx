@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatEther } from 'viem';
 import { getMonPrice } from '../lib/services/monPriceService';
@@ -120,7 +120,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                         'Take The Office';
 
     // Calculate Cellar PnL
-    // Cost = Price (LP) / 3 (since 1 MON = 3 LP)
+    // Cost = Price (LP) (since 1 LP = 1 MON when 1:3 MON:KEEP ratio is enforced)
     // PnL = Pot (MON) - Cost (MON)
     let cellarPnL = "$0.00";
     let isCellarProfitable = false;
@@ -128,7 +128,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
     if (cellarState) {
         const pot = parseFloat(cellarState.potSize || '0');
         const priceLP = parseFloat(cellarState.currentPrice || '0');
-        const costMON = priceLP / 3;
+        const costMON = priceLP; // 1 LP = 1 MON (when 1:3 ratio is enforced)
         const profit = pot - costMON;
 
         isCellarProfitable = profit > 0;

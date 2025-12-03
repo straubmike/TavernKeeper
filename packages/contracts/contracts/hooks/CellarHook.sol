@@ -251,6 +251,9 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
     // ---------------------------------------------------------
 
     function addLiquidity(PoolKey calldata key, uint256 amountMON, uint256 amountKEEP, int24 tickLower, int24 tickUpper) external payable {
+        // Validate 1:3 MON:KEEP ratio
+        require(amountKEEP == amountMON * 3, "CellarHook: Invalid MON:KEEP ratio (must be 1:3)");
+
         // 1. Transfer tokens to Hook
         if (Currency.unwrap(MON) == address(0)) {
             require(msg.value == amountMON, "Incorrect MON");
@@ -266,8 +269,9 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
         // 3. Add Liquidity to PoolManager (Simplified placeholder)
         // poolManager.modifyLiquidity(...)
 
-        // 4. Mint LP Tokens to User (Simplified 1:1)
-        uint256 liquidityMinted = amountMON; // Placeholder logic
+        // 4. Mint LP Tokens to User
+        // Mint 1 LP per 1 MON (with 3 KEEP required per MON to maintain 1:3 ratio)
+        uint256 liquidityMinted = amountMON;
 
         _mint(msg.sender, liquidityMinted);
     }

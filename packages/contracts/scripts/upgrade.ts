@@ -49,7 +49,10 @@ async function main() {
 
     console.log("\n=== DOCUMENTATION UPDATE REQUIRED ===");
     console.log("Run this command to update FIRSTDEPLOYMENT.md (PowerShell):");
-    console.log(`  $env:CONTRACT_NAME="${contractName}"; $env:OLD_IMPL="${currentImpl}"; $env:NEW_IMPL="${newImpl}"; $env:REASON="Added updateTokenURI function"; npx hardhat run scripts/update_deployment_docs.ts`);
+    const reason = contractName === "CellarHook" 
+        ? "Added 1:3 MON:KEEP ratio validation to addLiquidity"
+        : "Added updateTokenURI function";
+    console.log(`  $env:CONTRACT_NAME="${contractName}"; $env:OLD_IMPL="${currentImpl}"; $env:NEW_IMPL="${newImpl}"; $env:REASON="${reason}"; npx hardhat run scripts/update_deployment_docs.ts`);
     console.log("\nOr manually update FIRSTDEPLOYMENT.md Upgrade History section with:");
     console.log(`  - Contract: ${contractName}`);
     console.log(`  - Proxy: ${proxyAddress}`);
