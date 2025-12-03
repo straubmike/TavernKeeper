@@ -2,19 +2,28 @@
 
 import sdk from '@farcaster/miniapp-sdk';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { formatEther } from 'viem';
+import { useAccount, useConnect } from 'wagmi';
 import { ChatOverlay } from '../../../components/ChatOverlay';
-import { PixelBox, PixelButton } from '../../../components/PixelComponents';
 import { BattleScene } from '../../../components/scenes/BattleScene';
 import { InnScene } from '../../../components/scenes/InnScene';
 import { MapScene } from '../../../components/scenes/MapScene';
 import { TheOfficeMiniapp } from '../../../components/TheOfficeMiniapp';
 import { WelcomeModal } from '../../../components/WelcomeModal';
-import { getFarcasterWalletAddress } from '../../../lib/services/farcasterWallet';
+import { monad } from '../../../lib/chains';
 import { keepTokenService } from '../../../lib/services/keepToken';
 import { useGameStore } from '../../../lib/stores/gameStore';
 import { GameView } from '../../../lib/types';
+
+type MiniAppContext = {
+  user?: {
+    fid: number;
+    username?: string;
+    displayName?: string;
+    pfpUrl?: string;
+  };
+};
 
 function SearchParamsHandler({ onViewChange }: { onViewChange: (view: string | null) => void }) {
     const searchParams = useSearchParams();
@@ -30,29 +39,65 @@ function SearchParamsHandler({ onViewChange }: { onViewChange: (view: string | n
 
 function MiniappContent() {
     const { currentView, switchView, party, keepBalance, setKeepBalance } = useGameStore();
-    const [address, setAddress] = useState<string | null>(null);
-    const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+    const readyRef = useRef(false);
+    const autoConnectAttempted = useRef(false);
+    const [context, setContext] = useState<MiniAppContext | null>(null);
 
-    // Initialize Farcaster SDK
+    // Get user context from SDK
     useEffect(() => {
-        const initSDK = async () => {
+        let cancelled = false;
+        const hydrateContext = async () => {
             try {
-                // Initialize the SDK
-                sdk.actions.ready();
-                setIsSDKLoaded(true);
-
-                // Get wallet address from SDK
-                const walletAddress = await getFarcasterWalletAddress();
-                if (walletAddress) {
-                    setAddress(walletAddress);
+                const ctx = (await (sdk as unknown as {
+                    context: Promise<MiniAppContext> | MiniAppContext;
+                }).context) as MiniAppContext;
+                if (!cancelled) {
+                    setContext(ctx);
                 }
-            } catch (error) {
-                console.error('Failed to initialize Farcaster SDK:', error);
+            } catch {
+                if (!cancelled) setContext(null);
             }
         };
-
-        initSDK();
+        hydrateContext();
+        return () => {
+            cancelled = true;
+        };
     }, []);
+
+    // Call sdk.actions.ready() after delay
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            if (!readyRef.current) {
+                readyRef.current = true;
+                sdk.actions.ready().catch(() => {});
+            }
+        }, 1200);
+        return () => clearTimeout(timeout);
+    }, []);
+
+    // Wagmi hooks for wallet connection
+    const { address, isConnected } = useAccount();
+    const { connectors, connectAsync, isPending: isConnecting } = useConnect();
+    const primaryConnector = connectors[0];
+
+    // Auto-connect when connector is available
+    useEffect(() => {
+        if (
+            autoConnectAttempted.current ||
+            isConnected ||
+            !primaryConnector ||
+            isConnecting
+        ) {
+            return;
+        }
+        autoConnectAttempted.current = true;
+        connectAsync({
+            connector: primaryConnector,
+            chainId: monad.id,
+        }).catch(() => {
+            // Ignore auto-connect failures; user can connect manually.
+        });
+    }, [connectAsync, isConnected, isConnecting, primaryConnector]);
 
     // Fetch KEEP Balance
     useEffect(() => {
@@ -151,7 +196,7 @@ function MiniappContent() {
 
                                 {/* The Office (King of the Hill) wrapping the Chat */}
                                 <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
-                                    <TheOfficeMiniapp>
+                                    <TheOfficeMiniapp userContext={context?.user}>
                                         <ChatOverlay />
                                     </TheOfficeMiniapp>
                                 </div>

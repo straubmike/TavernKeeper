@@ -1,13 +1,24 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getContextualWalletClient, getFarcasterWalletAddress, isFarcasterWalletConnected } from '../lib/services/farcasterWallet';
+import { useAccount, useConnect, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { monad } from '../lib/chains';
 import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
 import { theCellarService } from '../lib/services/theCellarService';
 import { useGameStore } from '../lib/stores/gameStore';
 import { TheOfficeView } from './TheOfficeView';
 
-export const TheOfficeMiniapp: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+type UserContext = {
+    fid?: number;
+    username?: string;
+    displayName?: string;
+    pfpUrl?: string;
+} | undefined;
+
+export const TheOfficeMiniapp: React.FC<{
+    children?: React.ReactNode;
+    userContext?: UserContext;
+}> = ({ children, userContext }) => {
     const { keepBalance } = useGameStore();
     const [state, setState] = useState<OfficeState>({
         currentKing: 'Loading...',
@@ -24,38 +35,18 @@ export const TheOfficeMiniapp: React.FC<{ children?: React.ReactNode }> = ({ chi
         initPrice: '0'
     });
     const [isLoading, setIsLoading] = useState(false);
-    const [walletReady, setWalletReady] = useState(false);
-    const [farcasterClient, setFarcasterClient] = useState<any>(null);
-    const [address, setAddress] = useState<string | null>(null);
     const [timeHeld, setTimeHeld] = useState<string>('0m 0s');
 
-    // Initialize Farcaster Wallet
-    useEffect(() => {
-        const initWallet = async () => {
-            try {
-                const connected = await isFarcasterWalletConnected();
-                if (connected) {
-                    const client = await getContextualWalletClient();
-                    const walletAddress = await getFarcasterWalletAddress();
+    // Use wagmi hooks for wallet connection
+    const { address, isConnected } = useAccount();
+    const { connectAsync, connectors, isPending: isConnecting } = useConnect();
+    const { writeContract, data: txHash, isPending: isWriting, reset: resetWrite } = useWriteContract();
+    const { data: receipt, isLoading: isConfirming } = useWaitForTransactionReceipt({
+        hash: txHash,
+        chainId: monad.id,
+    });
 
-                    setFarcasterClient(client);
-                    setAddress(walletAddress);
-                    setWalletReady(!!client);
-
-                    if (client) {
-                        console.log('Farcaster SDK wallet ready');
-                    }
-                }
-            } catch (error) {
-                console.error('Error initializing Farcaster wallet:', error);
-                setWalletReady(false);
-            }
-        };
-
-        initWallet();
-        const interval = setInterval(initWallet, 2000); // Poll for wallet readiness
-        return () => clearInterval(interval);
-    }, []);
+    const walletReady = isConnected && !!address;
 
     // Fetch Office State
     const fetchOfficeState = async () => {
@@ -79,10 +70,44 @@ export const TheOfficeMiniapp: React.FC<{ children?: React.ReactNode }> = ({ chi
         return () => clearInterval(interval);
     }, [state.kingSince]);
 
+    // Handle transaction receipt
+    useEffect(() => {
+        if (!receipt) return;
+        if (receipt.status === 'success' || receipt.status === 'reverted') {
+            setIsLoading(false);
+            theCellarService.clearCache();
+            fetchOfficeState();
+            const resetTimer = setTimeout(() => {
+                resetWrite();
+            }, 500);
+            return () => clearTimeout(resetTimer);
+        }
+    }, [receipt, resetWrite]);
+
     const handleTakeOffice = async () => {
-        if (!farcasterClient) {
-            alert('Farcaster wallet not ready. Please ensure you are connected in the miniapp.');
-            return;
+        if (!isConnected || !address) {
+            // Try to connect if not connected
+            if (!isConnected && connectors[0]) {
+                try {
+                    await connectAsync({
+                        connector: connectors[0],
+                        chainId: monad.id,
+                    });
+                    // Wait a bit for connection to complete
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Re-check after connection
+                    if (!address) {
+                        alert('Wallet connected but address not available. Please try again.');
+                        return;
+                    }
+                } catch (error) {
+                    alert('Failed to connect wallet. Please try again.');
+                    return;
+                }
+            } else {
+                alert('Wallet not connected. Please connect your wallet.');
+                return;
+            }
         }
 
         if (!address) {
@@ -90,49 +115,30 @@ export const TheOfficeMiniapp: React.FC<{ children?: React.ReactNode }> = ({ chi
             return;
         }
 
-        await executeTakeOffice(farcasterClient, address);
-    };
-
-    const executeTakeOffice = async (client: any, clientAddress: string) => {
         try {
             setIsLoading(true);
-            console.log('Using client:', client);
-            console.log('Address:', clientAddress);
-
-            const hash = await tavernKeeperService.takeOffice(client, state.currentPrice, clientAddress);
+            const hash = await tavernKeeperService.takeOfficeWithWriteContract(
+                writeContract,
+                state.currentPrice,
+                address
+            );
             console.log('Transaction sent:', hash);
-            alert('Transaction sent! Waiting for confirmation...');
-
-            // Wait for transaction confirmation and refresh
-            try {
-                const { createPublicClient, http } = await import('viem');
-                const { monad } = await import('../lib/chains');
-
-                const publicClient = createPublicClient({
-                    chain: monad,
-                    transport: http()
-                });
-                await publicClient.waitForTransactionReceipt({ hash });
-
-                // Clear cellar cache and refresh
-                theCellarService.clearCache();
-                fetchOfficeState();
-            } catch (waitError) {
-                console.error('Error waiting for transaction:', waitError);
-                // Still refresh after delay if wait fails
-                setTimeout(() => {
-                    theCellarService.clearCache();
-                    fetchOfficeState();
-                }, 5000);
-            }
+            // Don't set isLoading to false here - let the receipt handler do it
         } catch (error) {
             console.error('Failed to take office:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             alert(`Failed to take office: ${errorMessage}`);
-        } finally {
             setIsLoading(false);
         }
     };
+
+    const isLoadingState = isLoading || isWriting || isConfirming;
+
+    useEffect(() => {
+        if (receipt && (receipt.status === 'success' || receipt.status === 'reverted')) {
+            setIsLoading(false);
+        }
+    }, [receipt]);
 
     const [viewMode, setViewMode] = useState<'office' | 'cellar'>('office');
 
@@ -146,9 +152,9 @@ export const TheOfficeMiniapp: React.FC<{ children?: React.ReactNode }> = ({ chi
             state={state}
             timeHeld={timeHeld}
             keepBalance={keepBalance}
-            isLoading={isLoading}
+            isLoading={isLoadingState}
             walletReady={walletReady}
-            isWalletConnected={!!address}
+            isWalletConnected={isConnected && !!address}
             onTakeOffice={handleTakeOffice}
             viewMode={viewMode}
             onViewSwitch={setViewMode}
@@ -159,9 +165,9 @@ export const TheOfficeMiniapp: React.FC<{ children?: React.ReactNode }> = ({ chi
             {children}
             {/* Debug Info Overlay */}
             <div className="absolute top-0 left-0 w-full bg-black/80 text-[8px] text-green-400 p-2 pointer-events-none z-50 font-mono">
-                <div>SDK: {farcasterClient ? 'Ready' : 'Not Found'}</div>
+                <div>Wagmi: {isConnected ? 'Connected' : 'Not Connected'}</div>
                 <div>Addr: {address ? address.slice(0, 6) + '...' : 'None'}</div>
-                <div>Ready: {walletReady ? 'Yes' : 'No'}</div>
+                <div>User: {userContext?.username ? `@${userContext.username}` : userContext?.fid ? `FID ${userContext.fid}` : 'None'}</div>
             </div>
         </TheOfficeView>
     );

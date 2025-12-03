@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: 'TavernKeeper',
     images: [
       {
-        url: '/image.png',
+        url: `${appUrl}/image.png`,
         width: 1200,
         height: 630,
         alt: 'TavernKeeper - Dungeon Crawler Game',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'TavernKeeper - Dungeon Crawler with AI Agents',
     description: 'Welcome back, traveler! The hearth is warm. A dungeon crawler game with AI agents, NFT heroes, and multiplayer parties.',
-    images: ['/image.png'],
+    images: [`${appUrl}/image.png`],
   },
   metadataBase: new URL(appUrl),
 };

@@ -152,6 +152,48 @@ export const tavernKeeperService = {
         }
     },
 
+    async takeOfficeWithWriteContract(
+        writeContract: any,
+        value: string,
+        accountAddress: `0x${string}`,
+        message: string = ""
+    ) {
+        const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+        const contractAddress = getContractAddress(contractConfig);
+
+        if (!contractAddress) throw new Error("TavernKeeper contract not found");
+        if (!accountAddress) {
+            throw new Error("Account not found. Please ensure your wallet is connected and unlocked.");
+        }
+
+        // Fetch FRESH state to get exact epochId and price
+        const state = await this.getOfficeState(true);
+        const epochId = BigInt(state.epochId);
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 minutes deadline
+
+        // Calculate price with slippage
+        const currentPriceWei = parseEther(state.currentPrice);
+        const minPriceWei = parseEther('1.0');
+        const effectivePriceWei = currentPriceWei < minPriceWei ? minPriceWei : currentPriceWei;
+        const buffer = (effectivePriceWei * 5n) / 100n;
+        const safePrice = effectivePriceWei + buffer;
+        const maxPrice = safePrice;
+
+        console.log(`Taking Office: Epoch ${epochId}, Price ${state.currentPrice}, Sending ${formatEther(safePrice)}`);
+
+        const hash = await writeContract({
+            address: contractAddress,
+            abi: contractConfig.abi,
+            functionName: 'takeOffice',
+            value: safePrice,
+            args: [epochId, deadline, maxPrice, message],
+            account: accountAddress,
+            chainId: monad.id,
+        });
+
+        return hash;
+    },
+
     async takeOffice(client: any, value: string, accountAddress?: string, message: string = "") {
         const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
         const contractAddress = getContractAddress(contractConfig);
