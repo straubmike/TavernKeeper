@@ -330,8 +330,35 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 </PixelButton>
                             </div>
                         ) : (
-                            <div className="text-center py-1">
-                                <span className="text-[10px] text-[#a8a29e] italic">Connect wallet to play</span>
+                            <div className="flex flex-col gap-2">
+                                <div className="text-center py-1">
+                                    <span className="text-[10px] text-[#a8a29e] italic">Connect wallet to play</span>
+                                </div>
+                                <PixelButton
+                                    onClick={async () => {
+                                        // Manual trigger for Farcaster Wallet
+                                        const { getContextualWalletClient, getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
+                                        try {
+                                            const client = await getContextualWalletClient();
+                                            if (client) {
+                                                const address = await getFarcasterWalletAddress();
+                                                if (address) {
+                                                    // Force reload or state update
+                                                    window.location.reload();
+                                                }
+                                            } else {
+                                                alert("Farcaster Wallet not found. Are you in a miniapp?");
+                                            }
+                                        } catch (e) {
+                                            console.error(e);
+                                            alert("Failed to connect: " + (e as any).message);
+                                        }
+                                    }}
+                                    variant="primary"
+                                    className="w-full !py-2 !text-xs shadow-lg flex items-center justify-center"
+                                >
+                                    Connect Farcaster
+                                </PixelButton>
                             </div>
                         )}
                     </div>

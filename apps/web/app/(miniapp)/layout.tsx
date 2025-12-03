@@ -1,4 +1,29 @@
-'use client';
+import type { Metadata } from 'next';
+import '../../globals.css';
+
+// Farcaster Miniapp Frame Metadata
+const frame = {
+    version: "1",
+    imageUrl: "https://innkeeper.game/image.png",
+    button: {
+        title: "Play InnKeeper",
+        action: {
+            type: "launch_frame",
+            name: "InnKeeper",
+            url: "https://innkeeper.game/miniapp",
+            splashImageUrl: "https://innkeeper.game/icon.png",
+            splashBackgroundColor: "#2a1d17"
+        }
+    }
+};
+
+export const metadata: Metadata = {
+    title: 'InnKeeper Miniapp',
+    description: 'Play InnKeeper directly in Farcaster',
+    other: {
+        "fc:miniapp": JSON.stringify(frame)
+    }
+};
 
 export default function MiniappLayout({
     children,
@@ -6,8 +31,10 @@ export default function MiniappLayout({
     children: React.ReactNode;
 }) {
     return (
-        <>
-            {children}
-        </>
+        <html lang="en">
+            <body className="bg-black min-h-screen flex justify-center overflow-hidden">
+                {children}
+            </body>
+        </html>
     );
 }
