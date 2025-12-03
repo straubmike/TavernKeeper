@@ -1,13 +1,13 @@
 /**
  * Item Generator Class
- * 
+ *
  * INTEGRATION NOTES FOR MAIN DEV:
  * =================================
- * 
+ *
  * All generated items include a `requiredClass` property that MUST be checked
  * during equipment validation. This ensures class-specific items can only be
  * equipped by the correct class.
- * 
+ *
  * Equipment Validation Pseudocode:
  * ---------------------------------
  * function canEquipItem(agent, item) {
@@ -16,7 +16,7 @@
  *     }
  *     return true; // Class matches or no restriction
  * }
- * 
+ *
  * Class-Specific Items:
  * ---------------------
  * Weapons:
@@ -24,7 +24,7 @@
  *   - Staff → requiredClass: 'mage'
  *   - Dagger → requiredClass: 'rogue'
  *   - Mace → requiredClass: 'cleric'
- * 
+ *
  * Armor:
  *   - Full Plate, Chain Mail → requiredClass: 'warrior'
  *   - Mage Robes, Enchanted Cloak → requiredClass: 'mage'
@@ -51,22 +51,22 @@ export class ItemGenerator {
    * ============================================================================
    * SCARCITY SYSTEM - WEIGHTED POOL AVAILABILITY
    * ============================================================================
-   * 
+   *
    * OPTIONAL FEATURE: This system can be removed if not desired.
-   * 
+   *
    * How it works:
    * - Tracks how many of each item type have been generated (capped at 100 per type)
    * - When selecting items, weights are based on remaining availability
    * - Example: If 99 Staves exist, only 1 is left, so Staff weight = 1 (very low)
    * - Example: If 0 Longswords exist, all 100 are available, so weight = 100 (high)
-   * 
+   *
    * To REMOVE this system:
-   * 1. Remove all methods: getItemCounts(), saveItemCounts(), incrementItemCount(), 
+   * 1. Remove all methods: getItemCounts(), saveItemCounts(), incrementItemCount(),
    *    getAvailabilityWeight(), resetItemCounts()
    * 2. Remove scarcity weighting logic in generateWeapon() and generateArmor()
    * 3. Remove the incrementItemCount() call in generateItem()
    * 4. Replace weighted selection with simple random choice
-   * 
+   *
    * Search for "SCARCITY" in this file to find all related code.
    * ============================================================================
    */
@@ -274,13 +274,13 @@ export class ItemGenerator {
    * Each weapon type is restricted to its specific class.
    * When integrating with the agent/equipment system, check:
    * - item.requiredClass === agent.class before allowing equip
-   * 
+   *
    * Weapon → Class mappings:
    * - Longsword → Warrior ONLY
    * - Staff → Mage ONLY
    * - Dagger → Rogue ONLY
    * - Mace → Cleric ONLY
-   * 
+   *
    * SCARCITY: Selection is weighted by remaining availability (100 - current count)
    */
   private generateWeapon(
@@ -396,15 +396,15 @@ export class ItemGenerator {
    * Each armor kit is restricted to its specific class.
    * When integrating with the agent/equipment system, check:
    * - item.requiredClass === agent.class before allowing equip
-   * 
+   *
    * Armor → Class mappings:
    * - Full Plate, Chain Mail → Warrior ONLY
    * - Mage Robes, Enchanted Cloak → Mage ONLY
    * - Leather Armor, Studded Leather → Rogue ONLY
    * - Scale Mail, Breastplate → Cleric ONLY
-   * 
+   *
    * Each armor represents a COMPLETE ARMOR SET (not individual pieces)
-   * 
+   *
    * SCARCITY: Selection is weighted by remaining availability (100 - current count)
    */
   private generateArmor(
@@ -501,7 +501,7 @@ export class ItemGenerator {
 
     // Select armor based on weighted random
     const totalWeight = weightedArmor.reduce((sum, a) => sum + a.weight, 0);
-    let armor: { type: string; baseAC: number; armorType: 'Light' | 'Medium' | 'Heavy'; requiredClass: PlayerClass };
+    let armor: { type: string; baseAC: number; armorType: 'Light' | 'Medium' | 'Heavy'; requiredClass: PlayerClass } | undefined = undefined;
     if (totalWeight === 0) {
       // All armor is at cap, select randomly
       armor = this.rng.choice(candidateArmor);
