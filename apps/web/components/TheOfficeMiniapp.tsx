@@ -152,7 +152,10 @@ export const TheOfficeMiniapp: React.FC<{
             const earned = timeSinceStart * dps;
 
             // 4. Calculate PNL
-            const pricePaid = initPrice / 1.5;
+            // Cost = Price Paid. We estimate this from initPrice.
+            // newInitPrice = pricePaid * 2.0. So pricePaid = initPrice / 2.0.
+            const pricePaid = initPrice / 2.0;
+            // Revenue = 80% of currentPrice (if someone buys now)
             const revenue = currentPrice * 0.8;
             const pnlValue = revenue - pricePaid;
 

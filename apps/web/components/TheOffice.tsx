@@ -131,8 +131,8 @@ export const TheOffice: React.FC<{ children?: React.ReactNode }> = ({ children }
 
             // 4. Calculate PNL
             // Cost = Price Paid. We estimate this from initPrice.
-            // newInitPrice = pricePaid * 1.5. So pricePaid = initPrice / 1.5.
-            const pricePaid = initPrice / 1.5;
+            // newInitPrice = pricePaid * 2.0. So pricePaid = initPrice / 2.0.
+            const pricePaid = initPrice / 2.0;
             // Revenue = 80% of currentPrice (if someone buys now)
             const revenue = currentPrice * 0.8;
             const pnlValue = revenue - pricePaid;
