@@ -3,8 +3,8 @@
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { PixelButton, PixelCard, PixelPanel } from '../../../components/PixelComponents';
+import { useSafeAccount } from '../../../lib/hooks/useSafeAccount';
 import { getFarcasterEthereumProvider } from '../../../lib/services/farcasterWallet';
 import { TavernRegularsGroup, tavernRegularsService } from '../../../lib/services/tavernRegularsService';
 import { isInFarcasterMiniapp } from '../../../lib/utils/farcasterDetection';
@@ -12,11 +12,7 @@ import { isInFarcasterMiniapp } from '../../../lib/utils/farcasterDetection';
 export default function TavernRegularsPage() {
     const isMiniapp = isInFarcasterMiniapp();
     const privy = usePrivy();
-    const wagmiAccount = useAccount();
-
-    // Use wagmi in miniapp, Privy otherwise
-    const authenticated = isMiniapp ? wagmiAccount.isConnected : privy.authenticated;
-    const address = isMiniapp ? wagmiAccount.address : privy.user?.wallet?.address;
+    const { address, authenticated } = useSafeAccount();
 
     // Helper to get ethers provider/signer
     const getEthersProvider = async () => {

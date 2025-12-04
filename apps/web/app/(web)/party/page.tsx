@@ -2,9 +2,9 @@
 
 import { usePrivy } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import NFTMetadataUpdater from '../../../components/NFTMetadataUpdater';
 import { PixelButton, PixelCard, PixelPanel } from '../../../components/PixelComponents';
+import { useSafeAccount } from '../../../lib/hooks/useSafeAccount';
 import RecruitHeroView from '../../../components/RecruitHeroView';
 import TavernKeeperBuilder from '../../../components/TavernKeeperBuilder';
 import { HeroNFT, rpgService, TavernKeeperNFT } from '../../../lib/services/rpgService';
@@ -13,11 +13,7 @@ import { isInFarcasterMiniapp } from '../../../lib/utils/farcasterDetection';
 export default function PartyPage() {
   const isMiniapp = isInFarcasterMiniapp();
   const privy = usePrivy();
-  const wagmiAccount = useAccount();
-
-  // Use wagmi in miniapp, Privy otherwise
-  const address = isMiniapp ? wagmiAccount.address : privy.user?.wallet?.address;
-  const authenticated = isMiniapp ? wagmiAccount.isConnected : privy.authenticated;
+  const { address, authenticated } = useSafeAccount();
 
   const [tavernKeepers, setTavernKeepers] = useState<TavernKeeperNFT[]>([]);
   const [selectedKeeper, setSelectedKeeper] = useState<TavernKeeperNFT | null>(null);
