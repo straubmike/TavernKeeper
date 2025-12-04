@@ -55,7 +55,7 @@ export default function PartyInvitePage() {
             <main className="min-h-screen bg-[#2a1d17] flex items-center justify-center font-pixel">
                 <PixelPanel title="Error" variant="wood" className="max-w-md">
                     <p className="text-[#eaddcf] text-center mb-4">{error}</p>
-                    <PixelButton variant="secondary" onClick={() => window.location.href = '/'} className="w-full">Back to Home</PixelButton>
+                    <PixelButton variant="neutral" onClick={() => window.location.href = '/'} className="w-full">Back to Home</PixelButton>
                 </PixelPanel>
             </main>
         );
@@ -77,7 +77,7 @@ export default function PartyInvitePage() {
                     <PixelButton variant="primary" onClick={handleJoinWeb} className="w-full">
                         Join via Web App
                     </PixelButton>
-                    <PixelButton variant="secondary" onClick={handleJoinMiniapp} className="w-full">
+                    <PixelButton variant="neutral" onClick={handleJoinMiniapp} className="w-full">
                         Open in Farcaster
                     </PixelButton>
                 </div>

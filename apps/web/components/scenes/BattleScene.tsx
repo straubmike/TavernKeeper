@@ -225,7 +225,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
 
                 <div className="w-48 flex flex-col gap-3 justify-center">
                     <PixelButton variant="primary" disabled className="w-full py-3 text-lg shadow-md">Attack</PixelButton>
-                    <PixelButton variant="secondary" disabled className="w-full py-2 opacity-50">Magic</PixelButton>
+                    <PixelButton variant="neutral" disabled className="w-full py-2 opacity-50">Magic</PixelButton>
                     <PixelButton variant="neutral" disabled className="w-full py-2 opacity-50">Item</PixelButton>
                 </div>
             </div>

@@ -442,12 +442,10 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 </PixelButton>
                                 <PixelButton
                                     onClick={() => onViewSwitch?.('cellar')}
-                                    variant="secondary"
-                                    disabled={true}
-                                    className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center opacity-50 cursor-not-allowed"
-                                    title="Cellar temporarily disabled"
+                                    variant="neutral"
+                                    className="flex-1 !py-2 !text-xs shadow-lg flex items-center justify-center"
                                 >
-                                    RAID CELLAR (DISABLED)
+                                    RAID CELLAR
                                 </PixelButton>
                             </div>
                         ) : (
@@ -521,7 +519,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 <div className="flex gap-2 mt-4">
                                     <PixelButton
                                         onClick={() => setShowTakeOfficeModal(false)}
-                                        variant="secondary"
+                                        variant="neutral"
                                         className="flex-1"
                                         disabled={isLoading}
                                     >
@@ -595,7 +593,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 <div className="flex gap-2 mt-4">
                                     <PixelButton
                                         onClick={() => setShowClaimModal(false)}
-                                        variant="secondary"
+                                        variant="neutral"
                                         className="flex-1"
                                         disabled={isLoading}
                                     >

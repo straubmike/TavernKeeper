@@ -4221,8 +4221,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\hooks\\CellarHook.sol": {
-      "lastModificationDate": 1764853734098,
-      "contentHash": "4e6438a3507d4dee2a50b3684cd6e877",
+      "lastModificationDate": 1764855612449,
+      "contentHash": "9ab76a650f794eed8744311b0c571173",
       "sourceName": "contracts/hooks/CellarHook.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -4260,6 +4260,7 @@
         "@uniswap/v4-core/src/types/Currency.sol",
         "@uniswap/v4-core/src/libraries/TickMath.sol",
         "@uniswap/v4-core/src/types/BalanceDelta.sol",
+        "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol",
         "@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol",
         "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",

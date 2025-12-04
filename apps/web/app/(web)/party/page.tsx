@@ -187,7 +187,7 @@ export default function PartyPage() {
                   <div className="mt-2">
                     <PixelButton
                       size="sm"
-                      variant="secondary"
+                      variant="neutral"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleUpdateKeeper(keeper);
@@ -233,7 +233,7 @@ export default function PartyPage() {
                           </div>
                           <PixelButton
                             size="sm"
-                            variant="secondary"
+                            variant="neutral"
                             onClick={() => setUpdatingHero(hero)}
                           >
                             Update

@@ -272,11 +272,10 @@ export default function NFTMetadataUpdater({
                                 <button
                                     key={g}
                                     onClick={() => setGender(g)}
-                                    className={`flex-1 py-2 text-xs font-bold uppercase border-2 transition-all ${
-                                        gender === g
+                                    className={`flex-1 py-2 text-xs font-bold uppercase border-2 transition-all ${gender === g
                                             ? 'bg-amber-600 border-amber-800 text-white'
                                             : 'bg-[#1a120d] border-[#4a3b2a] text-[#8b7355] hover:bg-[#2a1d17]'
-                                    }`}
+                                        }`}
                                 >
                                     {g}
                                 </button>
@@ -319,7 +318,7 @@ export default function NFTMetadataUpdater({
                 {/* Actions */}
                 <div className="flex gap-2 pt-2">
                     {onCancel && (
-                        <PixelButton onClick={onCancel} variant="secondary" className="flex-1">
+                        <PixelButton onClick={onCancel} variant="neutral" className="flex-1">
                             Cancel
                         </PixelButton>
                     )}

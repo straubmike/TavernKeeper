@@ -11,6 +11,7 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/type
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {BalanceDeltaLibrary} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {IUnlockCallback} from "@uniswap/v4-core/src/interfaces/callback/IUnlockCallback.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -24,7 +25,7 @@ error NotPoolManager();
 /// @notice Error thrown when hook function is not implemented
 error HookNotImplemented();
 
-contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
+contract CellarHook is IHooks, IUnlockCallback, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
     using SafeERC20 for IERC20;
     using CurrencyLibrary for Currency;
     using BeforeSwapDeltaLibrary for BeforeSwapDelta;
@@ -75,6 +76,13 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
     // Track if pool has been initialized (prevents recovery after pool is live)
     // MUST be at the end of state variables for upgrade compatibility
     bool public poolInitialized;
+
+    struct CallbackData {
+        PoolKey key;
+        ModifyLiquidityParams params;
+        uint256 amountMON;
+        address sender;
+    }
 
     event Raid(address indexed raider, uint256 paymentAmount, uint256 rewardAmount, uint256 newInitPrice, uint256 newEpochId);
     event PotContributed(address indexed contributor, uint256 amount);
@@ -308,17 +316,10 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
 
         // 2. Ensure pool is initialized
         // Calculate sqrtPriceX96 for 1:3 ratio (price = 3 KEEP per MON)
-        // price = amount1/amount0 = 3, so sqrtPrice = sqrt(3) * 2^96
-        // Using TickMath: For price = 3, we calculate tick from sqrtPrice
-        // tick = log(3)/log(1.0001) ≈ 10986, then get sqrtPrice from tick
-        // For 1:3 ratio: tick ≈ 10986, sqrtPriceX96 = TickMath.getSqrtPriceAtTick(10986)
-        // But simpler: calculate sqrt(3) * 2^96 directly
         // sqrt(3) * 2^96 ≈ 1373075539065492859289024128 (calculated)
         uint160 sqrtPriceX96 = 1373075539065492859289024128; // sqrt(3) * 2^96
 
         // Try to initialize - if pool already exists, this will revert but we'll catch it
-        // Note: If initialization fails for reasons other than "already initialized",
-        // modifyLiquidity will fail later with a clearer error message
         try poolManager.initialize(key, sqrtPriceX96) {
             // Pool initialized successfully
             if (!poolInitialized) {
@@ -333,9 +334,6 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
         }
 
         // 3. Calculate liquidityDelta from token amounts
-        // Use the sqrtPriceX96 we calculated (or the pool's current price if already initialized)
-        // For simplicity and to maintain 1:3 ratio, we use our calculated price
-
         // Calculate sqrt prices for tick range
         uint160 sqrtPriceAX96 = TickMath.getSqrtPriceAtTick(actualTickLower);
         uint160 sqrtPriceBX96 = TickMath.getSqrtPriceAtTick(actualTickUpper);
@@ -346,7 +344,6 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
         }
 
         // Calculate liquidityDelta using Uniswap V4 formulas
-        // liquidity = min(amount0 * sqrt(price) / (sqrt(priceB) - sqrt(priceA)), amount1 / (sqrt(price) - sqrt(priceA)))
         uint256 liquidity;
         if (sqrtPriceX96 <= sqrtPriceAX96) {
             // Current price is below range - all token0
@@ -363,7 +360,7 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
 
         require(liquidity > 0, "CellarHook: Invalid liquidity calculation");
 
-        // 4. Add liquidity to PoolManager
+        // 4. Prepare params for modifyLiquidity
         ModifyLiquidityParams memory params = ModifyLiquidityParams({
             tickLower: actualTickLower,
             tickUpper: actualTickUpper,
@@ -371,16 +368,36 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
             salt: bytes32(0)
         });
 
-        (BalanceDelta callerDelta, ) = poolManager.modifyLiquidity(key, params, "");
+        // 5. Call unlock to execute modifyLiquidity via callback
+        bytes memory callbackData = abi.encode(CallbackData({
+            key: key,
+            params: params,
+            amountMON: amountMON,
+            sender: msg.sender
+        }));
 
-        // 5. Settle balance delta - handle token transfers
-        _settleBalanceDelta(key, callerDelta);
+        poolManager.unlock(callbackData);
+    }
 
-        // 6. Mint LP Tokens to User
+    /// @notice Callback called by PoolManager.unlock
+    /// @param data Encoded CallbackData
+    /// @return bytes Empty bytes
+    function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
+        CallbackData memory callbackData = abi.decode(data, (CallbackData));
+
+        // 1. Call modifyLiquidity
+        (BalanceDelta callerDelta, ) = poolManager.modifyLiquidity(callbackData.key, callbackData.params, "");
+
+        // 2. Settle balance delta - handle token transfers
+        _settleBalanceDelta(callbackData.key, callerDelta);
+
+        // 3. Mint LP Tokens to User
         // Mint 1 LP per 1 MON (with 3 KEEP required per MON to maintain 1:3 ratio)
-        uint256 liquidityMinted = amountMON;
+        uint256 liquidityMinted = callbackData.amountMON;
 
-        _mint(msg.sender, liquidityMinted);
+        _mint(callbackData.sender, liquidityMinted);
+
+        return "";
     }
 
     /// @notice Helper function to calculate liquidity for amount0
@@ -408,7 +425,7 @@ contract CellarHook is IHooks, ERC20Upgradeable, OwnableUpgradeable, UUPSUpgrade
     }
 
     /// @notice Settles balance delta by transferring tokens to/from PoolManager
-    function _settleBalanceDelta(PoolKey calldata key, BalanceDelta delta) internal {
+    function _settleBalanceDelta(PoolKey memory key, BalanceDelta delta) internal {
         // Extract amounts from BalanceDelta using BalanceDeltaLibrary
         int128 amount0 = BalanceDeltaLibrary.amount0(delta);
         int128 amount1 = BalanceDeltaLibrary.amount1(delta);

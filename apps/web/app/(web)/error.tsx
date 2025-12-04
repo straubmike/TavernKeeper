@@ -31,7 +31,7 @@ export default function Error({
                     </PixelButton>
                     <PixelButton
                         onClick={() => window.location.href = '/'}
-                        variant="secondary"
+                        variant="neutral"
                         className="!px-4 !py-2"
                     >
                         Go Home

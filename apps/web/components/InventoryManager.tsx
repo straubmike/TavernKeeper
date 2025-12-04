@@ -93,7 +93,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                 {ownerType === 'adventurer' && onUnequip && (
                   <PixelButton
                     size="sm"
-                    variant="secondary"
+                    variant="neutral"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnequip(item);
@@ -159,7 +159,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   )}
                 </div>
               )}
-              <PixelButton onClick={() => setSelectedItem(null)} variant="secondary" className="w-full">
+              <PixelButton onClick={() => setSelectedItem(null)} variant="neutral" className="w-full">
                 Close
               </PixelButton>
             </div>

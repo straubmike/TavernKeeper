@@ -16,7 +16,7 @@ interface TheCellarViewProps {
 }
 
 // TEMPORARILY DISABLED - Cellar functionality disabled due to liquidity calculation overflow issue
-const CELLAR_DISABLED = true;
+const CELLAR_DISABLED = false;
 
 export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBalance = "0" }: TheCellarViewProps = {}) {
     const { authenticated, user } = usePrivy();
@@ -176,7 +176,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                     {onBackToOffice && (
                         <PixelButton
                             onClick={onBackToOffice}
-                            variant="default"
+                            variant="neutral"
                             className="mt-4 w-full"
                         >
                             Back to Office
@@ -326,7 +326,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                             <div className="flex gap-2 mt-4">
                                 <PixelButton
                                     onClick={() => setShowConfirmModal(false)}
-                                    variant="secondary"
+                                    variant="neutral"
                                     className="flex-1"
                                     disabled={isClaiming}
                                 >
@@ -417,7 +417,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                     <div className="flex gap-2 mt-4">
                                         <PixelButton
                                             onClick={() => setShowMintModal(false)}
-                                            variant="secondary"
+                                            variant="neutral"
                                             className="flex-1"
                                             disabled={isMinting}
                                         >

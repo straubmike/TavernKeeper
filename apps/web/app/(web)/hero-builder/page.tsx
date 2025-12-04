@@ -16,7 +16,7 @@ export default function HeroBuilderPage() {
         }}>
             <header className="w-full max-w-4xl flex justify-between items-center mb-4">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Hero Builder</h1>
-                <PixelButton variant="secondary" onClick={() => window.location.href = '/party'}>Back to Party</PixelButton>
+                <PixelButton variant="neutral" onClick={() => window.location.href = '/party'}>Back to Party</PixelButton>
             </header>
 
             <HeroBuilder />

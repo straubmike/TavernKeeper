@@ -73,7 +73,7 @@ export default function RunPage() {
     <main className="min-h-screen bg-[#2a1d17] p-8 flex flex-col items-center gap-8 font-pixel">
       <header className="w-full max-w-6xl flex justify-between items-center mb-4">
         <h1 className="text-4xl text-yellow-400 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] tracking-widest">Run #{runId}</h1>
-        <PixelButton variant="secondary" onClick={() => window.location.href = '/'}>Back to Inn</PixelButton>
+        <PixelButton variant="neutral" onClick={() => window.location.href = '/'}>Back to Inn</PixelButton>
       </header>
 
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -144,7 +144,7 @@ export default function RunPage() {
             <div className="w-full h-[400px] bg-black rounded overflow-hidden relative border-4 border-[#1a120b]">
               <PixiMap width={800} height={400} />
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                <PixelButton size="sm" variant="secondary">Play Replay</PixelButton>
+                <PixelButton size="sm" variant="neutral">Play Replay</PixelButton>
               </div>
             </div>
           </PixelPanel>

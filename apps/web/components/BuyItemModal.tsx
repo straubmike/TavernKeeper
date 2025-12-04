@@ -114,7 +114,7 @@ export const BuyItemModal: React.FC<BuyItemModalProps> = ({
             <div className="flex gap-2">
               <PixelButton
                 onClick={onClose}
-                variant="secondary"
+                variant="neutral"
                 className="flex-1"
                 disabled={isBuying}
               >

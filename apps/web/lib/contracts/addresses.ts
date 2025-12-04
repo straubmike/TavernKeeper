@@ -129,6 +129,6 @@ export const IMPLEMENTATION_ADDRESSES = {
     ADVENTURER: '0x71fb2B063569dD5B91c6241A9d6A41536894835A' as Address,
     TAVERNKEEPER: '0x48D8aeB5AD8175c701910A9Cf0aB25a9AeB048C6' as Address,
     DUNGEON_GATEKEEPER: '0x4CAC1ea1aa8ba7b7C25930CCA224AC166073DF13' as Address,
-    THE_CELLAR: '0xF1b162bccD55f2153A69AD91605BF93ab1642654' as Address, // CellarHook implementation (upgraded 2025-01-XX: Added 1:3 ratio validation)
+    THE_CELLAR: '0x1f951629f7F85B059860Cf178e7D8b249De46568' as Address, // CellarHook implementation (upgraded 2025-01-XX: Added 1:3 ratio validation)
     CELLAR_ZAP: '0x0aE0878FB0CA0D9d64e08B861371f69C944ae418' as Address, // CellarZapV4 implementation
 };
