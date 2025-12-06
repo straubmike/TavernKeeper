@@ -4,7 +4,7 @@ services:
     env: node
     plan: starter
     region: oregon
-    buildCommand: npm install -g pnpm tsx && pnpm install --frozen-lockfile && RENDER_SERVICE_TYPE=web tsx scripts/validate-env.ts web && pnpm --filter @innkeeper/lib build && pnpm --filter @innkeeper/agents build && pnpm --filter @innkeeper/engine build && cd apps/web && pnpm build
+    buildCommand: npm install -g pnpm tsx && pnpm install --frozen-lockfile && RENDER_SERVICE_TYPE=web tsx scripts/validate-env.ts web && pnpm --filter @innkeeper/lib build && pnpm --filter @innkeeper/agents build && pnpm --filter @innkeeper/engine build && cd apps/web && pnpm exec next build --webpack
     startCommand: cd apps/web && pnpm start
     rootDir: ./
     healthCheckPath: /
