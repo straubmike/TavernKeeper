@@ -369,9 +369,19 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                         {isWalletConnected ? (
                             <div className="flex gap-1">
                                 <PixelButton
-                                    onClick={() => setShowTakeOfficeModal(true)}
-                                    disabled={isLoading || !walletReady}
-                                    variant="danger"
+                                    onClick={async () => {
+                                        if (isWrongNetwork) {
+                                            // Handle network switch here or rely on wallet internal prompt logic which might be handled by parent
+                                            // Ideally, onTakeOffice should handle it, BUT the current implementation of onTakeOffice
+                                            // in TheOffice.tsx handles switching for Web context but maybe not perfectly.
+                                            // Let's defer to onTakeOffice which we will also fix/verify.
+                                            await onTakeOffice();
+                                        } else {
+                                            setShowTakeOfficeModal(true);
+                                        }
+                                    }}
+                                    disabled={isLoading || (!walletReady && !isWrongNetwork)} // Allow click if wrong network to trigger switch
+                                    variant={isWrongNetwork ? "neutral" : "danger"}
                                     className="flex-1 !py-1.5 !text-[10px] shadow-lg flex items-center justify-center"
                                 >
                                     {buttonText}

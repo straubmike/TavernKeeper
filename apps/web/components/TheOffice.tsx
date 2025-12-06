@@ -3,7 +3,7 @@
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import React, { useEffect, useState } from 'react';
 import { createPublicClient, createWalletClient, custom, http, type Address } from 'viem';
-import { useAccount, useConnect, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, useConnect, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { monad } from '../lib/chains';
 import { getFarcasterWalletAddress } from '../lib/services/farcasterWallet';
 import { setOfficeManagerData } from '../lib/services/officeManagerCache';
@@ -274,10 +274,14 @@ export const TheOffice: React.FC<{
         }
     }, [receipt, resetWrite, address, userContext, state.currentKing, state.currentPrice, isMiniapp]);
 
+    const { switchChainAsync } = useSwitchChain(); // For miniapp
+
     // Unified transaction handlers
     const handleTakeOffice = async () => {
         if (isMiniapp) {
             // Miniapp: Use wagmi writeContract
+
+            // 1. Ensure Connected
             if (!isConnected || !address) {
                 // Try to connect if not connected
                 if (!isConnected && connectors[0]) {
@@ -299,6 +303,17 @@ export const TheOffice: React.FC<{
                     }
                 } else {
                     alert('Wallet not connected. Please connect your wallet.');
+                    return;
+                }
+            }
+
+            // 2. Ensure Correct Network
+            if (chainId !== monad.id) {
+                try {
+                    await switchChainAsync({ chainId: monad.id });
+                } catch (error) {
+                    console.error('Failed to switch network:', error);
+                    alert('Please switch to Monad Mainnet manually.');
                     return;
                 }
             }
@@ -335,7 +350,7 @@ export const TheOffice: React.FC<{
                     await privyWallet.switchChain(monad.id);
                 } catch (error) {
                     console.error('Failed to switch chain:', error);
-                    alert('Please switch to Monad Testnet manually.');
+                    alert('Please switch to Monad Mainnet manually.');
                 }
                 return;
             }

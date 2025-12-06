@@ -2,7 +2,7 @@ import { defineChain } from 'viem';
 
 // Monad chain definition
 const USE_LOCALHOST = process.env.NEXT_PUBLIC_USE_LOCALHOST === 'true';
-const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || '10143');
+const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_MONAD_CHAIN_ID || '143');
 
 // Monad chain definition
 export const monad = defineChain({
