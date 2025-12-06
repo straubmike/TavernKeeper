@@ -33,11 +33,24 @@ export const theCellarService = {
             const contractConfig = CONTRACT_REGISTRY.THECELLAR;
             const contractAddress = getContractAddress(contractConfig);
 
-            if (!contractAddress) throw new Error("TheCellar contract not found");
+            if (!contractAddress) {
+                console.error('THECELLAR: Contract address not found. Check CONTRACT_ADDRESSES.');
+                throw new Error("TheCellar contract not found");
+            }
+
+            console.log('THECELLAR: Using contract address:', contractAddress);
+            console.log('THECELLAR: Chain ID:', monad.id);
+            console.log('THECELLAR: Network:', monad.name);
+
+            // Use RPC from env or default based on chain ID
+            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+
+            console.log('THECELLAR: Using RPC:', rpcUrl);
 
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(),
+                transport: http(rpcUrl),
             });
 
             const results = await Promise.allSettled([
@@ -71,9 +84,33 @@ export const theCellarService = {
             // Payment token is the CellarHook contract itself (CLP)
             let paymentToken = contractAddress;
 
-            if (results[0].status === 'fulfilled') potSize = results[0].value as bigint;
-            if (results[1].status === 'fulfilled') slot0 = results[1].value;
-            if (results[2].status === 'fulfilled') currentPrice = results[2].value as bigint;
+            // Log any failures for debugging
+            if (results[0].status === 'fulfilled') {
+                potSize = results[0].value as bigint;
+                console.log('✅ potBalance read successfully:', formatEther(potSize), 'MON');
+            } else {
+                const error = results[0].reason as any;
+                console.error('❌ Failed to fetch potBalance:', error?.message || error);
+                console.error('   Error details:', error);
+            }
+
+            if (results[1].status === 'fulfilled') {
+                slot0 = results[1].value;
+                console.log('✅ slot0 read successfully, epochId:', slot0.epochId);
+            } else {
+                const error = results[1].reason as any;
+                console.error('❌ Failed to fetch slot0:', error?.message || error);
+                console.error('   Error details:', error);
+            }
+
+            if (results[2].status === 'fulfilled') {
+                currentPrice = results[2].value as bigint;
+                console.log('✅ getAuctionPrice read successfully:', formatEther(currentPrice), 'LP');
+            } else {
+                const error = results[2].reason as any;
+                console.error('❌ Failed to fetch getAuctionPrice:', error?.message || error);
+                console.error('   Error details:', error);
+            }
 
             const newState = {
                 potSize: formatEther(potSize),
@@ -150,21 +187,36 @@ export const theCellarService = {
     async getUserLpBalance(address: string): Promise<bigint> {
         const contractConfig = CONTRACT_REGISTRY.THECELLAR;
         const contractAddress = getContractAddress(contractConfig);
-        if (!contractAddress) return 0n;
+        if (!contractAddress) {
+            console.error('THECELLAR: Contract address not found');
+            return 0n;
+        }
 
-        const publicClient = createPublicClient({
-            chain: monad,
-            transport: http(),
-        });
+        try {
+            // Use RPC from env or default based on chain ID
+            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
 
-        const balance = await publicClient.readContract({
-            address: contractAddress,
-            abi: contractConfig.abi,
-            functionName: 'balanceOf',
-            args: [address],
-        });
+            const publicClient = createPublicClient({
+                chain: monad,
+                transport: http(rpcUrl),
+            });
 
-        return balance as bigint;
+            const balance = await publicClient.readContract({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'balanceOf',
+                args: [address as `0x${string}`],
+            });
+
+            return balance as bigint;
+        } catch (error: any) {
+            console.error('❌ Error fetching LP balance:', error?.message || error);
+            console.error('   Address:', address);
+            console.error('   Contract:', contractAddress);
+            console.error('   Full error:', error);
+            return 0n;
+        }
     },
 
     async getKeepAllowance(owner: string, spender: string): Promise<bigint> {
@@ -172,9 +224,13 @@ export const theCellarService = {
         const keepAddress = getContractAddress(keepConfig);
         if (!keepAddress) return 0n;
 
+        // Use RPC from env or default based on chain
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(),
+            transport: http(rpcUrl),
         });
 
         const allowance = await publicClient.readContract({

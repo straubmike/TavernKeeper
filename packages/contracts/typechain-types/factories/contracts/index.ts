@@ -18,5 +18,6 @@ export { Inventory__factory } from "./Inventory__factory";
 export { KeepToken__factory } from "./KeepToken__factory";
 export { LPRecoveryHelper__factory } from "./LPRecoveryHelper__factory";
 export { MockERC20__factory } from "./MockERC20__factory";
+export { SwapRouterV4__factory } from "./SwapRouterV4__factory";
 export { UniswapIntegration__factory } from "./UniswapIntegration__factory";
 export { V4DependencyHelper__factory } from "./V4DependencyHelper__factory";

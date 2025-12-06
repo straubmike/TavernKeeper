@@ -1,18 +1,22 @@
+#!/bin/sh
 # Run build from root (uses pnpm -r build to build all packages)
 # This will catch actual build failures before they reach production
-echo "🔨 Running pre-commit build check..."
 
-# Run build and capture exit code
-BUILD_OUTPUT=$(pnpm build 2>&1)
+echo "🔨 Running pre-commit build check..."
+echo "   (Streaming output - you'll see progress below)"
+
+# Run build with real-time output streaming
+# Don't capture output - let it stream directly
+pnpm build
+
 BUILD_EXIT_CODE=$?
 
 # Only fail if the build actually failed (exit code != 0)
-# ReferenceError: indexedDB during SSR is expected and doesn't break the build
-# Module not found for @react-native-async-storage is a warning, not an error
 if [ $BUILD_EXIT_CODE -ne 0 ]; then
+  echo ""
   echo "❌ Build failed! Exit code: $BUILD_EXIT_CODE"
-  echo "$BUILD_OUTPUT" | grep -E "Error:|Build failed|failed to compile" | head -20
   exit 1
 fi
 
+echo ""
 echo "✅ Build passed!"

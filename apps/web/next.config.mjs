@@ -12,6 +12,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@innkeeper/lib', '@innkeeper/engine', '@innkeeper/agents'],
+  // Turbopack disabled - use webpack (specify --webpack flag in dev script)
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,

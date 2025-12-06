@@ -1,0 +1,89 @@
+{
+  "version": "1.0",
+  "chainId": 143,
+  "chainName": "Monad",
+  "pool": {
+    "poolId": "KEEP-MON",
+    "poolType": "UniswapV4",
+    "poolManager": "0x27e98f6A0D3315F9f3ECDaFE0187a7637F41c7c2",
+    "poolKey": {
+      "currency0": {
+        "address": "0x0000000000000000000000000000000000000000",
+        "symbol": "MON",
+        "name": "Monad Native Token",
+        "decimals": 18,
+        "isNative": true
+      },
+      "currency1": {
+        "address": "0x2D1094F5CED6ba279962f9676d32BE092AFbf82E",
+        "symbol": "KEEP",
+        "name": "Keep Token",
+        "decimals": 18,
+        "isNative": false
+      },
+      "fee": 10000,
+      "tickSpacing": 200,
+      "hooks": "0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0"
+    },
+    "hookInfo": {
+      "name": "CellarHook",
+      "description": "TavernKeeper game mechanics hook with LP token minting and raid functionality",
+      "contract": "0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0",
+      "implementation": "0x3d27b2B29514Feb8B2780949579837C945003030",
+      "features": [
+        "LP Token Minting",
+        "Liquidity Provision",
+        "Raid Mechanics",
+        "Anti-Sandwich Protection"
+      ]
+    },
+    "poolMetadata": {
+      "name": "KEEP/MON Pool",
+      "description": "Liquidity pool for TavernKeeper game token (KEEP) paired with Monad native token (MON)",
+      "website": "https://tavernkeeper.gg",
+      "feePercentage": "1.0%",
+      "initialPrice": "3 KEEP per MON"
+    },
+    "testnet": {
+      "chainId": 10143,
+      "chainName": "Monad Testnet",
+      "poolManager": "0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8",
+      "poolKey": {
+        "currency0": {
+          "address": "0x0000000000000000000000000000000000000000",
+          "symbol": "MON",
+          "name": "Monad Native Token",
+          "decimals": 18,
+          "isNative": true
+        },
+        "currency1": {
+          "address": "0x96982EC3625145f098DCe06aB34E99E7207b0520",
+          "symbol": "KEEP",
+          "name": "Keep Token",
+          "decimals": 18,
+          "isNative": false
+        },
+        "fee": 10000,
+        "tickSpacing": 200,
+        "hooks": "0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC"
+      },
+      "hookInfo": {
+        "contract": "0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC",
+        "implementation": "0x3d27b2B29514Feb8B2780949579837C945003030"
+      }
+    }
+  },
+  "discovery": {
+    "endpoints": {
+      "swap": "/swap",
+      "poolInfo": "/api/pool-info",
+      "documentation": "https://docs.tavernkeeper.gg"
+    },
+    "routerRequired": true,
+    "routerNote": "Swaps require a router contract implementing IUnlockCallback. See Uniswap V4 documentation for router implementation.",
+    "aggregatorCompatible": false,
+    "aggregatorNote": "Uniswap V4 pools are not yet automatically discovered by standard aggregators. Manual integration required."
+  },
+  "lastUpdated": "2025-01-XX"
+}
+

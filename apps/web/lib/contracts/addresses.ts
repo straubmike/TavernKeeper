@@ -25,6 +25,7 @@ const MONAD_TESTNET_ADDRESSES = {
     THE_CELLAR: '0xA43034595E2d1c52Ab08a057B95dD38bCbFf87dC' as Address,
     CELLAR_ZAP: '0x8a2bA1Bc458c17dB722ce36EF015e33959eD167a' as Address,
     POOL_MANAGER: '0x8788E862023A49a77E8F27277a8b3F07B4E9A7d8' as Address,
+    SWAP_ROUTER_V4: '0x0000000000000000000000000000000000000000' as Address, // TODO: Deploy on testnet
     // Fee recipient from env (NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS), fallback to Cellar if not set
     FEE_RECIPIENT: (process.env.NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS as Address | undefined) || '0xaB837301d12cDc4b97f1E910FC56C9179894d9cf' as Address,
 
@@ -50,6 +51,7 @@ const MONAD_MAINNET_ADDRESSES = {
     THE_CELLAR: '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' as Address, // New pool (fee=10000, tickSpacing=200) - deployed 2025-01-XX
     CELLAR_ZAP: '0xf7248a01051bf297Aa56F12a05e7209C60Fc5863' as Address,
     POOL_MANAGER: '0x27e98f6A0D3315F9f3ECDaFE0187a7637F41c7c2' as Address,
+    SWAP_ROUTER_V4: '0x6Aa207465c4B8c4Ab8381baf9aB27d5F133Abb95' as Address,
     // Fee recipient from env (NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS), fallback to Cellar if not set
     FEE_RECIPIENT: (process.env.NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS as Address | undefined) || '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' as Address,
 
@@ -75,6 +77,7 @@ export const LOCALHOST_ADDRESSES = {
     THE_CELLAR: '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' as Address,
     CELLAR_ZAP: '0xC9a349DEDc347a518D9F7e65aCBa207AfCE31BCB' as Address,
     POOL_MANAGER: '0xF14283A9C73439dB59A7d47B2fC88DBAD8ACf096' as Address,
+    SWAP_ROUTER_V4: '0x0000000000000000000000000000000000000000' as Address, // TODO: Deploy on localhost
     // Fee recipient from env (NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS), fallback to Cellar if not set
     FEE_RECIPIENT: (process.env.NEXT_PUBLIC_FEE_RECIPIENT_ADDRESS as Address | undefined) || '0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0' as Address,
 
@@ -85,8 +88,21 @@ export const LOCALHOST_ADDRESSES = {
 
 // Get chain ID from environment (143 = mainnet, 10143 = testnet)
 const getChainId = (): number => {
-    const chainId = process.env.NEXT_PUBLIC_MONAD_CHAIN_ID;
-    if (!chainId) return 143; // Default to mainnet
+    // Try to read from env (both server and client side)
+    let chainId: string | undefined;
+    if (typeof process !== 'undefined' && process.env) {
+        chainId = process.env.NEXT_PUBLIC_MONAD_CHAIN_ID;
+    }
+    // Also try from window if client-side (fallback)
+    if (!chainId && typeof window !== 'undefined') {
+        // @ts-ignore - accessing runtime env
+        chainId = window.__ENV__?.NEXT_PUBLIC_MONAD_CHAIN_ID;
+    }
+
+    if (!chainId) {
+        // Default to mainnet (143) - matches production deployment
+        return 143;
+    }
     const parsed = parseInt(chainId, 10);
     return isNaN(parsed) ? 143 : parsed;
 };

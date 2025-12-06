@@ -260,14 +260,39 @@ contract CellarHook is IHooks, IUnlockCallback, ERC20Upgradeable, OwnableUpgrade
     /// @inheritdoc IHooks
     function afterSwap(
         address,
-        PoolKey calldata,
-        SwapParams calldata,
+        PoolKey calldata key,
+        SwapParams calldata params,
         BalanceDelta,
         bytes calldata
     ) external onlyPoolManager returns (bytes4, int128) {
-        // Fee collection can be implemented here if needed
-        // For now, return no delta
+        // Collect protocol fees and add to pot
+        // Note: LP fees (1%) automatically accrue to LPs, but protocol fees can be collected
+        _collectProtocolFeesToPot(key);
+
         return (this.afterSwap.selector, 0);
+    }
+
+    /**
+     * @notice Collect protocol fees from PoolManager and add to pot
+     * @param key The pool key
+     * @dev This collects any protocol fees that have been set for this pool
+     */
+    function _collectProtocolFeesToPot(PoolKey memory key) internal {
+        // Check if there are protocol fees accrued for MON
+        uint256 protocolFeesMON = poolManager.protocolFeesAccrued(MON);
+
+        if (protocolFeesMON > 0) {
+            // Collect protocol fees to this contract
+            poolManager.collectProtocolFees(address(this), MON, protocolFeesMON);
+
+            // Add to pot balance
+            potBalance += protocolFeesMON;
+            emit PotContributed(address(this), protocolFeesMON);
+        }
+
+        // Also check KEEP if needed (though pot is in MON)
+        // uint256 protocolFeesKEEP = poolManager.protocolFeesAccrued(KEEP);
+        // Could convert KEEP to MON or track separately if needed
     }
 
     /// @inheritdoc IHooks
@@ -834,6 +859,33 @@ contract CellarHook is IHooks, IUnlockCallback, ERC20Upgradeable, OwnableUpgrade
         IERC20(Currency.unwrap(MON)).safeTransferFrom(msg.sender, address(this), amount);
         potBalance += amount;
         emit PotContributed(msg.sender, amount);
+    }
+
+    /**
+     * @notice Manually collect protocol fees from PoolManager and add to pot
+     * @dev Can be called by anyone to collect accumulated protocol fees
+     * @dev This is useful if protocol fees accumulate but afterSwap doesn't collect them
+     */
+    function collectProtocolFeesToPot() external {
+        PoolKey memory key = _getPoolKey();
+        _collectProtocolFeesToPot(key);
+    }
+
+    /**
+     * @notice Get the pool key for this hook's pool
+     * @return The PoolKey struct
+     */
+    function _getPoolKey() internal view returns (PoolKey memory) {
+        Currency currency0 = MON < KEEP ? MON : KEEP;
+        Currency currency1 = MON < KEEP ? KEEP : MON;
+
+        return PoolKey({
+            currency0: currency0,
+            currency1: currency1,
+            fee: 10000, // 1.0% fee
+            tickSpacing: 200,
+            hooks: IHooks(address(this))
+        });
     }
 
     // ---------------------------------------------------------

@@ -19,9 +19,13 @@ export const keepTokenService = {
                 return '0';
             }
 
+            // Use RPC from env or default based on chain ID
+            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+
             const publicClient = createPublicClient({
                 chain: monad,
-                transport: http(),
+                transport: http(rpcUrl),
             });
 
             const balance = await publicClient.readContract({

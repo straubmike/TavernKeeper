@@ -18,7 +18,7 @@ export const monad = defineChain({
             http: [
                 USE_LOCALHOST
                     ? 'http://127.0.0.1:8545'
-                    : (process.env.NEXT_PUBLIC_MONAD_RPC_URL || 'https://testnet-rpc.monad.xyz')
+                    : (process.env.NEXT_PUBLIC_MONAD_RPC_URL || (CHAIN_ID === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz'))
             ],
         },
     },

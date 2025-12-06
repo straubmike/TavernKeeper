@@ -26,5 +26,6 @@ export type { Inventory } from "./Inventory";
 export type { KeepToken } from "./KeepToken";
 export type { LPRecoveryHelper } from "./LPRecoveryHelper";
 export type { MockERC20 } from "./MockERC20";
+export type { SwapRouterV4 } from "./SwapRouterV4";
 export type { UniswapIntegration } from "./UniswapIntegration";
 export type { V4DependencyHelper } from "./V4DependencyHelper";

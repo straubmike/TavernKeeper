@@ -27,10 +27,10 @@ const frame = {
     version: "1",
     imageUrl: `${appUrl}/image.png`,
     button: {
-        title: "Play InnKeeper",
+        title: "Play TavernKeeper",
         action: {
             type: "launch_frame",
-            name: "InnKeeper",
+            name: "TavernKeeper",
             url: `${appUrl}`,
             splashImageUrl: `${appUrl}/icon.png`,
             splashBackgroundColor: "#2a1d17"

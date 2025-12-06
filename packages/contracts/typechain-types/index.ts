@@ -196,6 +196,8 @@ export type { LPRecoveryHelper } from "./contracts/LPRecoveryHelper";
 export { LPRecoveryHelper__factory } from "./factories/contracts/LPRecoveryHelper__factory";
 export type { MockERC20 } from "./contracts/MockERC20";
 export { MockERC20__factory } from "./factories/contracts/MockERC20__factory";
+export type { SwapRouterV4 } from "./contracts/SwapRouterV4";
+export { SwapRouterV4__factory } from "./factories/contracts/SwapRouterV4__factory";
 export type { IKeepToken } from "./contracts/TavernKeeper.sol/IKeepToken";
 export { IKeepToken__factory } from "./factories/contracts/TavernKeeper.sol/IKeepToken__factory";
 export type { TavernKeeper } from "./contracts/TavernKeeper.sol/TavernKeeper";

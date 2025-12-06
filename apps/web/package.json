@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev\" \"tsx watch workers/index.ts\" --names \"WEB,WORKER\" --prefix-colors \"blue,magenta\"",
+    "dev": "concurrently \"next dev --webpack\" \"tsx watch workers/index.ts\" --names \"WEB,WORKER\" --prefix-colors \"blue,magenta\"",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",

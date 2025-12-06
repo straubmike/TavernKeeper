@@ -390,6 +390,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MockERC20__factory>;
     getContractFactory(
+      name: "SwapRouterV4",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SwapRouterV4__factory>;
+    getContractFactory(
       name: "IKeepToken",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IKeepToken__factory>;
@@ -905,6 +909,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.MockERC20>;
     getContractAt(
+      name: "SwapRouterV4",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SwapRouterV4>;
+    getContractAt(
       name: "IKeepToken",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1337,6 +1346,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockERC20>;
     deployContract(
+      name: "SwapRouterV4",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SwapRouterV4>;
+    deployContract(
       name: "IKeepToken",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IKeepToken>;
@@ -1851,6 +1864,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockERC20>;
+    deployContract(
+      name: "SwapRouterV4",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SwapRouterV4>;
     deployContract(
       name: "IKeepToken",
       args: any[],
