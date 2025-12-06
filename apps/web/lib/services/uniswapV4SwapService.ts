@@ -264,30 +264,33 @@ export async function executeSwap(
     const amountSpecified = params.amountIn;
 
     // sqrtPriceLimitX96: 0 means no limit
+    // Note: amountSpecified must be int256 (signed), positive for exact input
     const swapParams: SwapParamsStruct = {
         zeroForOne,
-        amountSpecified: amountSpecified,
+        amountSpecified: amountSpecified, // This is bigint, will be converted to int256
         sqrtPriceLimitX96: 0n, // No price limit
     };
 
-    // Get SwapRouterV4 address (will need to be deployed first)
-    // For now, check if it exists in addresses, otherwise throw helpful error
-    let swapRouterAddress: Address;
-    try {
-        // Try to get from addresses.ts or use a known address
-        // TODO: Add SWAP_ROUTER_V4 to addresses.ts after deployment
-        swapRouterAddress = CONTRACT_ADDRESSES.SWAP_ROUTER_V4 || '0x0000000000000000000000000000000000000000' as Address;
+    console.log('Swap params:', {
+        zeroForOne,
+        amountSpecified: amountSpecified.toString(),
+        sqrtPriceLimitX96: '0',
+    });
 
-        if (swapRouterAddress === '0x0000000000000000000000000000000000000000') {
-            throw new Error('SWAP_ROUTER_V4 not deployed. Please deploy SwapRouterV4 first.');
-        }
-    } catch (e) {
+    // Get SwapRouterV4 address
+    const swapRouterAddress = CONTRACT_ADDRESSES.SWAP_ROUTER_V4;
+
+    if (!swapRouterAddress || swapRouterAddress === '0x0000000000000000000000000000000000000000') {
+        const chainId = monad.id;
+        const networkName = chainId === 143 ? 'mainnet' : chainId === 10143 ? 'testnet' : 'localhost';
         throw new Error(
-            'SwapRouterV4 not deployed. ' +
-            'Please deploy SwapRouterV4 contract first using: ' +
-            'npx hardhat run scripts/deploy_swap_router.ts --network monad'
+            `SWAP_ROUTER_V4 not deployed on ${networkName}. ` +
+            `Please deploy SwapRouterV4 contract first using: ` +
+            `npx hardhat run scripts/deploy_swap_router.ts --network ${networkName}`
         );
     }
+
+    console.log('Using SwapRouterV4 at:', swapRouterAddress);
 
     // Prepare transaction
     const value = params.tokenIn === 'MON' ? params.amountIn : 0n;
@@ -343,7 +346,7 @@ export async function executeSwap(
                         type: 'tuple',
                         components: [
                             { name: 'zeroForOne', type: 'bool' },
-                            { name: 'amountSpecified', type: 'int256' },
+                            { name: 'amountSpecified', type: 'int256' }, // Must be positive for exact input
                             { name: 'sqrtPriceLimitX96', type: 'uint160' },
                         ],
                     },
@@ -359,7 +362,7 @@ export async function executeSwap(
         args: [poolKey, swapParams, walletClient.account.address],
         value: value,
         account: walletClient.account,
-        chain: monad,
+        chain: null,
     });
 
     return hash;

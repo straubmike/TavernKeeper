@@ -200,11 +200,11 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
     return (
         <div className="flex flex-col gap-2 p-2 text-white font-pixel h-full justify-center bg-[#1a120b] relative">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
-                backgroundImage: 'radial-gradient(#4a3b32 2px, transparent 2px)',
-                backgroundSize: '20px 20px'
-            }} />
+            {/* Background Image - Same as office */}
+            <div
+                className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none"
+                style={{ backgroundImage: "url('/sprites/office_bg.png')" }}
+            />
 
             <div className="relative z-10">
                 <div className="flex items-center justify-center gap-1 mb-1">

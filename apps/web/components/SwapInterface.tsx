@@ -109,6 +109,8 @@ export function SwapInterface() {
 
     const handleSwap = async () => {
         if (!walletClient || !account || !quote || !amountIn) {
+            console.warn('Swap prerequisites not met:', { walletClient: !!walletClient, account, quote: !!quote, amountIn });
+            setError('Please connect wallet and enter an amount');
             return;
         }
 
@@ -124,9 +126,14 @@ export function SwapInterface() {
                 slippageTolerance: 0.5,
             };
 
-            console.log('Executing swap:', swapParams);
+            console.log('🔄 Executing swap:', {
+                ...swapParams,
+                amountInFormatted: formatEther(amountInWei),
+                account,
+            });
+
             const txHash = await executeSwap(walletClient, swapParams);
-            console.log('Swap transaction hash:', txHash);
+            console.log('✅ Swap transaction submitted:', txHash);
 
             // Wait for transaction confirmation
             const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
@@ -140,11 +147,12 @@ export function SwapInterface() {
             });
 
             const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-            console.log('Swap confirmed:', receipt);
+            console.log('✅ Swap confirmed:', receipt);
 
             // Clear input and refresh balances
             setAmountIn('');
             setQuote(null);
+            setError(null);
 
             // Refresh balances after a short delay
             setTimeout(() => {
@@ -153,8 +161,17 @@ export function SwapInterface() {
                 }
             }, 2000);
         } catch (err: any) {
-            console.error('Swap error:', err);
-            setError(err.message || 'Swap failed');
+            console.error('❌ Swap error:', err);
+            const errorMessage = err.message || err.reason || 'Swap failed';
+            setError(errorMessage);
+
+            // Log more details for debugging
+            if (err.data) {
+                console.error('Error data:', err.data);
+            }
+            if (err.code) {
+                console.error('Error code:', err.code);
+            }
         } finally {
             setIsSwapping(false);
         }
@@ -331,7 +348,9 @@ export function SwapInterface() {
                     ? 'Calculating...'
                     : isSwapping
                     ? 'Swapping...'
-                    : 'Review Swap'}
+                    : error
+                    ? 'Retry Swap'
+                    : 'Swap'}
             </PixelButton>
 
         </PixelBox>

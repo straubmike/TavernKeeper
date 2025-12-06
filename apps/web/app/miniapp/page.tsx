@@ -12,7 +12,6 @@ import { InnScene } from '../../components/scenes/InnScene';
 import { MapScene } from '../../components/scenes/MapScene';
 import { TheOffice } from '../../components/TheOffice';
 import { WelcomeModal } from '../../components/WelcomeModal';
-import { monad } from '../../lib/chains';
 import { keepTokenService } from '../../lib/services/keepToken';
 import { useGameStore } from '../../lib/stores/gameStore';
 import { GameView } from '../../lib/types';
@@ -65,14 +64,21 @@ function MiniappContent() {
         };
     }, []);
 
-    // Call sdk.actions.ready() after delay
+    // Call sdk.actions.ready() when interface is ready (per Farcaster docs)
+    // https://miniapps.farcaster.xyz/docs/guides/loading#calling-ready
     useEffect(() => {
+        if (readyRef.current) return;
+
+        // Use a small delay to ensure SDK is initialized, then call ready
         const timeout = setTimeout(() => {
-            if (!readyRef.current) {
+            if (sdk?.actions?.ready) {
                 readyRef.current = true;
-                sdk.actions.ready().catch(() => {});
+                sdk.actions.ready().catch((error) => {
+                    console.warn('Failed to call sdk.actions.ready():', error);
+                });
             }
-        }, 1200);
+        }, 100); // Small delay to ensure SDK is available
+
         return () => clearTimeout(timeout);
     }, []);
 
@@ -119,20 +125,29 @@ function MiniappContent() {
                 <div className="flex-1 relative flex flex-col overflow-hidden">
 
                     {/* --- TOP BAR: Title & Status --- */}
-                    <div className="h-10 bg-[#2a1d17] border-b-2 border-[#1a120b] flex items-center justify-between px-2 z-20 shrink-0 overflow-visible">
+                    <div className="h-12 bg-[#2a1d17] border-b-4 border-[#1a120b] flex items-center justify-between px-2 z-20 shrink-0 overflow-visible">
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <h1 className="text-yellow-400 text-xs md:text-sm font-bold tracking-widest px-1 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] whitespace-nowrap">
+                            <h1 className="text-yellow-400 text-sm md:text-lg font-bold tracking-widest px-2 drop-shadow-[2px_2px_0_rgba(0,0,0,1)] whitespace-nowrap">
                                 TAVERN<span className="text-white">KEEPER</span>
                             </h1>
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
-                            {/* Help/Docs Link */}<a href="/docs" target="_blank" rel="noopener noreferrer" className="px-2 py-1 text-yellow-400 hover:text-yellow-300 transition-colors" title="Documentation"><span className="text-lg">?</span></a>
+                            {/* Help/Docs Link */}
+                            <a
+                                href="/docs"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 text-yellow-400 hover:text-yellow-300 transition-colors"
+                                title="Documentation"
+                            >
+                                <span className="text-lg">?</span>
+                            </a>
                             {/* DAY and KEEP Balance - Always visible */}
-                            <div className="flex items-center gap-1 px-1.5 bg-black/30 py-0.5 rounded border border-white/5">
-                                <div className="text-[8px] text-yellow-400 flex flex-col items-end leading-tight">
+                            <div className="flex items-center gap-2 px-2 bg-black/30 py-1 rounded border border-white/5">
+                                <div className="text-[10px] text-yellow-400 flex flex-col items-end leading-tight">
                                     <span>DAY 1</span>
-                                    <span className="text-white/50 text-[7px]">{parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)} K</span>
+                                    <span className="text-white/50">{parseFloat(formatEther(BigInt(keepBalance))).toFixed(2)} KEEP</span>
                                 </div>
                             </div>
                         </div>

@@ -47,15 +47,18 @@ function HomeContent() {
         const inMiniapp = isInFarcasterMiniapp();
         setIsInMiniapp(inMiniapp);
 
-        // Call sdk.actions.ready() if in miniapp context
-        if (inMiniapp && sdk?.actions) {
+        // Call sdk.actions.ready() when interface is ready (per Farcaster docs)
+        // https://miniapps.farcaster.xyz/docs/guides/loading#calling-ready
+        if (inMiniapp) {
+            // Use a small delay to ensure SDK is initialized, then call ready
             const timeout = setTimeout(() => {
-                try {
-                    sdk.actions.ready().catch(() => {});
-                } catch (error) {
-                    console.warn('Farcaster SDK not available:', error);
+                if (sdk?.actions?.ready) {
+                    sdk.actions.ready().catch((error) => {
+                        console.warn('Failed to call sdk.actions.ready():', error);
+                    });
                 }
-            }, 1200);
+            }, 100); // Small delay to ensure SDK is available
+
             return () => clearTimeout(timeout);
         }
     }, []);
