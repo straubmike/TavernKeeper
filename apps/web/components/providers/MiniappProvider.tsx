@@ -27,7 +27,7 @@ export function MiniappProvider({ children }: MiniappProviderProps) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <AutoConnectWallet />
+        <AutoConnectWallet forceConnect={true} />
         {children}
       </QueryClientProvider>
     </WagmiProvider>
