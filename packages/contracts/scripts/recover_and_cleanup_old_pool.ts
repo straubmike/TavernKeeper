@@ -2,13 +2,13 @@ import { ethers, upgrades } from "hardhat";
 
 /**
  * RECOVER AND CLEANUP OLD BROKEN POOL
- * 
+ *
  * This script:
  * 1. Upgrades old pool to CellarHookRecovery
  * 2. Recovers all funds (MON and KEEP) from old pool
  * 3. Transfers ownership to dead address (disables pool)
  * 4. Verifies frontend is using new pool
- * 
+ *
  * Usage:
  *   npx hardhat run scripts/recover_and_cleanup_old_pool.ts --network monad
  */
@@ -61,7 +61,7 @@ async function main() {
     // Step 1: Upgrade to Recovery version
     console.log("\n--- Step 1: Upgrading to CellarHookRecovery ---");
     const CellarHookRecovery = await ethers.getContractFactory("CellarHookRecovery");
-    
+
     try {
         const recoveryHook = await upgrades.upgradeProxy(OLD_BROKEN_POOL, CellarHookRecovery);
         await recoveryHook.waitForDeployment();
@@ -151,7 +151,7 @@ async function main() {
     const fs = require("fs");
     const path = require("path");
     const addressesPath = path.join(__dirname, "../../apps/web/lib/contracts/addresses.ts");
-    
+
     if (fs.existsSync(addressesPath)) {
         const content = fs.readFileSync(addressesPath, "utf8");
         if (content.includes(NEW_WORKING_POOL)) {
@@ -170,7 +170,7 @@ async function main() {
     console.log("\n--- Step 5: Final Verification ---");
     const finalNativeBalance = await ethers.provider.getBalance(OLD_BROKEN_POOL);
     const finalKeepBalance = await keepToken.balanceOf(OLD_BROKEN_POOL);
-    
+
     if (finalNativeBalance === 0n && finalKeepBalance === 0n) {
         console.log("✅ All funds recovered from old pool");
     } else {
