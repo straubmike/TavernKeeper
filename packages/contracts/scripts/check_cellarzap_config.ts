@@ -20,12 +20,12 @@ async function main() {
     try {
         const cellarZap = new ethers.Contract(CELLAR_ZAP, abi, ethers.provider);
         const configuredHook = await cellarZap.cellarHook();
-        
+
         console.log("--- CellarZap Configuration ---");
         console.log("CellarZap Address:", CELLAR_ZAP);
         console.log("Configured CellarHook:", configuredHook);
         console.log("");
-        
+
         if (configuredHook.toLowerCase() === OLD_POOL.toLowerCase()) {
             console.log("❌ PROBLEM FOUND: CellarZap is pointing to OLD POOL!");
             console.log("   This is why your LP mint went to the old pool.");
@@ -35,11 +35,11 @@ async function main() {
         } else {
             console.log("⚠️  CellarZap is pointing to an unknown address:", configuredHook);
         }
-        
+
         console.log("\n--- Pool Addresses ---");
         console.log("OLD POOL:", OLD_POOL);
         console.log("NEW POOL:", NEW_POOL);
-        
+
     } catch (error: any) {
         console.error("❌ Error reading CellarZap:", error.message);
     }

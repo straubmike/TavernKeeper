@@ -24,6 +24,7 @@ export type { ERC6551Account } from "./ERC6551Account";
 export type { ERC6551Registry } from "./ERC6551Registry";
 export type { Inventory } from "./Inventory";
 export type { KeepToken } from "./KeepToken";
+export type { LPRecoveryHelper } from "./LPRecoveryHelper";
 export type { MockERC20 } from "./MockERC20";
 export type { UniswapIntegration } from "./UniswapIntegration";
 export type { V4DependencyHelper } from "./V4DependencyHelper";

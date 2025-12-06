@@ -8,7 +8,7 @@ const DEPLOYER = "0xD515674a7fE63dFDfd43Fb5647E8B04eEfCEdCAa";
 async function main() {
     const [signer] = await ethers.getSigners();
     const addressToCheck = process.argv[2] || DEPLOYER;
-    
+
     console.log("=== CHECKING LP BALANCES ===");
     console.log("Signer:", signer.address);
     console.log("Address to check:", addressToCheck);
@@ -33,7 +33,7 @@ async function main() {
         const oldTotalSupply = await oldPool.totalSupply();
         const oldPotBalance = await oldPool.potBalance();
         const oldInitialized = await oldPool.poolInitialized();
-        
+
         console.log("LP Balance:", ethers.formatEther(oldBalance), "LP");
         console.log("Total Supply:", ethers.formatEther(oldTotalSupply), "LP");
         console.log("Pot Balance:", ethers.formatEther(oldPotBalance), "MON");
@@ -51,7 +51,7 @@ async function main() {
         const newPotBalance = await newPool.potBalance();
         const newInitialized = await newPool.poolInitialized();
         const newPrice = await newPool.getAuctionPrice();
-        
+
         console.log("LP Balance:", ethers.formatEther(newBalance), "LP");
         console.log("Total Supply:", ethers.formatEther(newTotalSupply), "LP");
         console.log("Pot Balance:", ethers.formatEther(newPotBalance), "MON");
@@ -65,14 +65,14 @@ async function main() {
     try {
         const currentBlock = await ethers.provider.getBlockNumber();
         const fromBlock = Math.max(0, currentBlock - 1000); // Last ~1000 blocks
-        
+
         // Get recent transactions
         const filter = {
             fromBlock,
             toBlock: currentBlock,
             from: addressToCheck,
         };
-        
+
         const txs = await ethers.provider.getLogs({
             ...filter,
             topics: [
@@ -82,7 +82,7 @@ async function main() {
         });
 
         console.log(`Found ${txs.length} Transfer events in last ~1000 blocks`);
-        
+
         // Check for transfers to/from pools
         const poolAddresses = [OLD_POOL.toLowerCase(), NEW_POOL.toLowerCase()];
         const relevantTxs = txs.filter(tx => {
@@ -99,10 +99,10 @@ async function main() {
                 const to = tx.topics[2] ? ethers.getAddress("0x" + tx.topics[2].slice(26)) : "unknown";
                 const from = tx.topics[1] ? ethers.getAddress("0x" + tx.topics[1].slice(26)) : "unknown";
                 const amount = tx.data ? ethers.formatEther(ethers.getBigInt(tx.data)) : "unknown";
-                
+
                 const poolName = to.toLowerCase() === NEW_POOL.toLowerCase() ? "NEW POOL" :
                                to.toLowerCase() === OLD_POOL.toLowerCase() ? "OLD POOL" : "OTHER";
-                
+
                 console.log(`  Block ${tx.blockNumber} (${new Date(Number(block?.timestamp || 0) * 1000).toISOString()}):`);
                 console.log(`    From: ${from}`);
                 console.log(`    To: ${to} (${poolName})`);
@@ -120,7 +120,7 @@ async function main() {
     console.log("If frontend shows 0.27 LP:");
     console.log("  - Check if it matches NEW pool balance above");
     console.log("  - If it matches OLD pool, frontend is using wrong address!");
-    
+
     console.log("\n--- RAID BUTTON CONDITIONS ---");
     try {
         const newPool = new ethers.Contract(NEW_POOL, abi, ethers.provider);
@@ -128,12 +128,12 @@ async function main() {
         const raidPrice = await newPool.getAuctionPrice();
         const userBalance = await newPool.balanceOf(addressToCheck);
         const hasEnoughLP = userBalance >= raidPrice;
-        
+
         console.log("Pot Balance:", ethers.formatEther(potBalance), "MON");
         console.log("Raid Price:", ethers.formatEther(raidPrice), "LP");
         console.log("Your LP Balance:", ethers.formatEther(userBalance), "LP");
         console.log("Has Enough LP:", hasEnoughLP ? "✅ YES" : "❌ NO");
-        console.log("Raid Button Should Show:", 
+        console.log("Raid Button Should Show:",
             (potBalance > 0n && hasEnoughLP) ? "✅ YES" : "❌ NO");
         if (potBalance === 0n) {
             console.log("  Reason: Pot is empty");

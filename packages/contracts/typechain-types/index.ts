@@ -192,6 +192,8 @@ export type { ITheCellar } from "./contracts/legacy/CellarZap.sol/ITheCellar";
 export { ITheCellar__factory } from "./factories/contracts/legacy/CellarZap.sol/ITheCellar__factory";
 export type { TheCellar } from "./contracts/legacy/TheCellar";
 export { TheCellar__factory } from "./factories/contracts/legacy/TheCellar__factory";
+export type { LPRecoveryHelper } from "./contracts/LPRecoveryHelper";
+export { LPRecoveryHelper__factory } from "./factories/contracts/LPRecoveryHelper__factory";
 export type { MockERC20 } from "./contracts/MockERC20";
 export { MockERC20__factory } from "./factories/contracts/MockERC20__factory";
 export type { IKeepToken } from "./contracts/TavernKeeper.sol/IKeepToken";

@@ -16,6 +16,7 @@ export { ERC6551Account__factory } from "./ERC6551Account__factory";
 export { ERC6551Registry__factory } from "./ERC6551Registry__factory";
 export { Inventory__factory } from "./Inventory__factory";
 export { KeepToken__factory } from "./KeepToken__factory";
+export { LPRecoveryHelper__factory } from "./LPRecoveryHelper__factory";
 export { MockERC20__factory } from "./MockERC20__factory";
 export { UniswapIntegration__factory } from "./UniswapIntegration__factory";
 export { V4DependencyHelper__factory } from "./V4DependencyHelper__factory";
