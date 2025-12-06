@@ -102,9 +102,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IBeacon__factory>;
     getContractFactory(
+      name: "ERC1967Proxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC1967Proxy__factory>;
+    getContractFactory(
       name: "ERC1967Utils",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC1967Utils__factory>;
+    getContractFactory(
+      name: "Proxy",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Proxy__factory>;
     getContractFactory(
       name: "IERC1155MetadataURI",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -254,6 +262,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SqrtPriceMath__factory>;
     getContractFactory(
+      name: "StateLibrary",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.StateLibrary__factory>;
+    getContractFactory(
       name: "TickBitmap",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TickBitmap__factory>;
@@ -317,6 +329,10 @@ declare module "hardhat/types/runtime" {
       name: "CellarHook",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.CellarHook__factory>;
+    getContractFactory(
+      name: "CellarHookRecovery",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.CellarHookRecovery__factory>;
     getContractFactory(
       name: "IERC6551Account",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -385,6 +401,14 @@ declare module "hardhat/types/runtime" {
       name: "TavernRegularsManager",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TavernRegularsManager__factory>;
+    getContractFactory(
+      name: "PoolModifyLiquidityTest",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PoolModifyLiquidityTest__factory>;
+    getContractFactory(
+      name: "ProxyHelper",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ProxyHelper__factory>;
     getContractFactory(
       name: "ICellarHook",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -517,10 +541,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IBeacon>;
     getContractAt(
+      name: "ERC1967Proxy",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC1967Proxy>;
+    getContractAt(
       name: "ERC1967Utils",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.ERC1967Utils>;
+    getContractAt(
+      name: "Proxy",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Proxy>;
     getContractAt(
       name: "IERC1155MetadataURI",
       address: string | ethers.Addressable,
@@ -707,6 +741,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.SqrtPriceMath>;
     getContractAt(
+      name: "StateLibrary",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.StateLibrary>;
+    getContractAt(
       name: "TickBitmap",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -786,6 +825,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.CellarHook>;
+    getContractAt(
+      name: "CellarHookRecovery",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.CellarHookRecovery>;
     getContractAt(
       name: "IERC6551Account",
       address: string | ethers.Addressable,
@@ -871,6 +915,16 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.TavernRegularsManager>;
+    getContractAt(
+      name: "PoolModifyLiquidityTest",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PoolModifyLiquidityTest>;
+    getContractAt(
+      name: "ProxyHelper",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ProxyHelper>;
     getContractAt(
       name: "ICellarHook",
       address: string | ethers.Addressable,
@@ -986,9 +1040,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IBeacon>;
     deployContract(
+      name: "ERC1967Proxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC1967Proxy>;
+    deployContract(
       name: "ERC1967Utils",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ERC1967Utils>;
+    deployContract(
+      name: "Proxy",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Proxy>;
     deployContract(
       name: "IERC1155MetadataURI",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1138,6 +1200,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SqrtPriceMath>;
     deployContract(
+      name: "StateLibrary",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.StateLibrary>;
+    deployContract(
       name: "TickBitmap",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TickBitmap>;
@@ -1201,6 +1267,10 @@ declare module "hardhat/types/runtime" {
       name: "CellarHook",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CellarHook>;
+    deployContract(
+      name: "CellarHookRecovery",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.CellarHookRecovery>;
     deployContract(
       name: "IERC6551Account",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1269,6 +1339,14 @@ declare module "hardhat/types/runtime" {
       name: "TavernRegularsManager",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernRegularsManager>;
+    deployContract(
+      name: "PoolModifyLiquidityTest",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PoolModifyLiquidityTest>;
+    deployContract(
+      name: "ProxyHelper",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ProxyHelper>;
     deployContract(
       name: "ICellarHook",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1401,10 +1479,20 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IBeacon>;
     deployContract(
+      name: "ERC1967Proxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ERC1967Proxy>;
+    deployContract(
       name: "ERC1967Utils",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ERC1967Utils>;
+    deployContract(
+      name: "Proxy",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Proxy>;
     deployContract(
       name: "IERC1155MetadataURI",
       args: any[],
@@ -1591,6 +1679,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SqrtPriceMath>;
     deployContract(
+      name: "StateLibrary",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.StateLibrary>;
+    deployContract(
       name: "TickBitmap",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -1670,6 +1763,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.CellarHook>;
+    deployContract(
+      name: "CellarHookRecovery",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.CellarHookRecovery>;
     deployContract(
       name: "IERC6551Account",
       args: any[],
@@ -1755,6 +1853,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TavernRegularsManager>;
+    deployContract(
+      name: "PoolModifyLiquidityTest",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.PoolModifyLiquidityTest>;
+    deployContract(
+      name: "ProxyHelper",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ProxyHelper>;
     deployContract(
       name: "ICellarHook",
       args: any[],

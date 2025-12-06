@@ -214,8 +214,8 @@ contract TavernRegularsManager is Initializable, OwnableUpgradeable, UUPSUpgrade
         PoolKey memory key = PoolKey({
             currency0: currency0,
             currency1: currency1,
-            fee: 3000,
-            tickSpacing: 60,
+            fee: 10000, // 1.0% fee (updated from 3000)
+            tickSpacing: 200, // Updated from 60
             hooks: IHooks(cellarHook)
         });
 
@@ -437,6 +437,15 @@ contract TavernRegularsManager is Initializable, OwnableUpgradeable, UUPSUpgrade
     function setTreasury(address _treasury) external onlyOwner {
         require(_treasury != address(0), "Treasury cannot be zero address");
         treasury = _treasury;
+    }
+
+    /**
+     * @notice Set CellarHook address (only owner)
+     * @param _cellarHook New CellarHook address
+     */
+    function setCellarHook(address _cellarHook) external onlyOwner {
+        require(_cellarHook != address(0), "CellarHook cannot be zero address");
+        cellarHook = _cellarHook;
     }
 
     // ============ Helper Functions ============

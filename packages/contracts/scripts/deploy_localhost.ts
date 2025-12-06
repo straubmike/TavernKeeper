@@ -266,7 +266,85 @@ async function main() {
     console.log("Setting contracts on Adventurer...");
     await (await adventurerProxy.setContracts(tavernKeeperAddress, registryAddress, accountImplAddress)).wait();
 
-    // 14. Update Frontend & Tracker
+    // 14. Initialize Pool with Initial Liquidity
+    console.log("\n--- Initializing Pool with Initial Liquidity ---");
+    try {
+        // Mint KEEP tokens to deployer for initial liquidity
+        console.log("Minting KEEP tokens for pool initialization...");
+        const keepTokenContract = await ethers.getContractAt("KeepToken", keepTokenAddress);
+        const currentTK = await keepTokenContract.tavernKeeperContract();
+        const keepOwner = await keepTokenContract.owner();
+
+        // Temporarily set deployer as TavernKeeper to mint
+        if (keepOwner.toLowerCase() === deployerAddress.toLowerCase()) {
+            await (await keepTokenContract.setTavernKeeperContract(deployerAddress)).wait();
+            await (await keepTokenContract.mint(deployerAddress, ethers.parseEther("10000"))).wait();
+            // Restore original TavernKeeper
+            if (currentTK !== ethers.ZeroAddress) {
+                await (await keepTokenContract.setTavernKeeperContract(currentTK)).wait();
+            }
+            console.log("✓ Minted KEEP tokens");
+        } else {
+            console.log("⚠️  Deployer is not KeepToken owner, skipping KEEP mint");
+        }
+
+        // Approve KEEP for CellarHook
+        const keepToken = await ethers.getContractAt("IERC20", keepTokenAddress);
+        const initialKEEP = ethers.parseEther("3");
+        await (await keepToken.approve(hookAddress, initialKEEP)).wait();
+        console.log("✓ Approved KEEP for CellarHook");
+
+        // Construct PoolKey
+        const poolKey = {
+            currency0: MON,
+            currency1: KEEP,
+            fee: 10000,
+            tickSpacing: 200,
+            hooks: hookAddress
+        };
+
+        // First, initialize the pool
+        console.log("Initializing pool...");
+        const cellarHook = await ethers.getContractAt("CellarHook", hookAddress);
+        try {
+            const initPoolTx = await cellarHook.initializePool(poolKey);
+            await initPoolTx.wait();
+            console.log("✅ Pool initialized successfully!");
+        } catch (error: any) {
+            if (error.message.includes("already initialized")) {
+                console.log("⚠️  Pool already initialized, continuing...");
+            } else if (error.message.includes("broken")) {
+                console.error("❌ Pool is broken and cannot be initialized");
+                console.error("   You may need to use different pool parameters (fee/tickSpacing)");
+                throw error;
+            } else {
+                throw error;
+            }
+        }
+
+        // Then add initial liquidity: 1 MON, 3 KEEP
+        const initialMON = ethers.parseEther("1");
+        console.log("Adding initial liquidity: 1 MON, 3 KEEP...");
+        const addLiquidityTx = await cellarHook.addLiquidity(
+            poolKey,
+            initialMON,
+            initialKEEP,
+            0,
+            0,
+            { value: initialMON }
+        );
+        await addLiquidityTx.wait();
+        console.log("✅ Initial liquidity added!");
+        console.log("   - 1 MON");
+        console.log("   - 3 KEEP");
+        console.log("   - Price: 3 KEEP per MON");
+    } catch (error: any) {
+        console.error("❌ ERROR initializing pool:", error.message);
+        console.error("   Pool may need to be initialized manually");
+        // Don't exit - continue with deployment
+    }
+
+    // 15. Update Frontend & Tracker
     console.log("\n--- Updating Frontend & Tracker ---");
     await updateFrontendAddresses({
         ERC6551_REGISTRY: registryAddress,

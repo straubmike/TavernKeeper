@@ -15,6 +15,8 @@ import type * as interfaces from "./interfaces";
 export type { interfaces };
 import type * as legacy from "./legacy";
 export type { legacy };
+import type * as test from "./test";
+export type { test };
 export type { Adventurer } from "./Adventurer";
 export type { Create2Factory } from "./Create2Factory";
 export type { DungeonGatekeeper } from "./DungeonGatekeeper";

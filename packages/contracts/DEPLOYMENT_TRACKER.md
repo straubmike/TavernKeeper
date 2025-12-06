@@ -234,7 +234,15 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
-| *Not deployed yet* | | | | | |
+| The Cellar (OLD - Broken Pool) | Proxy | `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` | ✅ 2025-01-XX | See upgrade tx | **DEPRECATED** - Broken pool (price=0), replaced by new pool |
+| The Cellar (OLD - Broken Pool) | Impl | `0xA349006F388DA608052395755d08E765b1960ecC` | ✅ 2025-01-XX | See upgrade tx | v3.0.0 - Broken pool, do not use |
+| The Cellar (NEW - Working Pool v1) | Proxy | `0xaDF53E062195C20DAD2E52b76550f0a266e40ac0` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | **DEPRECATED** - Replaced by v2 |
+| The Cellar (NEW - Working Pool v1) | Impl | `0x8a2fD83393c7D0dba8EDd5C9Fde525c93Fe8e1A4` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | v4.0.0 - New pool deployment |
+| The Cellar (NEW - Working Pool v2) | Proxy | `0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | **USE THIS** - New pool (fee=10000, tickSpacing=200), ERC1967Proxy |
+| The Cellar (NEW - Working Pool v2) | Impl | `0x3d27b2B29514Feb8B2780949579837C945003030` | ✅ 2025-01-XX | See deploy_new_pool_mainnet.ts | v4.1.0 - Latest pool deployment |
+| KeepToken | Proxy | `0x2D1094F5CED6ba279962f9676d32BE092AFbf82E` | ✅ 2025-01-XX | See FIRSTDEPLOYMENT.md | **USE THIS** - Mainnet KeepToken |
+| KeepToken (ACCIDENTAL) | Proxy | `0x426f7c10e7D5329BB7E956e59fa19697c465daBA` | ⚠️ 2025-01-XX | Accidental deploy | **DO NOT USE** - Orphaned, see ACCIDENTAL_MAINNET_DEPLOYMENT.md |
+| CellarHook (ACCIDENTAL) | Proxy | `0xDA499a900FE25D738045CD6C299663471dE76Ae0` | ⚠️ 2025-01-XX | Accidental deploy | **DO NOT USE** - Orphaned, incompatible with mainnet KeepToken |
 
 ---
 
@@ -291,6 +299,48 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
   - ✅ Added `_authorizeUpgrade()` for upgrade authorization
   - **Proxy Address**: `0x297434683Feb6F7ca16Ab4947eDf547e2c67dB44`
   - **Deployment Date**: 2025-12-01
+- **v3.0.0** - `0xA349006F388DA608052395755d08E765b1960ecC` - Mainnet upgrade (2025-01-XX)
+  - ✅ Fixed sqrtPriceX96 calculation: Uses `TickMath.getSqrtPriceAtTick(10986)` for correct price = 3.0
+  - ✅ Fixed settlement: Added `poolManager.sync()` calls before settling currencies to prevent `CurrencyNotSettled()` errors
+  - ✅ Fixed pool initialization: Handles already-initialized pools gracefully (silent catch instead of reverting)
+  - ✅ **Pool price fix**: Reads actual pool price using `StateLibrary.getSlot0()` instead of hardcoded value - enables normal AMM behavior where price changes as people trade
+  - ✅ Improved balance handling: Allows `msg.value >= amountMON` for rounding buffer, improved error messages, enhanced refund logic
+  - **Proxy Address**: `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` (unchanged)
+  - **Network**: Monad Mainnet (Chain ID 143)
+  - **Deployment Date**: 2025-01-XX
+- **v3.1.0** - `0xc84E7d5C75a89eBB3322bEb004c9351c25fc0092` - Mainnet upgrade (2025-01-XX)
+  - ✅ Broken pool detection: Detects pools with price=0 and prevents adding liquidity
+  - ✅ Two-sided liquidity enforcement: Ensures current price is within liquidity range
+  - ✅ Dynamic tick range: Calculates range around actual pool price
+  - **Proxy Address**: `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` (unchanged)
+  - **Network**: Monad Mainnet (Chain ID 143)
+- **v3.2.0** - `0xc7042Aa8955F1424A95Ba0944386d1593d0448eB` - Mainnet upgrade (2025-01-XX)
+  - ✅ **Two-sided liquidity verification**: Added `_getAmount0ForLiquidity` and `_getAmount1ForLiquidity` helper functions
+  - ✅ **Liquidity validation**: Verifies that calculated liquidity will actually use both tokens before proceeding
+  - ✅ Prevents single-sided liquidity even when pool price is slightly off
+  - ✅ Removed price check that only reverted - now validates actual token usage
+  - **Proxy Address**: `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` (unchanged)
+  - **Network**: Monad Mainnet (Chain ID 143)
+- **v4.0.0** - `0x8a2fD83393c7D0dba8EDd5C9Fde525c93Fe8e1A4` - **NEW POOL DEPLOYMENT** (2025-01-XX)
+  - ✅ **New pool with different parameters**: Deployed new CellarHook to create a new Uniswap V4 pool
+  - ✅ **Hook address validation**: Validates hook address has correct flags (0xAC0) before pool creation
+  - ✅ **PoolKey construction fix**: Properly constructs PoolKey with validated hook address
+  - ✅ **Two-sided liquidity verified**: Pool successfully initialized with both MON and KEEP
+  - **New Hook Address**: `0xaDF53E062195C20DAD2E52b76550f0a266e40ac0` (different from old broken pool)
+  - **Pool Parameters**: Fee=10000 (1.0%), TickSpacing=200 (different from old pool: fee=3000, tickSpacing=60)
+  - **Network**: Monad Mainnet (Chain ID 143)
+  - **Status**: ✅ **WORKING** - Pool initialized with two-sided liquidity (1.999 MON, 0.299 KEEP)
+  - **Note**: Old pool (`0x6c7612F44B71E5E6E2bA0FEa799A23786A537755`) is broken (price=0) and cannot be fixed
+- **v4.1.0** - `0x3d27b2B29514Feb8B2780949579837C945003030` - **LATEST POOL DEPLOYMENT** (2025-01-XX)
+  - ✅ **New pool deployment with ERC1967Proxy**: Deployed new CellarHook using ERC1967Proxy pattern
+  - ✅ **Hook address validation**: Validates hook address has correct flags (0x2DC0) before pool creation
+  - ✅ **All dependent contracts upgraded**: TownPosseManager, TavernRegularsManager, and TavernKeeper updated
+  - ✅ **Two-sided liquidity verified**: Pool successfully initialized with both MON and KEEP
+  - **New Hook Address**: `0xe71CAf7162dd81a4A9C0c6BD25ED02C26F492DC0` (ERC1967Proxy with flags 0x2DC0)
+  - **Pool Parameters**: Fee=10000 (1.0%), TickSpacing=200
+  - **Network**: Monad Mainnet (Chain ID 143)
+  - **Status**: ✅ **ACTIVE** - Pool initialized and all dependent contracts updated
+  - **Deployment TX**: Pool init: `0x9abebd9be786ae360f29f7ef0da53d2ab4eac7960fd8ad782735ef1cb02c01f2`, Liquidity: `0x88dad9f627ec1a780017ae788906dd2c46fd8df89ee691f67b0606bc7c98cb9c`
 
 ### CellarZapV4
 - **v1.0.0** - `0x05E67f9e58CE0FFF67EF916DA2dDFe7A856155d5` - Initial deployment (non-upgradeable)

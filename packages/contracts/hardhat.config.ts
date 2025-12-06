@@ -1,7 +1,7 @@
-import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
 import * as dotenv from "dotenv";
+import { HardhatUserConfig } from "hardhat/config";
 
 dotenv.config({ path: "../../.env" });
 
@@ -17,6 +17,7 @@ const config: HardhatUserConfig = {
                         enabled: true,
                         runs: 200,
                     },
+                    viaIR: true,
                     evmVersion: "cancun",
                 },
             },
@@ -27,6 +28,7 @@ const config: HardhatUserConfig = {
                         enabled: true,
                         runs: 200,
                     },
+                    viaIR: true,
                     evmVersion: "cancun",
                 },
             },
@@ -37,7 +39,7 @@ const config: HardhatUserConfig = {
             chainId: 31337,
             forking: {
                 url: MONAD_RPC_URL,
-                enabled: false,
+                enabled: true,
             },
         },
         localhost: {
