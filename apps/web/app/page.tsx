@@ -1,29 +1,22 @@
 'use client';
 
-import sdk from '@farcaster/miniapp-sdk';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
-import { formatEther } from 'viem';
-import { useAccount } from 'wagmi';
-import { ChatOverlay } from '../../../components/ChatOverlay';
-import { BattleScene } from '../../../components/scenes/BattleScene';
-import { InnScene } from '../../../components/scenes/InnScene';
-import { MapScene } from '../../../components/scenes/MapScene';
-import { TheOfficeMiniapp } from '../../../components/TheOfficeMiniapp';
-import { WelcomeModal } from '../../../components/WelcomeModal';
-import { monad } from '../../../lib/chains';
-import { keepTokenService } from '../../../lib/services/keepToken';
-import { useGameStore } from '../../../lib/stores/gameStore';
-import { GameView } from '../../../lib/types';
+import { usePrivy } from '@privy-io/react-auth';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { ChatOverlay } from '../components/ChatOverlay';
+import { PixelButton } from '../components/PixelComponents';
+import { BattleScene } from '../components/scenes/BattleScene';
+import { InnScene } from '../components/scenes/InnScene';
+import { MapScene } from '../components/scenes/MapScene';
+import { TheOffice } from '../components/TheOffice';
+import { WelcomeModal } from '../components/WelcomeModal';
+import { useGameStore } from '../lib/stores/gameStore';
+import { GameView } from '../lib/types';
 
-type MiniAppContext = {
-  user?: {
-    fid: number;
-    username?: string;
-    displayName?: string;
-    pfpUrl?: string;
-  };
-};
+import { formatEther } from 'viem';
+
+import { keepTokenService } from '../lib/services/keepToken';
+import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 
 function SearchParamsHandler({ onViewChange }: { onViewChange: (view: string | null) => void }) {
     const searchParams = useSearchParams();
@@ -37,46 +30,20 @@ function SearchParamsHandler({ onViewChange }: { onViewChange: (view: string | n
     return null;
 }
 
-function MiniappContent() {
+function HomeContent() {
     const { currentView, switchView, party, keepBalance, setKeepBalance } = useGameStore();
-    const pathname = usePathname();
-    const readyRef = useRef(false);
-    const [context, setContext] = useState<MiniAppContext | null>(null);
+    const { login, authenticated, user, logout } = usePrivy();
+    const address = user?.wallet?.address;
+    const [isInMiniapp, setIsInMiniapp] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
-    // Get user context from SDK
+    console.log('HomeContent Render:', { currentView, isMounted, isInMiniapp });
+
+    // Check if in miniapp on client side only to avoid hydration mismatch
     useEffect(() => {
-        let cancelled = false;
-        const hydrateContext = async () => {
-            try {
-                const ctx = (await (sdk as unknown as {
-                    context: Promise<MiniAppContext> | MiniAppContext;
-                }).context) as MiniAppContext;
-                if (!cancelled) {
-                    setContext(ctx);
-                }
-            } catch {
-                if (!cancelled) setContext(null);
-            }
-        };
-        hydrateContext();
-        return () => {
-            cancelled = true;
-        };
+        setIsMounted(true);
+        setIsInMiniapp(isInFarcasterMiniapp());
     }, []);
-
-    // Call sdk.actions.ready() after delay
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            if (!readyRef.current) {
-                readyRef.current = true;
-                sdk.actions.ready().catch(() => {});
-            }
-        }, 1200);
-        return () => clearTimeout(timeout);
-    }, []);
-
-    // Wagmi hooks for wallet connection (auto-connect handled by AutoConnectWallet in provider)
-    const { address } = useAccount();
 
     // Fetch KEEP Balance
     useEffect(() => {
@@ -91,6 +58,7 @@ function MiniappContent() {
                 setKeepBalance(balance);
             } catch (error) {
                 console.error('Failed to fetch KEEP balance:', error);
+                // Don't set to 0 on error, keep previous value
             }
         };
 
@@ -98,6 +66,20 @@ function MiniappContent() {
         const interval = setInterval(fetchBalance, 10000); // Poll every 10s
         return () => clearInterval(interval);
     }, [address, setKeepBalance]);
+
+    // Initial Greeting
+    useEffect(() => {
+        const hasGreeted = sessionStorage.getItem('innkeeper_greeted');
+        if (!hasGreeted) {
+            useGameStore.getState().addLog({
+                id: Date.now(),
+                message: "Welcome back, traveler! The hearth is warm. How can I help you today?",
+                type: 'dialogue',
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            sessionStorage.setItem('innkeeper_greeted', 'true');
+        }
+    }, []);
 
     // Handle URL Query Params for View Switching
     const handleViewChange = (view: string | null) => {
@@ -126,16 +108,21 @@ function MiniappContent() {
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0 min-w-0">
-                            {/* Help/Docs Link */}
-                            <a
-                                href="/docs"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-2 py-1 text-yellow-400 hover:text-yellow-300 transition-colors"
-                                title="Documentation"
-                            >
-                                <span className="text-lg">?</span>
-                            </a>
+                            {/* Wallet Connect Menu - Show on web (not in Farcaster miniapp) */}
+                            {isMounted && !isInMiniapp && (
+                                <div className="flex items-center gap-2">
+                                    {authenticated ? (
+                                        <PixelButton variant="wood" onClick={logout} className="text-[10px] px-2 py-1">
+                                            {address?.slice(0, 4)}...{address?.slice(-4)}
+                                        </PixelButton>
+                                    ) : (
+                                        <PixelButton variant="primary" onClick={login} className="text-[10px] px-2 py-1">
+                                            CONNECT
+                                        </PixelButton>
+                                    )}
+                                </div>
+                            )}
+
                             {/* DAY and KEEP Balance - Always visible */}
                             <div className="flex items-center gap-2 px-2 bg-black/30 py-1 rounded border border-white/5">
                                 <div className="text-[10px] text-yellow-400 flex flex-col items-end leading-tight">
@@ -149,9 +136,6 @@ function MiniappContent() {
                     {/* --- MAIN SCENE AREA --- */}
                     <div className="flex-1 relative bg-black overflow-hidden">
                         {currentView === GameView.INN && (
-                            <InnScene />
-                        )}
-                        {currentView === GameView.CELLAR && (
                             <InnScene />
                         )}
                         {currentView === GameView.MAP && (
@@ -178,16 +162,14 @@ function MiniappContent() {
 
                                 {/* The Office (King of the Hill) wrapping the Chat */}
                                 <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
-                                    <TheOfficeMiniapp userContext={context?.user}>
+                                    <TheOffice>
                                         <ChatOverlay />
-                                    </TheOfficeMiniapp>
+                                    </TheOffice>
                                 </div>
                             </div>
                         )}
 
                     </div>
-
-
 
                 </div>
             </main>
@@ -195,10 +177,10 @@ function MiniappContent() {
     );
 }
 
-export default function MiniappPage() {
+export default function Home() {
     return (
-        <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-black text-white">Loading Miniapp...</div>}>
-            <MiniappContent />
+        <Suspense fallback={<div className="h-full w-full flex items-center justify-center bg-black text-white">Loading...</div>}>
+            <HomeContent />
         </Suspense>
     );
 }

@@ -25,22 +25,53 @@ export function useSafeAccount() {
             return;
         }
 
+        let mounted = true;
+        let retryCount = 0;
+        const maxRetries = 5;
+
         const checkFarcasterWallet = async () => {
+            if (!mounted) return;
+
             try {
                 const address = await getFarcasterWalletAddress();
-                setFarcasterAddress(address);
-                setFarcasterConnected(!!address);
+                if (mounted) {
+                    setFarcasterAddress(address);
+                    setFarcasterConnected(!!address);
+                    retryCount = 0; // Reset retry count on success
+                }
             } catch (error) {
                 console.debug('Farcaster wallet not available:', error);
-                setFarcasterAddress(null);
-                setFarcasterConnected(false);
+                if (mounted) {
+                    // Only set to null if we've retried multiple times
+                    if (retryCount >= maxRetries) {
+                        setFarcasterAddress(null);
+                        setFarcasterConnected(false);
+                    } else {
+                        retryCount++;
+                    }
+                }
             }
         };
 
+        // Check immediately
         checkFarcasterWallet();
-        // Poll for wallet connection changes
-        const interval = setInterval(checkFarcasterWallet, 2000);
-        return () => clearInterval(interval);
+
+        // Poll more frequently initially, then less frequently
+        const fastInterval = setInterval(() => {
+            if (retryCount < maxRetries) {
+                checkFarcasterWallet();
+            }
+        }, 500); // Check every 500ms initially
+
+        const slowInterval = setInterval(() => {
+            checkFarcasterWallet();
+        }, 2000); // Also check every 2s
+
+        return () => {
+            mounted = false;
+            clearInterval(fastInterval);
+            clearInterval(slowInterval);
+        };
     }, [isMiniapp]);
 
     // Use Farcaster SDK in miniapp, Privy otherwise

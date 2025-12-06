@@ -47,6 +47,9 @@ importers:
       '@privy-io/react-auth':
         specifier: ^1.0.0
         version: 1.99.1(@solana/web3.js@1.98.4(bufferutil@4.0.9)(encoding@0.1.13)(typescript@5.9.3)(utf-8-validate@5.0.10))(@types/react@18.3.3)(bs58@6.0.0)(bufferutil@4.0.9)(ioredis@5.8.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.0))(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@rainbow-me/rainbowkit':
+        specifier: ^2.2.9
+        version: 2.2.9(@tanstack/react-query@5.90.11(react@19.2.0))(@types/react@18.3.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.19.5(@tanstack/query-core@5.90.11)(@tanstack/react-query@5.90.11(react@19.2.0))(@types/react@18.3.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(ioredis@5.8.2)(react@19.2.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.76))
       '@safe-global/safe-apps-provider':
         specifier: ^0.18.0
         version: 0.18.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
@@ -65,6 +68,9 @@ importers:
       '@vercel/og':
         specifier: ^0.6.1
         version: 0.6.8
+      '@wagmi/connectors':
+        specifier: ^7.0.2
+        version: 7.0.2(dad41deab00a4a7457b67e63b625dd0b)
       bullmq:
         specifier: ^5.3.0
         version: 5.65.1
@@ -2188,6 +2194,16 @@ packages:
       permissionless:
         optional: true
 
+  '@rainbow-me/rainbowkit@2.2.9':
+    resolution: {integrity: sha512-zXAeqkqpznpj9yEs1bTbpZbq0pVYKdJUnqqK/nI8xyYFDWchIOyBoEb/4+goT5RaHfGbDe9dp6pIEu/KelKE6A==}
+    engines: {node: '>=12.4'}
+    peerDependencies:
+      '@tanstack/react-query': '>=5.0.0'
+      react: '>=18'
+      react-dom: '>=18'
+      viem: 2.x
+      wagmi: ^2.9.0
+
   '@react-aria/focus@3.21.2':
     resolution: {integrity: sha512-JWaCR7wJVggj+ldmM/cb/DXFg47CXR55lznJhZBh4XVqJjMKwaOOqpT5vNN7kpC1wUpXicGNuDnJDN1S/+6dhQ==}
     peerDependencies:
@@ -3561,11 +3577,22 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@vanilla-extract/css@1.17.3':
+    resolution: {integrity: sha512-jHivr1UPoJTX5Uel4AZSOwrCf4mO42LcdmnhJtUxZaRWhW4FviFbIfs0moAWWld7GOT+2XnuVZjjA/K32uUnMQ==}
+
   '@vanilla-extract/css@1.17.5':
     resolution: {integrity: sha512-u29cUVL5Z2qjJ2Eh8pusT1ToGtTeA4eb/y0ygaw2vWv9XFQSixtkBYEsVkrJExSI/0+SR1g8n5NYas4KlWOdfA==}
 
+  '@vanilla-extract/dynamic@2.1.4':
+    resolution: {integrity: sha512-7+Ot7VlP3cIzhJnTsY/kBtNs21s0YD7WI1rKJJKYP56BkbDxi/wrQUWMGEczKPUDkJuFcvbye+E2ub1u/mHH9w==}
+
   '@vanilla-extract/private@1.0.9':
     resolution: {integrity: sha512-gT2jbfZuaaCLrAxwXbRgIhGhcXbRZCG3v4TTUnjw0EJ7ArdBRxkq4msNJkbuRkCgfIK5ATmprB5t9ljvLeFDEA==}
+
+  '@vanilla-extract/sprinkles@1.6.4':
+    resolution: {integrity: sha512-lW3MuIcdIeHKX81DzhTnw68YJdL1ial05exiuvTLJMdHXQLKcVB93AncLPajMM6mUhaVVx5ALZzNHMTrq/U9Hg==}
+    peerDependencies:
+      '@vanilla-extract/css': ^1.0.0
 
   '@vercel/og@0.6.8':
     resolution: {integrity: sha512-e4kQK9mP8ntpo3dACWirGod/hHv4qO5JMj9a/0a2AZto7b4persj5YP7t1Er372gTtYFTYxNhMx34jRvHooglw==}
@@ -3602,6 +3629,40 @@ packages:
       typescript: '>=5.0.4'
       viem: 2.x
     peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@wagmi/connectors@7.0.2':
+    resolution: {integrity: sha512-JQmFNZR/EmeAkIWgEfAsS8lrnqMjVHFEpnPgVl6wIDU58LhrWe0D1/lHxzdCyFiX3gu/rkIERrHu0BXRxkuB1A==}
+    peerDependencies:
+      '@base-org/account': ~2.4.0
+      '@coinbase/wallet-sdk': ~4.3.6
+      '@gemini-wallet/core': ~0.3.1
+      '@metamask/sdk': ~0.33.1
+      '@safe-global/safe-apps-provider': ~0.18.6
+      '@safe-global/safe-apps-sdk': ~9.1.0
+      '@wagmi/core': 3.0.0
+      '@walletconnect/ethereum-provider': ~2.21.1
+      porto: ~0.2.35
+      typescript: '>=5.7.3'
+      viem: 2.x
+    peerDependenciesMeta:
+      '@base-org/account':
+        optional: true
+      '@coinbase/wallet-sdk':
+        optional: true
+      '@gemini-wallet/core':
+        optional: true
+      '@metamask/sdk':
+        optional: true
+      '@safe-global/safe-apps-provider':
+        optional: true
+      '@safe-global/safe-apps-sdk':
+        optional: true
+      '@walletconnect/ethereum-provider':
+        optional: true
+      porto:
+        optional: true
       typescript:
         optional: true
 
@@ -4616,6 +4677,16 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  cuer@0.0.3:
+    resolution: {integrity: sha512-f/UNxRMRCYtfLEGECAViByA3JNflZImOk11G9hwSd+44jvzrc99J35u5l+fbdQ2+ZG441GvOpaeGYBmWquZsbQ==}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+      typescript: '>=5.4.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   d@1.0.2:
     resolution: {integrity: sha512-MOqHvMWF9/9MX6nza0KgvFH4HpMU0EF5uUDXqX/BtxtU8NfB0QzRtJ8Oe/6SuS4kbhyzVJwjd97EA4PKrzJ8bw==}
@@ -7446,6 +7517,10 @@ packages:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
 
+  qr@0.5.3:
+    resolution: {integrity: sha512-BSrGdNXa8z6PfEYWtvITV21mQ4asR4UCj38Fa3MUUoFAtYzFK/swEQXF+OeBuNbHPFfs3PzpZuK0BXizWXgFOQ==}
+    engines: {node: '>= 20.19.0'}
+
   qrcode@1.5.3:
     resolution: {integrity: sha512-puyri6ApkEHYiVl4CFzo1tDkAZ+ATcnbJrJ6RiBM1Fhctdn/ix9MTE3hRph33omisEbC/2fcfemsseiKgBPKZg==}
     engines: {node: '>=10.13.0'}
@@ -7518,6 +7593,16 @@ packages:
     peerDependencies:
       '@types/react': '*'
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  react-remove-scroll@2.6.2:
+    resolution: {integrity: sha512-KmONPx5fnlXYJQqC62Q+lwIeAk64ws/cUw6omIumRzMRPqgnYqhSSti99nbj0Ry13bv7dF+BKn7NB+OqkdZGTw==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
         optional: true
@@ -11959,6 +12044,25 @@ snapshots:
       - utf-8-validate
       - zod
 
+  '@rainbow-me/rainbowkit@2.2.9(@tanstack/react-query@5.90.11(react@19.2.0))(@types/react@18.3.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.19.5(@tanstack/query-core@5.90.11)(@tanstack/react-query@5.90.11(react@19.2.0))(@types/react@18.3.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(ioredis@5.8.2)(react@19.2.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.76))':
+    dependencies:
+      '@tanstack/react-query': 5.90.11(react@19.2.0)
+      '@vanilla-extract/css': 1.17.3
+      '@vanilla-extract/dynamic': 2.1.4
+      '@vanilla-extract/sprinkles': 1.6.4(@vanilla-extract/css@1.17.3)
+      clsx: 2.1.1
+      cuer: 0.0.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      react-remove-scroll: 2.6.2(@types/react@18.3.3)(react@19.2.0)
+      ua-parser-js: 1.0.41
+      viem: 2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      wagmi: 2.19.5(@tanstack/query-core@5.90.11)(@tanstack/react-query@5.90.11(react@19.2.0))(@types/react@18.3.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(ioredis@5.8.2)(react@19.2.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.76)
+    transitivePeerDependencies:
+      - '@types/react'
+      - babel-plugin-macros
+      - typescript
+
   '@react-aria/focus@3.21.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@react-aria/interactions': 3.25.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -14201,6 +14305,23 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
+  '@vanilla-extract/css@1.17.3':
+    dependencies:
+      '@emotion/hash': 0.9.2
+      '@vanilla-extract/private': 1.0.9
+      css-what: 6.2.2
+      cssesc: 3.0.0
+      csstype: 3.2.3
+      dedent: 1.7.0
+      deep-object-diff: 1.1.9
+      deepmerge: 4.3.1
+      lru-cache: 10.4.3
+      media-query-parser: 2.0.2
+      modern-ahocorasick: 1.1.0
+      picocolors: 1.1.1
+    transitivePeerDependencies:
+      - babel-plugin-macros
+
   '@vanilla-extract/css@1.17.5':
     dependencies:
       '@emotion/hash': 0.9.2
@@ -14218,7 +14339,15 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
 
+  '@vanilla-extract/dynamic@2.1.4':
+    dependencies:
+      '@vanilla-extract/private': 1.0.9
+
   '@vanilla-extract/private@1.0.9': {}
+
+  '@vanilla-extract/sprinkles@1.6.4(@vanilla-extract/css@1.17.3)':
+    dependencies:
+      '@vanilla-extract/css': 1.17.3
 
   '@vercel/og@0.6.8':
     dependencies:
@@ -14329,6 +14458,21 @@ snapshots:
       - wagmi
       - ws
       - zod
+
+  '@wagmi/connectors@7.0.2(dad41deab00a4a7457b67e63b625dd0b)':
+    dependencies:
+      '@wagmi/core': 2.22.1(@tanstack/query-core@5.90.11)(@types/react@18.3.3)(react@19.2.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.0))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
+      viem: 2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+    optionalDependencies:
+      '@base-org/account': 1.1.1(@types/react@18.3.3)(bufferutil@4.0.9)(react@19.2.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.0))(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@coinbase/wallet-sdk': 3.9.3
+      '@gemini-wallet/core': 0.3.2(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
+      '@metamask/sdk': 0.33.1(bufferutil@4.0.9)(encoding@0.1.13)(utf-8-validate@5.0.10)
+      '@safe-global/safe-apps-provider': 0.18.6(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@safe-global/safe-apps-sdk': 9.1.0(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      '@walletconnect/ethereum-provider': 2.21.1(@types/react@18.3.3)(bufferutil@4.0.9)(encoding@0.1.13)(ioredis@5.8.2)(react@19.2.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
+      porto: 0.2.35(@tanstack/react-query@5.90.11(react@19.2.0))(@types/react@18.3.3)(@wagmi/core@2.22.1(@tanstack/query-core@5.90.11)(@types/react@18.3.3)(react@19.2.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.0))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)))(react@19.2.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.0))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(wagmi@2.19.5(@tanstack/query-core@5.90.11)(@tanstack/react-query@5.90.11(react@19.2.0))(@types/react@18.3.3)(bufferutil@4.0.9)(encoding@0.1.13)(fastestsmallesttextencoderdecoder@1.0.22)(ioredis@5.8.2)(react@19.2.0)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@5.0.10))(zod@3.25.76))
+      typescript: 5.9.3
 
   '@wagmi/core@2.22.1(@tanstack/query-core@5.90.11)(@types/react@18.3.3)(react@19.2.0)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.0))(viem@2.40.3(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))':
     dependencies:
@@ -16223,6 +16367,14 @@ snapshots:
 
   csstype@3.2.3: {}
 
+  cuer@0.0.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3):
+    dependencies:
+      qr: 0.5.3
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+    optionalDependencies:
+      typescript: 5.9.3
+
   d@1.0.2:
     dependencies:
       es5-ext: 0.10.64
@@ -16728,7 +16880,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.10.2(eslint@8.57.1)
       eslint-plugin-react: 7.37.5(eslint@8.57.1)
       eslint-plugin-react-hooks: 7.0.1(eslint@8.57.1)
@@ -16761,7 +16913,7 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -16776,7 +16928,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.48.0(eslint@8.57.1)(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@8.57.1):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -19849,6 +20001,8 @@ snapshots:
 
   punycode@2.3.1: {}
 
+  qr@0.5.3: {}
+
   qrcode@1.5.3:
     dependencies:
       dijkstrajs: 1.0.3
@@ -19934,6 +20088,17 @@ snapshots:
       react: 19.2.0
       react-style-singleton: 2.2.3(@types/react@18.3.3)(react@19.2.0)
       tslib: 2.8.1
+    optionalDependencies:
+      '@types/react': 18.3.3
+
+  react-remove-scroll@2.6.2(@types/react@18.3.3)(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-remove-scroll-bar: 2.3.8(@types/react@18.3.3)(react@19.2.0)
+      react-style-singleton: 2.2.3(@types/react@18.3.3)(react@19.2.0)
+      tslib: 2.8.1
+      use-callback-ref: 1.3.3(@types/react@18.3.3)(react@19.2.0)
+      use-sidecar: 1.1.3(@types/react@18.3.3)(react@19.2.0)
     optionalDependencies:
       '@types/react': 18.3.3
 

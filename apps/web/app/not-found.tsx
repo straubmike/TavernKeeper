@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { PixelBox, PixelButton } from '../../components/PixelComponents';
+import { PixelBox, PixelButton } from '../components/PixelComponents';
 
 export default function NotFound() {
     return (

@@ -7,7 +7,6 @@ import { getMonPrice } from '../lib/services/monPriceService';
 import { getOfficeManagerData } from '../lib/services/officeManagerCache';
 import { OfficeState } from '../lib/services/tavernKeeperService';
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
-import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 import { PixelBox, PixelButton } from './PixelComponents';
 import TheCellarView from './TheCellarView';
 
@@ -77,69 +76,6 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
         return getOfficeManagerData(state.currentKing);
     }, [state.currentKing]);
 
-    // Connect Farcaster button component
-    // Uses Farcaster SDK directly (no wagmi hooks) to avoid WagmiProvider dependency
-    const ConnectFarcasterButton = () => {
-        const isMiniapp = isInFarcasterMiniapp();
-        const [isConnecting, setIsConnecting] = useState(false);
-        const [isConnected, setIsConnected] = useState(false);
-
-        // Check connection status on mount and periodically
-        useEffect(() => {
-            if (!isMiniapp) return;
-
-            const checkConnection = async () => {
-                try {
-                    const { getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
-                    const address = await getFarcasterWalletAddress();
-                    setIsConnected(!!address);
-                } catch (error) {
-                    setIsConnected(false);
-                }
-            };
-
-            checkConnection();
-            const interval = setInterval(checkConnection, 2000);
-            return () => clearInterval(interval);
-        }, [isMiniapp]);
-
-        const handleConnect = async () => {
-            if (!isMiniapp) {
-                alert("This button should only appear in miniapp context.");
-                return;
-            }
-
-            setIsConnecting(true);
-            try {
-                // Use Farcaster SDK directly (works without WagmiProvider)
-                const { getFarcasterWalletAddress } = await import('../lib/services/farcasterWallet');
-                const address = await getFarcasterWalletAddress();
-                if (address) {
-                    setIsConnected(true);
-                    // Force reload to update connection state throughout the app
-                    window.location.reload();
-                } else {
-                    alert("Farcaster Wallet not found. Are you in a miniapp?");
-                }
-            } catch (e) {
-                console.error('Failed to connect via Farcaster SDK:', e);
-                alert("Failed to connect: " + (e as any).message);
-            } finally {
-                setIsConnecting(false);
-            }
-        };
-
-        return (
-            <PixelButton
-                onClick={handleConnect}
-                disabled={isConnecting || isConnected}
-                variant="primary"
-                className="w-full !py-2 !text-xs shadow-lg flex items-center justify-center"
-            >
-                {isConnecting ? 'Connecting...' : 'Connect Farcaster'}
-            </PixelButton>
-        );
-    };
 
     React.useEffect(() => {
         setMounted(true);
@@ -453,7 +389,6 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 <div className="text-center py-1">
                                     <span className="text-[10px] text-[#a8a29e] italic">Connect wallet to play</span>
                                 </div>
-                                <ConnectFarcasterButton />
                             </div>
                         )}
                     </div>

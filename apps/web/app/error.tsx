@@ -1,6 +1,6 @@
 'use client';
 
-import { PixelBox, PixelButton } from '../../components/PixelComponents';
+import { PixelBox, PixelButton } from '../components/PixelComponents';
 
 export default function Error({
     error,

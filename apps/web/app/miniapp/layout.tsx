@@ -1,6 +1,4 @@
 import type { Metadata } from 'next';
-import { MiniappProvider } from '../../components/providers/MiniappProvider';
-import '../globals.css';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tavernkeeper.xyz';
 
@@ -56,13 +54,6 @@ export default function MiniappLayout({
 }: {
     children: React.ReactNode;
 }) {
-    return (
-        <html lang="en">
-            <body className="bg-black min-h-screen flex justify-center overflow-hidden">
-                <MiniappProvider>
-                    {children}
-                </MiniappProvider>
-            </body>
-        </html>
-    );
+    return <>{children}</>;
 }
+
