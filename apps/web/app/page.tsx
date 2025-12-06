@@ -57,14 +57,14 @@ function HomeContent() {
                         console.log('Not in miniapp, skipping ready()');
                         return;
                     }
-                    
+
                     await sdk.actions.ready();
                     console.log('✅ sdk.actions.ready() called successfully');
                 } catch (err) {
                     console.error('Failed to call sdk.actions.ready()', err);
                 }
             };
-            
+
             void bootstrapSdk();
         }
     }, []);

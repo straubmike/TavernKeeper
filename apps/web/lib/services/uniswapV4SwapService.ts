@@ -117,46 +117,52 @@ export async function getPoolState(): Promise<{
         const poolKey = getPoolKey();
         const poolId = calculatePoolId(poolKey);
 
-        // Read slot0 and liquidity
-        const [slot0Result, liquidityResult] = await Promise.all([
-            publicClient.readContract({
-                address: CONTRACT_ADDRESSES.POOL_MANAGER,
-                abi: [
-                    {
-                        inputs: [{ name: 'id', type: 'bytes32' }],
-                        name: 'getSlot0',
-                        outputs: [
-                            { name: 'sqrtPriceX96', type: 'uint160' },
-                            { name: 'tick', type: 'int24' },
-                            { name: 'protocolFee', type: 'uint24' },
-                            { name: 'lpFee', type: 'uint24' },
-                        ],
-                        stateMutability: 'view',
-                        type: 'function',
-                    },
-                ],
-                functionName: 'getSlot0',
-                args: [poolId],
-            }),
-            publicClient.readContract({
-                address: CONTRACT_ADDRESSES.POOL_MANAGER,
-                abi: [
-                    {
-                        inputs: [{ name: 'id', type: 'bytes32' }],
-                        name: 'getLiquidity',
-                        outputs: [{ name: '', type: 'uint128' }],
-                        stateMutability: 'view',
-                        type: 'function',
-                    },
-                ],
-                functionName: 'getLiquidity',
-                args: [poolId],
-            }),
-        ]) as [any, bigint];
+        // Try to read slot0 and liquidity using storage slots (Monad-specific)
+        // Pool.State: Slot0 slot0; uint256 feeGrowthGlobal0X128; uint256 feeGrowthGlobal1X128; uint128 liquidity;
+        // _pools mapping is at slot 0 in PoolManager
+        // Storage slot = keccak256(poolId . 0)
+        const POOLS_SLOT = 0n;
+        const slot0StorageSlot = keccak256(
+            encodeAbiParameters(
+                [{ type: 'bytes32' }, { type: 'uint256' }],
+                [poolId, POOLS_SLOT]
+            )
+        );
 
-        // Handle different response formats
-        const sqrtPriceX96 = slot0Result[0] || slot0Result?.sqrtPriceX96 || 0n;
-        const tick = slot0Result[1] || slot0Result?.tick || 0;
+        // Read slot0 (packed: sqrtPriceX96 (160), tick (24), protocolFee (24), lpFee (24))
+        const slot0Value = await publicClient.getStorageAt({
+            address: CONTRACT_ADDRESSES.POOL_MANAGER,
+            slot: slot0StorageSlot,
+        });
+
+        // Read liquidity (slot0StorageSlot + 3)
+        const liquidityStorageSlot = BigInt(slot0StorageSlot) + 3n;
+        const liquidityValue = await publicClient.getStorageAt({
+            address: CONTRACT_ADDRESSES.POOL_MANAGER,
+            slot: `0x${liquidityStorageSlot.toString(16)}` as `0x${string}`,
+        });
+
+        // Decode slot0
+        const valueBigInt = BigInt(slot0Value || '0x0');
+        const sqrtPriceX96 = valueBigInt & ((1n << 160n) - 1n);
+        const tickBits = (valueBigInt >> 160n) & ((1n << 24n) - 1n);
+        // Handle signed int24 for tick
+        let tick = Number(tickBits);
+        if (tickBits & (1n << 23n)) {
+            tick = Number(tickBits) - (1 << 24);
+        }
+
+        // Decode liquidity
+        const liquidity = BigInt(liquidityValue || '0x0') & ((1n << 128n) - 1n);
+
+        // Decode slot0
+        const slot0Result = {
+            sqrtPriceX96,
+            tick,
+            protocolFee: Number((valueBigInt >> 184n) & ((1n << 24n) - 1n)),
+            lpFee: Number((valueBigInt >> 208n) & ((1n << 24n) - 1n)),
+        };
+        const liquidityResult = liquidity;
 
         console.log('getPoolState: sqrtPriceX96:', sqrtPriceX96.toString());
         console.log('getPoolState: tick:', tick);
