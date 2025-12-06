@@ -4,6 +4,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode, useState } from 'react';
 import { WagmiProvider } from 'wagmi';
+import { AutoConnectWallet } from '../AutoConnectWallet';
 import { wagmiConfig } from '../../lib/wagmi-miniapp';
 
 type MiniappProviderProps = {
@@ -25,7 +26,10 @@ export function MiniappProvider({ children }: MiniappProviderProps) {
 
   return (
     <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <AutoConnectWallet />
+        {children}
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }

@@ -4,7 +4,7 @@ import sdk from '@farcaster/miniapp-sdk';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { formatEther } from 'viem';
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { ChatOverlay } from '../../../components/ChatOverlay';
 import { BattleScene } from '../../../components/scenes/BattleScene';
 import { InnScene } from '../../../components/scenes/InnScene';
@@ -41,7 +41,6 @@ function MiniappContent() {
     const { currentView, switchView, party, keepBalance, setKeepBalance } = useGameStore();
     const pathname = usePathname();
     const readyRef = useRef(false);
-    const autoConnectAttempted = useRef(false);
     const [context, setContext] = useState<MiniAppContext | null>(null);
 
     // Get user context from SDK
@@ -76,44 +75,8 @@ function MiniappContent() {
         return () => clearTimeout(timeout);
     }, []);
 
-    // Wagmi hooks for wallet connection
-    const { address, isConnected } = useAccount();
-    const { connectors, connectAsync, isPending: isConnecting } = useConnect();
-    const primaryConnector = connectors[0];
-
-    // Reset autoConnectAttempted when connection is lost
-    useEffect(() => {
-        if (!isConnected && autoConnectAttempted.current) {
-            autoConnectAttempted.current = false;
-        }
-    }, [isConnected]);
-
-    // Reset autoConnectAttempted when navigating back to miniapp page and not connected
-    useEffect(() => {
-        if (pathname === '/miniapp' && !isConnected && autoConnectAttempted.current) {
-            autoConnectAttempted.current = false;
-        }
-    }, [pathname, isConnected]);
-
-    // Auto-connect when connector is available
-    useEffect(() => {
-        if (
-            autoConnectAttempted.current ||
-            isConnected ||
-            !primaryConnector ||
-            isConnecting
-        ) {
-            return;
-        }
-        autoConnectAttempted.current = true;
-        connectAsync({
-            connector: primaryConnector,
-            chainId: monad.id,
-        }).catch(() => {
-            // Reset on connection failure so we can retry
-            autoConnectAttempted.current = false;
-        });
-    }, [connectAsync, isConnected, isConnecting, primaryConnector]);
+    // Wagmi hooks for wallet connection (auto-connect handled by AutoConnectWallet in provider)
+    const { address } = useAccount();
 
     // Fetch KEEP Balance
     useEffect(() => {

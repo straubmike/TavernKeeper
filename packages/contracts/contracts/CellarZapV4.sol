@@ -54,6 +54,10 @@ contract CellarZapV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
+    function setCellarHook(address _cellarHook) external onlyOwner {
+        cellarHook = _cellarHook;
+    }
+
     receive() external payable {}
 
     function mintLP(uint256 amountMON, uint256 amountKEEP) external payable {

@@ -92,7 +92,10 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     };
 
     const handleMintLP = async () => {
-        if (!wallet || !address) return;
+        if (!wallet || !address || !isConnected) {
+            alert("Please connect your wallet first.");
+            return;
+        }
         const input = document.getElementById('mintAmount') as HTMLInputElement;
         const amount = input.value || "1";
 
@@ -124,7 +127,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             }
 
             console.log("Minting LP...");
-            await client.writeContract({
+            const mintHash = await client.writeContract({
                 address: zapAddress,
                 abi: zapConfig.abi,
                 functionName: 'mintLP',
@@ -133,6 +136,14 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                 chain: monad,
                 account: address as `0x${string}`
             });
+
+            // Wait for transaction to be confirmed before refreshing balance
+            const publicClient = createPublicClient({ chain: monad, transport: http() });
+            await publicClient.waitForTransactionReceipt({ hash: mintHash });
+            console.log("Transaction confirmed!");
+
+            // Clear cache to ensure fresh data
+            theCellarService.clearCache();
 
             alert("LP Minted Successfully!");
             fetchData(); // Refresh balance
@@ -355,8 +366,8 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
             {/* Mint LP Confirmation Modal */}
             {showMintModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
-                    <PixelBox variant="dark" className="max-w-md w-full p-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 overflow-y-auto">
+                    <PixelBox variant="dark" className="max-w-md w-full p-6 my-auto">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xl font-bold text-orange-400">Confirm Mint LP</h3>
                             <button
@@ -414,6 +425,14 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                         </p>
                                     </div>
 
+                                    {!isConnected && (
+                                        <div className="bg-red-50/10 border border-red-800/50 rounded p-3">
+                                            <p className="text-xs text-red-200">
+                                                <strong>Warning:</strong> Wallet not connected. Please connect your wallet to proceed.
+                                            </p>
+                                        </div>
+                                    )}
+
                                     <div className="flex gap-2 mt-4">
                                         <PixelButton
                                             onClick={() => setShowMintModal(false)}
@@ -427,13 +446,15 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                             onClick={handleMintLP}
                                             variant="primary"
                                             className="flex-1"
-                                            disabled={isMinting}
+                                            disabled={isMinting || !isConnected}
                                         >
                                             {isMinting ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin mr-2 inline" />
                                                     Minting...
                                                 </>
+                                            ) : !isConnected ? (
+                                                "Connect Wallet"
                                             ) : (
                                                 "Confirm Mint LP"
                                             )}
