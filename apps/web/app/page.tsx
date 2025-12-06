@@ -185,8 +185,8 @@ function HomeContent() {
 
                         {/* The Office for INN and CELLAR views (without chat) */}
                         {currentView === GameView.INN && (
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full sm:w-[95%] max-w-md mx-auto h-full z-30 pointer-events-none flex flex-col">
-                                <div className="pointer-events-auto w-full h-full flex flex-col">
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-full z-30 pointer-events-none flex flex-col">
+                                <div className="pointer-events-auto w-full h-full flex flex-col overflow-hidden">
                                     <TheOffice>
                                         <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [-ms-overflow-style:auto] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full">
                                             <HomeInfoDisplay address={address} />
@@ -197,8 +197,8 @@ function HomeContent() {
                         )}
 
                         {currentView === GameView.CELLAR && (
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[95%] h-full z-30 pointer-events-none flex flex-col gap-4">
-                                <div className="pointer-events-auto w-full max-w-md mx-auto h-full flex flex-col">
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90%] max-w-sm h-full z-30 pointer-events-none flex flex-col gap-4">
+                                <div className="pointer-events-auto w-full h-full flex flex-col overflow-hidden">
                                     <TheOffice />
                                 </div>
                             </div>

@@ -13,7 +13,7 @@ const pressStart2P = Press_Start_2P({
   variable: '--font-press-start-2p',
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tavernkeeper.xyz';
 
 export const viewport: Viewport = {
   width: 'device-width',

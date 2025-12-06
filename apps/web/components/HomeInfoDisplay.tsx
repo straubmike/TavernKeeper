@@ -89,25 +89,25 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
     }, [address]);
 
     return (
-        <div className="w-full p-2 sm:p-3 space-y-3 max-w-full overflow-x-hidden overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [-ms-overflow-style:auto] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className="w-full p-2 sm:p-3 space-y-2 max-w-full overflow-x-hidden [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [-ms-overflow-style:auto] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full">
             {/* Pool Liquidity - Compact */}
             <div className="grid grid-cols-2 gap-2">
-                <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center">
+                <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center min-w-0">
                     <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-0.5">Pool MON</div>
-                    <div className="text-yellow-400 font-bold text-xs font-mono">
+                    <div className="text-yellow-400 font-bold text-xs font-mono truncate w-full text-center">
                         {parseFloat(formatEther(poolMon)).toFixed(4)}
                     </div>
                 </PixelBox>
-                <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center">
+                <PixelBox variant="dark" className="p-2 flex flex-col items-center justify-center min-w-0">
                     <div className="text-[8px] text-zinc-400 uppercase tracking-wider mb-0.5">Pool KEEP</div>
-                    <div className="text-orange-400 font-bold text-xs font-mono">
+                    <div className="text-orange-400 font-bold text-xs font-mono truncate w-full text-center">
                         {parseFloat(formatEther(poolKeep)).toFixed(2)}
                     </div>
                 </PixelBox>
             </div>
 
             {/* Swap Interface - Shows user balances internally */}
-            <div className="w-full max-w-full overflow-hidden">
+            <div className="w-full max-w-full overflow-hidden min-w-0">
                 <SwapInterface />
             </div>
         </div>
