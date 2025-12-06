@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PixelBox, PixelButton } from '../../../components/PixelComponents';
-import { MarketplaceListings } from '../../../components/MarketplaceListings';
-import { ListForSaleModal } from '../../../components/ListForSaleModal';
-import { BuyItemModal } from '../../../components/BuyItemModal';
-import type { MarketplaceListing } from '../../../lib/services/marketplace';
+import { PixelBox, PixelButton } from '../../components/PixelComponents';
+import { MarketplaceListings } from '../../components/MarketplaceListings';
+import { ListForSaleModal } from '../../components/ListForSaleModal';
+import { BuyItemModal } from '../../components/BuyItemModal';
+import type { MarketplaceListing } from '../../lib/services/marketplace';
 import { ShoppingCart } from 'lucide-react';
 
 export default function MarketplacePage() {

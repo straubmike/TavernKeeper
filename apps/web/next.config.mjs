@@ -25,7 +25,8 @@ const nextConfig = {
     return config;
   },
   serverExternalPackages: ['pino', 'thread-stream'],
-  turbopack: {}, // Empty config to silence Turbopack warning when using webpack config
+  // Turbopack disabled - it has issues with test files in dependencies (thread-stream, WalletConnect)
+  // Webpack handles these edge cases better. Turbopack can still be used for dev with `next dev --turbo` if desired
   async headers() {
     return [
       {

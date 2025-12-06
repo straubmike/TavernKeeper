@@ -1,7 +1,7 @@
 'use client';
 
-import HeroBuilder from '../../../components/heroes/HeroBuilder';
-import { PixelButton } from '../../../components/PixelComponents';
+import HeroBuilder from '../../components/heroes/HeroBuilder';
+import { PixelButton } from '../../components/PixelComponents';
 
 // Force dynamic rendering to prevent Privy initialization during build
 export const dynamic = 'force-dynamic';

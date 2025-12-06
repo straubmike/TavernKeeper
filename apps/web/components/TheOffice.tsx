@@ -26,10 +26,10 @@ export const TheOffice: React.FC<{
     userContext?: UserContext;
 }> = ({ children, userContext }) => {
     const { keepBalance, currentView } = useGameStore();
-    
+
     // Detect context
     const isMiniapp = isInFarcasterMiniapp();
-    
+
     // Use context-appropriate hooks (both available, just use the right one)
     const privy = usePrivy(); // Available in web context
     const { wallets } = useWallets(); // For web
@@ -40,16 +40,16 @@ export const TheOffice: React.FC<{
         hash: txHash,
         chainId: monad.id,
     });
-    
+
     // Fallback to Farcaster SDK if wagmi connection fails (for miniapp context)
     const [farcasterAddress, setFarcasterAddress] = useState<Address | null>(null);
-    
+
     useEffect(() => {
         if (!isMiniapp) {
             setFarcasterAddress(null);
             return;
         }
-        
+
         // Check Farcaster SDK immediately on mount and as fallback
         const checkFarcaster = async () => {
             try {
@@ -60,22 +60,22 @@ export const TheOffice: React.FC<{
                 setFarcasterAddress(null);
             }
         };
-        
+
         checkFarcaster();
-        
+
         // Only poll if wagmi is not connected (to avoid unnecessary checks)
         if (!wagmiConnected) {
             const interval = setInterval(checkFarcaster, 2000);
             return () => clearInterval(interval);
         }
     }, [isMiniapp, wagmiConnected]);
-    
+
     // Unified state based on context
     const privyWallet = wallets.find((w) => w.address === privy.user?.wallet?.address);
     const address = isMiniapp ? (wagmiAddress || farcasterAddress) : privy.user?.wallet?.address;
     const isConnected = isMiniapp ? (wagmiConnected || !!farcasterAddress) : (privy.authenticated && !!privyWallet);
     const chainId = isMiniapp ? wagmiChainId : (privyWallet?.chainId ? parseInt(privyWallet.chainId.split(':')[1]) : undefined);
-    
+
     const [state, setState] = useState<OfficeState>({
         currentKing: 'Loading...',
         currentPrice: '0.00',

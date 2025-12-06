@@ -3,11 +3,11 @@
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { PixelButton, PixelCard, PixelPanel } from '../../../components/PixelComponents';
-import { useSafeAccount } from '../../../lib/hooks/useSafeAccount';
-import { getFarcasterEthereumProvider } from '../../../lib/services/farcasterWallet';
-import { TownPosseGroup, townPosseService } from '../../../lib/services/townPosseService';
-import { isInFarcasterMiniapp } from '../../../lib/utils/farcasterDetection';
+import { PixelButton, PixelCard, PixelPanel } from '../../components/PixelComponents';
+import { useSafeAccount } from '../../lib/hooks/useSafeAccount';
+import { getFarcasterEthereumProvider } from '../../lib/services/farcasterWallet';
+import { TownPosseGroup, townPosseService } from '../../lib/services/townPosseService';
+import { isInFarcasterMiniapp } from '../../lib/utils/farcasterDetection';
 
 export default function TownPossePage() {
     const isMiniapp = isInFarcasterMiniapp();

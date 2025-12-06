@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { PixelButton, PixelPanel } from '../../../../components/PixelComponents';
+import { PixelButton, PixelPanel } from '../../../components/PixelComponents';
 import { useParams } from 'next/navigation';
 
 export default function PartyInvitePage() {

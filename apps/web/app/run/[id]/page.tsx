@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { PixelButton, PixelPanel, PixelCard } from '../../../../components/PixelComponents';
-import { LootClaimModal } from '../../../../components/LootClaimModal';
-import { getUnclaimedLoot, type LootClaim } from '../../../../lib/services/lootClaim';
+import { PixelButton, PixelPanel, PixelCard } from '../../../components/PixelComponents';
+import { LootClaimModal } from '../../../components/LootClaimModal';
+import { getUnclaimedLoot, type LootClaim } from '../../../lib/services/lootClaim';
 import { Coins } from 'lucide-react';
 
-const PixiMap = dynamic(() => import('../../../../components/PixiMap'), {
+const PixiMap = dynamic(() => import('../../../components/PixiMap'), {
   ssr: false,
   loading: () => <div className="w-full h-[400px] bg-slate-900 flex items-center justify-center text-white font-pixel">Loading Replay...</div>
 });

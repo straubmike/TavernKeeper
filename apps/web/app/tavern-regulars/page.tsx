@@ -3,11 +3,11 @@
 import { usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
-import { PixelButton, PixelCard, PixelPanel } from '../../../components/PixelComponents';
-import { useSafeAccount } from '../../../lib/hooks/useSafeAccount';
-import { getFarcasterEthereumProvider } from '../../../lib/services/farcasterWallet';
-import { TavernRegularsGroup, tavernRegularsService } from '../../../lib/services/tavernRegularsService';
-import { isInFarcasterMiniapp } from '../../../lib/utils/farcasterDetection';
+import { PixelButton, PixelCard, PixelPanel } from '../../components/PixelComponents';
+import { useSafeAccount } from '../../lib/hooks/useSafeAccount';
+import { getFarcasterEthereumProvider } from '../../lib/services/farcasterWallet';
+import { TavernRegularsGroup, tavernRegularsService } from '../../lib/services/tavernRegularsService';
+import { isInFarcasterMiniapp } from '../../lib/utils/farcasterDetection';
 
 export default function TavernRegularsPage() {
     const isMiniapp = isInFarcasterMiniapp();

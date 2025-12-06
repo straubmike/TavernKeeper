@@ -18,9 +18,11 @@
     "test:watch:file": "pnpm --filter @innkeeper/web test:watch:file",
     "network:local": "pnpm --filter @innkeeper/web network:local",
     "network:testnet": "pnpm --filter @innkeeper/web network:testnet",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "typescript": "^5.3.3",
     "vitest": "^1.1.0"
   },
