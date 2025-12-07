@@ -19,7 +19,7 @@ import { DemiGodGenerator } from './demigod-generator';
 import { MortalGenerator } from './mortal-generator';
 import { OrganizationGenerator } from './organization-generator';
 import { StandoutGenerator } from './standout-generator';
-import { LineageGenerator } from './lineage-generator';
+import { DungeonGenerator } from './dungeon-generator';
 // Note: This should import from @innkeeper/engine after integration
 // For now, using a simple seeded RNG
 function makeRng(seed: string): () => number {
@@ -42,7 +42,7 @@ export class WorldGenerator {
   private mortalGenerator: MortalGenerator;
   private organizationGenerator: OrganizationGenerator;
   private standoutGenerator: StandoutGenerator;
-  private lineageGenerator: LineageGenerator;
+  private dungeonGenerator: DungeonGenerator;
 
   constructor() {
     this.primordialGenerator = new PrimordialGenerator();
@@ -53,7 +53,7 @@ export class WorldGenerator {
     this.mortalGenerator = new MortalGenerator();
     this.organizationGenerator = new OrganizationGenerator();
     this.standoutGenerator = new StandoutGenerator();
-    this.lineageGenerator = new LineageGenerator();
+    this.dungeonGenerator = new DungeonGenerator();
   }
 
   /**
@@ -74,6 +74,8 @@ export class WorldGenerator {
       mortalRaces: [],
       organizations: [],
       standoutMortals: [],
+      dungeons: [],
+      worldEvents: [], // Accumulate world events during generation
     };
 
     // Level 1: Primordials
@@ -91,10 +93,7 @@ export class WorldGenerator {
 
     // Level 2.5: Geography
     if (levels.includes(2.5)) {
-      context.geography = await this.geographyGenerator.generate(
-        context,
-        config.geographyDensity || 'normal'
-      );
+      context.geography = await this.geographyGenerator.generate(context);
     }
 
     // Level 3: Conceptual Beings
@@ -128,13 +127,9 @@ export class WorldGenerator {
       context.standoutMortals = await this.standoutGenerator.generate(context);
     }
 
-    // Level 7: Family and Role (requires all previous levels)
-    let familyMembers: any[] = [];
-    let familyLineages: any[] = [];
-    if (levels.includes(7) && levels.length >= 6) {
-      const lineageResult = await this.lineageGenerator.generate(context);
-      familyMembers = lineageResult.members;
-      familyLineages = lineageResult.lineages;
+    // Level 7.5: Dungeons
+    if (levels.includes(7.5)) {
+      context.dungeons = await this.dungeonGenerator.generate(context);
     }
 
     return {
@@ -147,8 +142,10 @@ export class WorldGenerator {
       mortalRaces: context.mortalRaces,
       organizations: context.organizations,
       standoutMortals: context.standoutMortals,
-      familyMembers,
-      familyLineages,
+      dungeons: context.dungeons,
+      familyMembers: [],
+      familyLineages: [],
+      worldEvents: context.worldEvents, // Include world events in generated world
       generatedAt: new Date(),
     };
   }

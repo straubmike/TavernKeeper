@@ -88,7 +88,7 @@ The system tracks item counts in memory by default. For production, you'll need 
 
 ## Matching HTML Tool
 
-This TypeScript implementation produces **identical results** to the HTML test tool (`tools/item-generator-tool.html`) when using the same seed. This ensures consistency between testing and production.
+This TypeScript implementation produces **identical results** to the HTML test tool (`../tools/item-generator/item-generator-tool.html`) when using the same seed. This ensures consistency between testing and production.
 
 
 
