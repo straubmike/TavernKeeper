@@ -1,8 +1,7 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { createWalletClient, custom } from 'viem';
+import { useAccount, useWalletClient } from 'wagmi';
 import { monad } from '../../lib/chains';
 import { mintHero, uploadMetadata } from '../../lib/services/heroMinting';
 import { metadataStorage } from '../../lib/services/metadataStorage';
@@ -12,10 +11,9 @@ import HeroEditor, { HeroData } from './HeroEditor';
 import { SpritePreview } from './SpritePreview';
 
 export default function HeroBuilder() {
-    const { authenticated, user } = usePrivy();
-    const { wallets } = useWallets();
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
+    const { address, isConnected } = useAccount();
+    const { data: walletClient } = useWalletClient();
+    const authenticated = isConnected;
 
     const [heroData, setHeroData] = useState<HeroData>({
         name: '',
@@ -47,19 +45,14 @@ export default function HeroBuilder() {
     };
 
     const handleMint = async () => {
-        if (!address || !wallet || !heroData.name) return;
+        if (!address || !walletClient || !heroData.name) return;
 
         // Clear any previous errors when retrying
         setIsMinting(true);
         setMintStatus('Generating Arcane Metadata...');
 
         try {
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
+            // Using walletClient from Wagmi
 
             // 1. Generate sprite and upload image separately to IPFS (with retries)
             setMintStatus('Uploading hero image...');

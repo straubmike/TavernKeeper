@@ -6,17 +6,11 @@
  */
 
 import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
-import { injected, walletConnect } from '@wagmi/connectors';
-import { fallback, http, createStorage, cookieStorage } from 'wagmi';
-import { createConfig } from 'wagmi';
+import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { cookieStorage, createStorage, http } from 'wagmi';
 import { monad } from './chains';
 
-const monadTransports = process.env.NEXT_PUBLIC_MONAD_RPC_URL
-  ? [http(process.env.NEXT_PUBLIC_MONAD_RPC_URL), http()]
-  : [http()];
-
 // Create a safe storage that works in both SSR and client
-// Use a no-op storage for SSR to avoid indexedDB errors, cookieStorage for client
 const noOpStorage = {
   getItem: () => null,
   setItem: () => { },
@@ -27,21 +21,21 @@ const safeStorage = createStorage({
   storage: typeof window !== 'undefined' ? cookieStorage : noOpStorage,
 });
 
-// Include all connectors - RainbowKit will filter/show appropriate ones
-// Farcaster connector works in miniapp, others work in web
-export const wagmiConfig = createConfig({
+export const wagmiConfig = getDefaultConfig({
+  appName: 'TavernKeeper',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '1b99af504ddb38a0f6dc1b85e16ef5c9',
   chains: [monad],
   ssr: true,
-  connectors: [
-    farcasterMiniApp(), // For Farcaster miniapp
-    injected(), // Browser extension wallets
-    walletConnect({
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '1b99af504ddb38a0f6dc1b85e16ef5c9',
-    }),
-  ],
-  transports: {
-    [monad.id]: fallback(monadTransports),
-  },
   storage: safeStorage,
-  pollingInterval: 12_000,
+  transports: {
+    [monad.id]: process.env.NEXT_PUBLIC_MONAD_RPC_URL
+      ? http(process.env.NEXT_PUBLIC_MONAD_RPC_URL)
+      : http(),
+  },
 });
+
+// Manually append the Farcaster Miniapp connector
+// This ensures it's available for autoconnection in the miniapp
+// while keeping standard RainbowKit wallets (MetaMask, etc.) for mobile consumers
+(wagmiConfig.connectors as any).push(farcasterMiniApp());
+

@@ -1,5 +1,5 @@
-import { usePrivy } from '@privy-io/react-auth';
 import React, { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useRunStatus } from '../../lib/hooks/useRunStatus';
 import { runService } from '../../lib/services/runService';
 import { useGameStore } from '../../lib/stores/gameStore';
@@ -25,8 +25,8 @@ interface DungeonMap {
 
 export const MapScene: React.FC = () => {
     const { selectedPartyTokenIds, setSelectedPartyTokenIds, currentRunId, setCurrentRunId, switchView } = useGameStore();
-    const { user, authenticated } = usePrivy();
-    const address = user?.wallet?.address;
+    const { address, isConnected } = useAccount();
+    const authenticated = isConnected;
 
     const [map, setMap] = useState<DungeonMap | null>(null);
     const [loading, setLoading] = useState(true);

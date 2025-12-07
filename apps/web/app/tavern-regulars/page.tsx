@@ -1,29 +1,14 @@
 'use client';
 
-import { usePrivy } from '@privy-io/react-auth';
-import { ethers } from 'ethers';
 import { useEffect, useState } from 'react';
+import { useAccount, useWalletClient } from 'wagmi';
 import { PixelButton, PixelCard, PixelPanel } from '../../components/PixelComponents';
-import { useSafeAccount } from '../../lib/hooks/useSafeAccount';
-import { getFarcasterEthereumProvider } from '../../lib/services/farcasterWallet';
 import { TavernRegularsGroup, tavernRegularsService } from '../../lib/services/tavernRegularsService';
-import { isInFarcasterMiniapp } from '../../lib/utils/farcasterDetection';
 
 export default function TavernRegularsPage() {
-    const isMiniapp = isInFarcasterMiniapp();
-    const privy = usePrivy();
-    const { address, authenticated } = useSafeAccount();
+    const { address, isConnected } = useAccount();
+    const { data: walletClient } = useWalletClient();
 
-    // Helper to get ethers provider/signer
-    const getEthersProvider = async () => {
-        if (isMiniapp) {
-            const provider = await getFarcasterEthereumProvider();
-            if (!provider) return null;
-            return new ethers.BrowserProvider(provider);
-        } else {
-            return await privy.getEthersProvider();
-        }
-    };
     const [groups, setGroups] = useState<TavernRegularsGroup[]>([]);
     const [loading, setLoading] = useState(true);
     const [createName, setCreateName] = useState('');
@@ -36,19 +21,17 @@ export default function TavernRegularsPage() {
     const [processing, setProcessing] = useState(false);
 
     useEffect(() => {
-        if (authenticated) {
+        if (isConnected && address) {
             fetchGroups();
         } else {
             setLoading(false);
         }
-    }, [authenticated]);
+    }, [isConnected, address]);
 
     const fetchGroups = async () => {
+        if (!address) return;
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
-            const userGroups = await tavernRegularsService.getUserGroups(signer);
+            const userGroups = await tavernRegularsService.getUserGroups(address);
             setGroups(userGroups);
         } catch (error) {
             console.error("Failed to fetch groups:", error);
@@ -58,13 +41,10 @@ export default function TavernRegularsPage() {
     };
 
     const handleCreateGroup = async () => {
-        if (!createName) return;
+        if (!createName || !walletClient) return;
         setProcessing(true);
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
-            await tavernRegularsService.createGroup(signer, createName);
+            await tavernRegularsService.createGroup(walletClient, createName);
             await fetchGroups();
             setViewMode('list');
             setCreateName('');
@@ -77,18 +57,17 @@ export default function TavernRegularsPage() {
     };
 
     const handleContribute = async () => {
-        if (!selectedGroup || !contributeMon || !contributeKeep) return;
+        if (!selectedGroup || !contributeMon || !contributeKeep || !walletClient) return;
         setProcessing(true);
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
-            await tavernRegularsService.contribute(signer, selectedGroup.groupId, contributeMon, contributeKeep);
+            await tavernRegularsService.contribute(walletClient, selectedGroup.groupId, contributeMon, contributeKeep);
             await fetchGroups();
-            // Update selected group with new data
-            const updatedGroups = await tavernRegularsService.getUserGroups(signer);
-            const updated = updatedGroups.find(g => g.groupId === selectedGroup.groupId);
-            if (updated) setSelectedGroup(updated);
+            // Update selected group with new data - fetch fresh list and find it
+            if (address) {
+                const updatedGroups = await tavernRegularsService.getUserGroups(address);
+                const updated = updatedGroups.find(g => g.groupId === selectedGroup.groupId);
+                if (updated) setSelectedGroup(updated);
+            }
 
             setContributeMon('');
             setContributeKeep('');
@@ -102,13 +81,10 @@ export default function TavernRegularsPage() {
     };
 
     const handleClaimFees = async () => {
-        if (!selectedGroup) return;
+        if (!selectedGroup || !walletClient) return;
         setProcessing(true);
         try {
-            const provider = await getEthersProvider();
-            if (!provider) return;
-            const signer = await provider.getSigner();
-            await tavernRegularsService.claimFees(signer, selectedGroup.groupId);
+            await tavernRegularsService.claimFees(walletClient, selectedGroup.groupId);
             await fetchGroups();
             alert("Fees claimed successfully!");
         } catch (error) {
@@ -119,7 +95,7 @@ export default function TavernRegularsPage() {
         }
     };
 
-    if (!authenticated) {
+    if (!isConnected) {
         return (
             <main className="min-h-full bg-[#2a1d17] p-8 flex items-center justify-center font-pixel">
                 <PixelPanel title="Access Denied" variant="wood" className="max-w-md text-center">

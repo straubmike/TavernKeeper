@@ -1,9 +1,7 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { createWalletClient, custom } from 'viem';
-import { monad } from '../lib/chains';
+import { useAccount, useWalletClient } from 'wagmi';
 import { HeroMetadata, heroMinting } from '../lib/services/heroMinting';
 import { metadataStorage } from '../lib/services/metadataStorage';
 import { rpgService } from '../lib/services/rpgService';
@@ -39,10 +37,8 @@ export default function NFTMetadataUpdater({
     onSuccess,
     onCancel
 }: NFTMetadataUpdaterProps) {
-    const { user } = usePrivy();
-    const { wallets } = useWallets();
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
+    const { address } = useAccount();
+    const { data: walletClient } = useWalletClient();
 
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -99,7 +95,7 @@ export default function NFTMetadataUpdater({
     }, [tokenUri, contractType]);
 
     const handleUpdate = async () => {
-        if (!address || !wallet || !name.trim()) {
+        if (!address || !walletClient || !name.trim()) {
             setError('Please fill in all required fields');
             return;
         }
@@ -168,13 +164,8 @@ export default function NFTMetadataUpdater({
             // 4. Upload metadata to IPFS
             const newMetadataUri = await metadataStorage.upload(metadata);
 
-            // 5. Create wallet client and update contract
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider),
-            });
+            // 5. Use existing walletClient from wagmi
+
 
             // 6. Call updateTokenURI on contract
             if (contractType === 'hero') {
@@ -273,8 +264,8 @@ export default function NFTMetadataUpdater({
                                     key={g}
                                     onClick={() => setGender(g)}
                                     className={`flex-1 py-2 text-xs font-bold uppercase border-2 transition-all ${gender === g
-                                            ? 'bg-amber-600 border-amber-800 text-white'
-                                            : 'bg-[#1a120d] border-[#4a3b2a] text-[#8b7355] hover:bg-[#2a1d17]'
+                                        ? 'bg-amber-600 border-amber-800 text-white'
+                                        : 'bg-[#1a120d] border-[#4a3b2a] text-[#8b7355] hover:bg-[#2a1d17]'
                                         }`}
                                 >
                                     {g}

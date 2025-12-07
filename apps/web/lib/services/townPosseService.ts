@@ -1,10 +1,11 @@
-import { ethers } from 'ethers';
+import { createPublicClient, formatEther, http, parseEther, parseAbi, type WalletClient } from 'viem';
+import { monad } from '../chains';
 import { LOCALHOST_ADDRESSES } from '../contracts/addresses';
 import TownPosseManagerABI from '../abis/TownPosseManager.json';
 import KeepTokenABI from '../abis/KeepToken.json';
 
-const TOWN_POSSE_ADDRESS = LOCALHOST_ADDRESSES.TOWN_POSSE_MANAGER;
-const KEEP_TOKEN_ADDRESS = LOCALHOST_ADDRESSES.KEEP_TOKEN;
+const TOWN_POSSE_ADDRESS = LOCALHOST_ADDRESSES.TOWN_POSSE_MANAGER as `0x${string}`;
+const KEEP_TOKEN_ADDRESS = LOCALHOST_ADDRESSES.KEEP_TOKEN as `0x${string}`;
 
 export interface TownPosseGroup {
     posseId: number;
@@ -33,127 +34,241 @@ export interface Proposal {
 }
 
 export const townPosseService = {
-    async getContract(signer: any) {
-        return new ethers.Contract(TOWN_POSSE_ADDRESS, TownPosseManagerABI.abi, signer);
-    },
+    getPublicClient() {
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
 
-    async getKeepToken(signer: any) {
-        return new ethers.Contract(KEEP_TOKEN_ADDRESS, KeepTokenABI.abi, signer);
+        return createPublicClient({
+            chain: monad,
+            transport: http(rpcUrl),
+        });
     },
 
     async createPosse(
-        signer: any,
+        client: WalletClient,
         name: string,
         maxMembers: number,
         openMembership: boolean,
         minContribution: string
     ) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.createTownPosse(
-            name,
-            maxMembers,
-            openMembership,
-            ethers.parseEther(minContribution)
-        );
-        return await tx.wait();
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'createTownPosse',
+            chain: monad,
+            account: client.account,
+            args: [
+                name,
+                BigInt(maxMembers),
+                openMembership,
+                parseEther(minContribution)
+            ]
+        });
     },
 
-    async joinPosse(signer: any, posseId: number) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.requestJoinTownPosse(posseId);
-        return await tx.wait();
+    async joinPosse(client: WalletClient, posseId: number) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'requestJoinTownPosse',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId)]
+        });
     },
 
-    async approveMember(signer: any, posseId: number, member: string) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.approveTownPosseMember(posseId, member);
-        return await tx.wait();
+    async approveMember(client: WalletClient, posseId: number, member: string) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'approveTownPosseMember',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId), member as `0x${string}`]
+        });
     },
 
-    async contribute(signer: any, posseId: number, amountMON: string, amountKEEP: string) {
-        const contract = await this.getContract(signer);
-        const keepToken = await this.getKeepToken(signer);
-        const userAddress = await signer.getAddress();
+    async contribute(client: WalletClient, posseId: number, amountMON: string, amountKEEP: string) {
+        if (!client.account) throw new Error("Wallet not connected");
+        const userAddress = client.account.address;
+        const publicClient = this.getPublicClient();
 
         // Approve KEEP
-        const currentAllowance = await keepToken.allowance(userAddress, TOWN_POSSE_ADDRESS);
-        if (ethers.parseEther(amountKEEP) > currentAllowance) {
-            const approveTx = await keepToken.approve(TOWN_POSSE_ADDRESS, ethers.parseEther(amountKEEP));
-            await approveTx.wait();
+        const allowance = await publicClient.readContract({
+            address: KEEP_TOKEN_ADDRESS,
+            abi: KeepTokenABI.abi,
+            functionName: 'allowance',
+            args: [userAddress, TOWN_POSSE_ADDRESS]
+        }) as bigint;
+
+        const keepAmountWei = parseEther(amountKEEP);
+
+        if (keepAmountWei > allowance) {
+            console.log("Approving KEEP...");
+            const approveHash = await client.writeContract({
+                address: KEEP_TOKEN_ADDRESS,
+                abi: KeepTokenABI.abi,
+                functionName: 'approve',
+                chain: monad,
+                account: client.account,
+                args: [TOWN_POSSE_ADDRESS, keepAmountWei]
+            });
+            await publicClient.waitForTransactionReceipt({ hash: approveHash });
         }
 
         // Contribute (handling native MON)
-        const tx = await contract.contributeToTownPosse(
-            posseId,
-            ethers.parseEther(amountMON),
-            ethers.parseEther(amountKEEP),
-            { value: ethers.parseEther(amountMON) }
-        );
-        return await tx.wait();
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'contributeToTownPosse',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId), parseEther(amountMON), keepAmountWei],
+            value: parseEther(amountMON)
+        });
     },
 
-    async withdraw(signer: any, posseId: number, lpTokenAmount: string) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.withdrawFromTownPosse(posseId, ethers.parseEther(lpTokenAmount));
-        return await tx.wait();
+    async withdraw(client: WalletClient, posseId: number, lpTokenAmount: string) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'withdrawFromTownPosse',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId), parseEther(lpTokenAmount)]
+        });
     },
 
-    async claimFees(signer: any, posseId: number) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.claimTownPosseFees(posseId);
-        return await tx.wait();
+    async claimFees(client: WalletClient, posseId: number) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'claimTownPosseFees',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId)]
+        });
     },
 
     // Governance
-    async createProposal(signer: any, posseId: number, description: string, data: string = "0x") {
-        const contract = await this.getContract(signer);
-        const tx = await contract.createTownPosseProposal(posseId, description, data);
-        return await tx.wait();
+    async createProposal(client: WalletClient, posseId: number, description: string, data: string = "0x") {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'createTownPosseProposal',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId), description, data as `0x${string}`]
+        });
     },
 
-    async vote(signer: any, posseId: number, proposalId: number, support: boolean) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.voteOnTownPosseProposal(posseId, proposalId, support);
-        return await tx.wait();
+    async vote(client: WalletClient, posseId: number, proposalId: number, support: boolean) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'voteOnTownPosseProposal',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId), BigInt(proposalId), support]
+        });
     },
 
-    async executeProposal(signer: any, posseId: number, proposalId: number) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.executeTownPosseProposal(posseId, proposalId);
-        return await tx.wait();
+    async executeProposal(client: WalletClient, posseId: number, proposalId: number) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TOWN_POSSE_ADDRESS,
+            abi: TownPosseManagerABI.abi,
+            functionName: 'executeTownPosseProposal',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(posseId), BigInt(proposalId)]
+        });
     },
 
-    async getUserPosses(signer: any): Promise<TownPosseGroup[]> {
-        const contract = await this.getContract(signer);
-        const userAddress = await signer.getAddress();
-        const posseIds = await contract.getUserPosses(userAddress);
+    async getUserPosses(userAddress: string): Promise<TownPosseGroup[]> {
+        const publicClient = this.getPublicClient();
 
-        const posses: TownPosseGroup[] = [];
+        try {
+            const posseIds = await publicClient.readContract({
+                address: TOWN_POSSE_ADDRESS,
+                abi: TownPosseManagerABI.abi,
+                functionName: 'getUserPosses',
+                args: [userAddress as `0x${string}`]
+            }) as bigint[];
 
-        for (const id of posseIds) {
-            const posseData = await contract.posses(id);
-            const myTier = await contract.getMemberTier(id, userAddress);
-            const myShare = await contract.getMemberShare(id, userAddress);
-            const myPendingFees = await contract.getPendingFees(id, userAddress);
-            const members = await contract.getPosseMembers(id);
+            const posses: TownPosseGroup[] = [];
 
-            posses.push({
-                posseId: Number(posseData.posseId),
-                creator: posseData.creator,
-                members: members,
-                maxMembers: Number(posseData.maxMembers),
-                minContribution: ethers.formatEther(posseData.minContribution),
-                totalContribution: ethers.formatEther(posseData.totalContribution),
-                lpTokenBalance: ethers.formatEther(posseData.lpTokenBalance),
-                openMembership: posseData.openMembership,
-                posseName: posseData.posseName,
-                active: posseData.active,
-                myTier: Number(myTier),
-                myShare: ethers.formatEther(myShare),
-                myPendingFees: ethers.formatEther(myPendingFees)
-            });
+            for (const id of posseIds) {
+                const [posseData, myTier, myShare, myPendingFees, members] = await Promise.all([
+                    publicClient.readContract({
+                        address: TOWN_POSSE_ADDRESS,
+                        abi: TownPosseManagerABI.abi,
+                        functionName: 'posses',
+                        args: [id]
+                    }) as Promise<any>,
+                    publicClient.readContract({
+                        address: TOWN_POSSE_ADDRESS,
+                        abi: TownPosseManagerABI.abi,
+                        functionName: 'getMemberTier',
+                        args: [id, userAddress as `0x${string}`]
+                    }) as Promise<number>,
+                    publicClient.readContract({
+                        address: TOWN_POSSE_ADDRESS,
+                        abi: TownPosseManagerABI.abi,
+                        functionName: 'getMemberShare',
+                        args: [id, userAddress as `0x${string}`]
+                    }) as Promise<bigint>,
+                    publicClient.readContract({
+                        address: TOWN_POSSE_ADDRESS,
+                        abi: TownPosseManagerABI.abi,
+                        functionName: 'getPendingFees',
+                        args: [id, userAddress as `0x${string}`]
+                    }) as Promise<bigint>,
+                    publicClient.readContract({
+                        address: TOWN_POSSE_ADDRESS,
+                        abi: TownPosseManagerABI.abi,
+                        functionName: 'getPosseMembers',
+                        args: [id]
+                    }) as Promise<string[]>
+                ]);
+
+                // Assuming posseData follows the structure or array return
+                posses.push({
+                    posseId: Number(posseData.posseId || posseData[0]),
+                    creator: posseData.creator || posseData[1],
+                    members: members,
+                    maxMembers: Number(posseData.maxMembers || posseData[2]),
+                    minContribution: formatEther(posseData.minContribution || posseData[3]),
+                    totalContribution: formatEther(posseData.totalContribution || posseData[4]),
+                    lpTokenBalance: formatEther(posseData.lpTokenBalance || posseData[5]),
+                    openMembership: posseData.openMembership || posseData[6],
+                    posseName: posseData.posseName || posseData[7],
+                    active: posseData.active || posseData[8],
+                    myTier: Number(myTier),
+                    myShare: formatEther(myShare),
+                    myPendingFees: formatEther(myPendingFees)
+                });
+            }
+
+            return posses;
+        } catch (error) {
+            console.error("Error fetching user posses:", error);
+            return [];
         }
-
-        return posses;
     }
 };

@@ -1,8 +1,8 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { createPublicClient, createWalletClient, custom, formatEther, http } from 'viem';
+import { formatEther } from 'viem';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { monad } from '../lib/chains';
 import { uploadMetadata } from '../lib/services/heroMinting';
 import { metadataStorage } from '../lib/services/metadataStorage';
@@ -18,25 +18,20 @@ interface RecruitHeroViewProps {
 }
 
 export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: RecruitHeroViewProps) {
-    const { user } = usePrivy();
-    const { wallets } = useWallets();
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
+    const { address } = useAccount();
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
     const [balance, setBalance] = useState<{ value: bigint; decimals: number; symbol: string } | null>(null);
 
     // Fetch Balance
     useEffect(() => {
-        if (!address) {
+        if (!address || !publicClient) {
             setBalance(null);
             return;
         }
 
         const fetchBalance = async () => {
             try {
-                const publicClient = createPublicClient({
-                    chain: monad,
-                    transport: http(),
-                });
                 const balanceValue = await publicClient.getBalance({
                     address: address as `0x${string}`,
                 });
@@ -97,7 +92,7 @@ export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: Rec
     }, [address]);
 
     const handleMint = async () => {
-        if (!address || !wallet || !heroData.name) return;
+        if (!address || !walletClient || !heroData.name) return;
 
         // Clear any previous errors when retrying
         setError(null);
@@ -105,12 +100,8 @@ export default function RecruitHeroView({ tbaAddress, onSuccess, onCancel }: Rec
         setStatusMessage('Preparing Hero Metadata...');
 
         try {
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
+            // Using walletClient from wagmi directly
+
 
             // 1. Generate sprite and upload image separately to IPFS (with retries)
             setStatusMessage('Uploading hero image...');

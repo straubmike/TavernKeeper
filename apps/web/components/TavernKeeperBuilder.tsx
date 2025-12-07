@@ -1,8 +1,8 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useEffect, useState } from 'react';
-import { createPublicClient, createWalletClient, custom, formatEther, http } from 'viem';
+import { formatEther } from 'viem';
+import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
 import { monad } from '../lib/chains';
 import { uploadMetadata } from '../lib/services/heroMinting';
 import { metadataStorage } from '../lib/services/metadataStorage';
@@ -13,25 +13,20 @@ import { ForgeButton, ForgePanel } from './heroes/ForgeComponents';
 import { SpritePreview } from './heroes/SpritePreview';
 
 export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => void }) {
-    const { user } = usePrivy();
-    const { wallets } = useWallets();
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
+    const { address } = useAccount();
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
     const [balance, setBalance] = useState<{ value: bigint; decimals: number; symbol: string } | null>(null);
 
     // Fetch Balance
     useEffect(() => {
-        if (!address) {
+        if (!address || !publicClient) {
             setBalance(null);
             return;
         }
 
         const fetchBalance = async () => {
             try {
-                const publicClient = createPublicClient({
-                    chain: monad,
-                    transport: http(),
-                });
                 const balanceValue = await publicClient.getBalance({
                     address: address as `0x${string}`,
                 });
@@ -112,7 +107,7 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
     };
 
     const handleMint = async () => {
-        if (!address || !wallet || !name) return;
+        if (!address || !walletClient || !name) return;
 
         // Clear any previous errors when retrying
         setError(null);
@@ -120,12 +115,7 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
         setStatusMessage('Preparing Tavern Keeper Metadata...');
 
         try {
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
+            // using walletClient from wagmi
 
             // 1. Generate sprite and upload image separately to IPFS (with retries)
             setStatusMessage('Uploading Tavern Keeper image...');
@@ -210,7 +200,7 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
     };
 
     const handleWhitelistMint = async () => {
-        if (!address || !wallet || !name) return;
+        if (!address || !walletClient || !name) return;
 
         // Clear any previous errors when retrying
         setError(null);
@@ -218,12 +208,7 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
         setStatusMessage('Preparing Tavern Keeper Metadata...');
 
         try {
-            const provider = await wallet.getEthereumProvider();
-            const walletClient = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
+            // using walletClient from wagmi
 
             // 1. Upload Metadata
             const metadata = {
@@ -344,8 +329,8 @@ export default function TavernKeeperBuilder({ onSuccess }: { onSuccess?: () => v
                                                     key={g}
                                                     onClick={() => setGender(g)}
                                                     className={`flex-1 py-2 text-[10px] font-bold uppercase border-2 transition-all ${gender === g
-                                                            ? 'bg-amber-600 border-amber-800 text-white'
-                                                            : 'bg-[#3e2613] border-[#1e1209] text-[#8b7355] hover:bg-[#4e3019]'
+                                                        ? 'bg-amber-600 border-amber-800 text-white'
+                                                        : 'bg-[#3e2613] border-[#1e1209] text-[#8b7355] hover:bg-[#4e3019]'
                                                         }`}
                                                 >
                                                     {g}

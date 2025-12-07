@@ -1,15 +1,15 @@
 "use client";
 
-import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { Flame, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { createPublicClient, createWalletClient, custom, formatEther, http, parseAbi, parseEther } from "viem";
+import { formatEther, parseAbi, parseEther, type Address } from "viem";
+import { useAccount, usePublicClient, useWalletClient, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { monad } from "../lib/chains";
-import { CONTRACT_REGISTRY, getContractAddress } from "../lib/contracts/registry";
 import { CONTRACT_ADDRESSES } from "../lib/contracts/addresses";
+import { CONTRACT_REGISTRY, getContractAddress } from "../lib/contracts/registry";
 import { CellarState, theCellarService } from "../lib/services/theCellarService";
-import { PixelBox, PixelButton } from "./PixelComponents";
 import { useSmartNavigate } from "../lib/utils/smartNavigation";
+import { PixelBox, PixelButton } from "./PixelComponents";
 
 interface TheCellarViewProps {
     onBackToOffice?: () => void;
@@ -21,8 +21,11 @@ interface TheCellarViewProps {
 const CELLAR_DISABLED = false;
 
 export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBalance = "0" }: TheCellarViewProps = {}) {
-    const { authenticated, user } = usePrivy();
-    const { wallets } = useWallets();
+    const { address, isConnected } = useAccount();
+    const { data: walletClient } = useWalletClient();
+    const publicClient = usePublicClient();
+    const { writeContractAsync } = useWriteContract();
+
     const { navigate } = useSmartNavigate();
     const [state, setState] = useState<CellarState | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -33,10 +36,6 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     const [showMintModal, setShowMintModal] = useState(false);
     const [showRecoverModal, setShowRecoverModal] = useState(false);
     const [isRecovering, setIsRecovering] = useState(false);
-
-    const wallet = wallets.find((w) => w.address === user?.wallet?.address);
-    const address = user?.wallet?.address;
-    const isConnected = authenticated && !!wallet;
 
     const fetchData = async () => {
         try {
@@ -61,22 +60,16 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     };
 
     const handleClaim = async () => {
-        if (!address || !isConnected || !wallet) return;
+        if (!address || !isConnected || !walletClient) return;
 
         setShowConfirmModal(false);
         setIsClaiming(true);
         try {
-            const provider = await wallet.getEthereumProvider();
-            const client = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
-
             // Raid Bid: 1.05 LP (Fixed for now, V3 Migration default)
             const bid = parseEther("1.05");
 
-            await theCellarService.claim(client, bid);
+            // Use service with Wagmi wallet client
+            await theCellarService.claim(walletClient, bid);
             alert("Raid successful! You claimed the pot.");
         } catch (error) {
             console.error("Claim failed:", error);
@@ -98,7 +91,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     };
 
     const handleMintLP = async () => {
-        if (!wallet || !address || !isConnected) {
+        if (!walletClient || !address || !isConnected || !publicClient) {
             alert("Please connect your wallet first.");
             return;
         }
@@ -108,13 +101,6 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         setShowMintModal(false);
         setIsMinting(true);
         try {
-            const provider = await wallet.getEthereumProvider();
-            const client = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
-
             const amountMON = parseEther(amount);
             const amountKEEP = parseEther((parseFloat(amount) * 3).toString()); // 1:3 Ratio
 
@@ -128,30 +114,30 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             if (wmonAddress && wmonAddress !== '0x0000000000000000000000000000000000000000') {
                 try {
                     // Check WMON balance first
-                    const publicClient = createPublicClient({ chain: monad, transport: http() });
                     const wmonBalance = await publicClient.readContract({
                         address: wmonAddress,
                         abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
                         functionName: 'balanceOf',
-                        args: [address as `0x${string}`],
+                        args: [address],
                     });
 
                     // If not enough WMON, wrap MON
                     if (wmonBalance < amountMON) {
                         const wrapAmount = amountMON - wmonBalance;
-                        const nativeBalance = await publicClient.getBalance({ address: address as `0x${string}` });
+                        const nativeBalance = await publicClient.getBalance({ address });
 
                         if (nativeBalance < wrapAmount) {
                             throw new Error(`Insufficient MON balance. Need ${formatEther(wrapAmount)} MON to wrap, but only have ${formatEther(nativeBalance)} MON.`);
                         }
 
                         console.log(`Wrapping ${formatEther(wrapAmount)} MON to WMON...`);
-                        const wrapHash = await client.writeContract({
+                        const wrapHash = await walletClient.writeContract({
                             address: wmonAddress,
                             abi: parseAbi(['function deposit() payable']),
                             functionName: 'deposit',
                             chain: monad,
                             value: wrapAmount,
+                            account: address
                         });
                         await publicClient.waitForTransactionReceipt({ hash: wrapHash });
                         console.log("MON wrapped to WMON");
@@ -160,13 +146,11 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                     // Approve WMON (skip allowance check to avoid errors with WMON contract)
                     try {
                         console.log("Approving WMON...");
-                        const approveHash = await theCellarService.approve(client, wmonAddress, amountMON);
+                        const approveHash = await theCellarService.approve(walletClient, wmonAddress, amountMON);
                         await publicClient.waitForTransactionReceipt({ hash: approveHash });
                         console.log("WMON Approved");
                     } catch (approveError: any) {
                         console.warn("WMON approval failed, but continuing:", approveError.message);
-                        // Don't throw - some WMON contracts might not need approval or have issues
-                        // The actual transaction will fail if approval is needed
                     }
                 } catch (error: any) {
                     console.error("WMON handling error:", error);
@@ -178,16 +162,14 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             const allowance = await theCellarService.getKeepAllowance(address, cellarAddress);
             if (allowance < amountKEEP) {
                 console.log("Approving KEEP...");
-                const approveHash = await theCellarService.approveKeep(client, cellarAddress, amountKEEP);
-                const publicClient = createPublicClient({ chain: monad, transport: http() });
+                const approveHash = await theCellarService.approveKeep(walletClient, cellarAddress, amountKEEP);
                 await publicClient.waitForTransactionReceipt({ hash: approveHash });
                 console.log("KEEP Approved");
             }
 
             console.log("Adding Liquidity (Minting LP)...");
-            const hash = await theCellarService.addLiquidity(client, amountMON, amountKEEP);
+            const hash = await theCellarService.addLiquidity(walletClient, amountMON, amountKEEP);
 
-            const publicClient = createPublicClient({ chain: monad, transport: http() });
             await publicClient.waitForTransactionReceipt({ hash });
             console.log("Transaction confirmed!");
 
@@ -205,31 +187,13 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     };
 
     const handleRecoverLP = async () => {
-        if (!wallet || !address || !isConnected) return;
+        if (!walletClient || !address || !isConnected) return;
 
         setShowRecoverModal(false);
         setIsRecovering(true);
         try {
-            const provider = await wallet.getEthereumProvider();
-            const client = createWalletClient({
-                account: address as `0x${string}`,
-                chain: monad,
-                transport: custom(provider)
-            });
-
             // Recover all LP tokens
-            await theCellarService.recoverLiquidity(client, lpBalance);
-
-            // Wait for transaction to be confirmed before refreshing balance
-            // (recoverLiquidity returns hash)
-            // Need to verify if recoverLiquidity returns transaction hash in service
-            // ... checked code, yes it returns hash.
-
-            // We'll trust the toast/alert for confirmation for now as writeContract handles internal waiting?
-            // Actually service returns hash, so we should really wait.
-            // But writeContract returns immediately?
-            // Let's just create a public client to wait.
-            // Simplified for now: just alert.
+            await theCellarService.recoverLiquidity(walletClient, lpBalance);
 
             alert("Liquidity Recovered Successfully!");
             theCellarService.clearCache();

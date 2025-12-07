@@ -1,12 +1,12 @@
-import { ethers } from 'ethers';
+import { createPublicClient, formatEther, http, parseEther, parseAbi, type PublicClient, type WalletClient } from 'viem';
+import { monad } from '../chains';
 import { LOCALHOST_ADDRESSES } from '../contracts/addresses';
 import TavernRegularsManagerABI from '../abis/TavernRegularsManager.json';
-import CellarHookABI from '../abis/CellarHook.json';
 import KeepTokenABI from '../abis/KeepToken.json';
 
-const TAVERN_REGULARS_ADDRESS = LOCALHOST_ADDRESSES.TAVERN_REGULARS_MANAGER;
-const CELLAR_HOOK_ADDRESS = LOCALHOST_ADDRESSES.THE_CELLAR;
-const KEEP_TOKEN_ADDRESS = LOCALHOST_ADDRESSES.KEEP_TOKEN;
+// Use standard contract addresses or fallbacks
+const TAVERN_REGULARS_ADDRESS = LOCALHOST_ADDRESSES.TAVERN_REGULARS_MANAGER as `0x${string}`;
+const KEEP_TOKEN_ADDRESS = LOCALHOST_ADDRESSES.KEEP_TOKEN as `0x${string}`;
 
 export interface TavernRegularsGroup {
     groupId: number;
@@ -21,86 +21,174 @@ export interface TavernRegularsGroup {
 }
 
 export const tavernRegularsService = {
-    async getContract(signer: any) {
-        return new ethers.Contract(TAVERN_REGULARS_ADDRESS, TavernRegularsManagerABI.abi, signer);
+    getPublicClient() {
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
+            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+
+        return createPublicClient({
+            chain: monad,
+            transport: http(rpcUrl),
+        });
     },
 
-    async getKeepToken(signer: any) {
-        return new ethers.Contract(KEEP_TOKEN_ADDRESS, KeepTokenABI.abi, signer);
+    async createGroup(client: WalletClient, groupName: string) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TAVERN_REGULARS_ADDRESS,
+            abi: TavernRegularsManagerABI.abi,
+            functionName: 'createTavernRegularsGroup',
+            chain: monad,
+            account: client.account,
+            args: [groupName]
+        });
     },
 
-    async createGroup(signer: any, groupName: string) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.createTavernRegularsGroup(groupName);
-        return await tx.wait();
+    async joinGroup(client: WalletClient, groupId: number) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TAVERN_REGULARS_ADDRESS,
+            abi: TavernRegularsManagerABI.abi,
+            functionName: 'joinTavernRegularsGroup',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(groupId)]
+        });
     },
 
-    async joinGroup(signer: any, groupId: number) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.joinTavernRegularsGroup(groupId);
-        return await tx.wait();
-    },
+    async contribute(client: WalletClient, groupId: number, amountMON: string, amountKEEP: string) {
+        if (!client.account) throw new Error("Wallet not connected");
+        const userAddress = client.account.address;
+        const publicClient = this.getPublicClient();
 
-    async contribute(signer: any, groupId: number, amountMON: string, amountKEEP: string) {
-        const contract = await this.getContract(signer);
-        const keepToken = await this.getKeepToken(signer);
-        const userAddress = await signer.getAddress();
+        // Check allowance
+        const allowance = await publicClient.readContract({
+            address: KEEP_TOKEN_ADDRESS,
+            abi: KeepTokenABI.abi,
+            functionName: 'allowance',
+            args: [userAddress, TAVERN_REGULARS_ADDRESS]
+        }) as bigint;
 
-        // Approve KEEP
-        const currentAllowance = await keepToken.allowance(userAddress, TAVERN_REGULARS_ADDRESS);
-        if (ethers.parseEther(amountKEEP) > currentAllowance) {
-            const approveTx = await keepToken.approve(TAVERN_REGULARS_ADDRESS, ethers.parseEther(amountKEEP));
-            await approveTx.wait();
-        }
+        const keepAmountWei = parseEther(amountKEEP);
 
-        // Contribute (handling native MON)
-        const tx = await contract.contributeToTavernRegularsGroup(
-            groupId,
-            ethers.parseEther(amountMON),
-            ethers.parseEther(amountKEEP),
-            { value: ethers.parseEther(amountMON) }
-        );
-        return await tx.wait();
-    },
-
-    async withdraw(signer: any, groupId: number, lpTokenAmount: string) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.withdrawFromTavernRegularsGroup(groupId, ethers.parseEther(lpTokenAmount));
-        return await tx.wait();
-    },
-
-    async claimFees(signer: any, groupId: number) {
-        const contract = await this.getContract(signer);
-        const tx = await contract.claimTavernRegularsFees(groupId);
-        return await tx.wait();
-    },
-
-    async getUserGroups(signer: any): Promise<TavernRegularsGroup[]> {
-        const contract = await this.getContract(signer);
-        const userAddress = await signer.getAddress();
-        const groupIds = await contract.getUserGroups(userAddress);
-
-        const groups: TavernRegularsGroup[] = [];
-
-        for (const id of groupIds) {
-            const groupData = await contract.groups(id);
-            const myShare = await contract.getMemberShare(id, userAddress);
-            const myPendingFees = await contract.getPendingFees(id, userAddress);
-            const members = await contract.getGroupMembers(id);
-
-            groups.push({
-                groupId: Number(groupData.groupId),
-                creator: groupData.creator,
-                members: members,
-                totalContribution: ethers.formatEther(groupData.totalContribution),
-                lpTokenBalance: ethers.formatEther(groupData.lpTokenBalance),
-                groupName: groupData.groupName,
-                active: groupData.active,
-                myShare: ethers.formatEther(myShare),
-                myPendingFees: ethers.formatEther(myPendingFees)
+        if (keepAmountWei > allowance) {
+            console.log("Approving KEEP...");
+            const approveHash = await client.writeContract({
+                address: KEEP_TOKEN_ADDRESS,
+                abi: KeepTokenABI.abi,
+                functionName: 'approve',
+                chain: monad,
+                account: client.account,
+                args: [TAVERN_REGULARS_ADDRESS, keepAmountWei]
             });
+            await publicClient.waitForTransactionReceipt({ hash: approveHash });
+            console.log("KEEP Approved");
         }
 
-        return groups;
+        // Contribute
+        return await client.writeContract({
+            address: TAVERN_REGULARS_ADDRESS,
+            abi: TavernRegularsManagerABI.abi,
+            functionName: 'contributeToTavernRegularsGroup',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(groupId), parseEther(amountMON), keepAmountWei],
+            value: parseEther(amountMON)
+        });
+    },
+
+    async withdraw(client: WalletClient, groupId: number, lpTokenAmount: string) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TAVERN_REGULARS_ADDRESS,
+            abi: TavernRegularsManagerABI.abi,
+            functionName: 'withdrawFromTavernRegularsGroup',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(groupId), parseEther(lpTokenAmount)]
+        });
+    },
+
+    async claimFees(client: WalletClient, groupId: number) {
+        if (!client.account) throw new Error("Wallet not connected");
+
+        return await client.writeContract({
+            address: TAVERN_REGULARS_ADDRESS,
+            abi: TavernRegularsManagerABI.abi,
+            functionName: 'claimTavernRegularsFees',
+            chain: monad,
+            account: client.account,
+            args: [BigInt(groupId)]
+        });
+    },
+
+    async getUserGroups(userAddress: string): Promise<TavernRegularsGroup[]> {
+        const publicClient = this.getPublicClient();
+
+        try {
+            const groupIds = await publicClient.readContract({
+                address: TAVERN_REGULARS_ADDRESS,
+                abi: TavernRegularsManagerABI.abi,
+                functionName: 'getUserGroups',
+                args: [userAddress as `0x${string}`]
+            }) as bigint[];
+
+            const groups: TavernRegularsGroup[] = [];
+
+            for (const id of groupIds) {
+                // Parallelize fetching for each group could be better, but sequential for now to emulate original logic
+                const [groupData, myShare, myPendingFees, members] = await Promise.all([
+                    publicClient.readContract({
+                        address: TAVERN_REGULARS_ADDRESS,
+                        abi: TavernRegularsManagerABI.abi,
+                        functionName: 'groups',
+                        args: [id]
+                    }) as Promise<any>,
+                    publicClient.readContract({
+                        address: TAVERN_REGULARS_ADDRESS,
+                        abi: TavernRegularsManagerABI.abi,
+                        functionName: 'getMemberShare',
+                        args: [id, userAddress as `0x${string}`]
+                    }) as Promise<bigint>,
+                    publicClient.readContract({
+                        address: TAVERN_REGULARS_ADDRESS,
+                        abi: TavernRegularsManagerABI.abi,
+                        functionName: 'getPendingFees',
+                        args: [id, userAddress as `0x${string}`]
+                    }) as Promise<bigint>,
+                    publicClient.readContract({
+                        address: TAVERN_REGULARS_ADDRESS,
+                        abi: TavernRegularsManagerABI.abi,
+                        functionName: 'getGroupMembers',
+                        args: [id]
+                    }) as Promise<string[]>
+                ]);
+
+                // groupData depends on struct return, usually an array or object in viem depending on ABI
+                // Assuming standard tuple return for struct in array form if not mapped. 
+                // However, readContract with struct usually returns object if named in ABI or array.
+                // Let's assume array-like access or object matching the struct based on JSON ABI.
+                // Safest to log or cast. Based on ethers code: groupData.groupId etc.
+
+                groups.push({
+                    groupId: Number(groupData.groupId || groupData[0]),
+                    creator: groupData.creator || groupData[1],
+                    members: members,
+                    totalContribution: formatEther(groupData.totalContribution || groupData[2]),
+                    lpTokenBalance: formatEther(groupData.lpTokenBalance || groupData[3]),
+                    groupName: groupData.groupName || groupData[4],
+                    active: groupData.active || groupData[5],
+                    myShare: formatEther(myShare),
+                    myPendingFees: formatEther(myPendingFees)
+                });
+            }
+
+            return groups;
+        } catch (error) {
+            console.error("Error fetching user groups:", error);
+            return [];
+        }
     }
 };
