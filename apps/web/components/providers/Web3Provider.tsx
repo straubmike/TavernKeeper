@@ -3,20 +3,15 @@
 import { PrivyProvider } from '@privy-io/react-auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+
 import { monad } from '../../lib/chains';
 
 const queryClient = new QueryClient();
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
     // Get Privy app ID - require it to be set, no fallback to invalid ID
     const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
-    // Skip Web3/Privy provider for Miniapp routes
-    if (pathname?.startsWith('/miniapp')) {
-        return <>{children}</>;
-    }
 
     // Suppress Privy console errors in dev mode (origin not whitelisted is common)
     useEffect(() => {

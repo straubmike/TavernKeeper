@@ -27,20 +27,12 @@ export function MiniappProvider({ children }: MiniappProviderProps) {
 
   // Call sdk.actions.ready() IMMEDIATELY when provider mounts
   // This must be called as early as possible to hide the splash screen
+  // Call sdk.actions.ready() IMMEDIATELY when provider mounts
+  // This provider is strictly rendered ONLY in miniapp context by ProviderSelector
   useEffect(() => {
-    const callReady = async () => {
-      try {
-        const insideMiniApp = await sdk.isInMiniApp();
-        if (insideMiniApp) {
-          await sdk.actions.ready();
-          console.log('✅ sdk.actions.ready() called in MiniappProvider');
-        }
-      } catch (err) {
-        console.error('Failed to call sdk.actions.ready() in provider:', err);
-      }
-    };
-    // Call immediately, don't wait
-    void callReady();
+    // Signal to the parent Farcaster client that we are ready to be shown
+    sdk.actions.ready();
+    console.log('✅ sdk.actions.ready() called in MiniappProvider');
   }, []);
 
   return (
