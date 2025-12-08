@@ -233,6 +233,7 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
 | TheCellarV3 | Proxy | `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` | ✅ 2025-12-07 | ... | V3 Migration - UUPS Proxy |
+| TheCellarV3 | Impl | `TBD` | ⏳ Pending | See upgrade tx | v1.6.0 - Pot-Based Pricing (stable value model) |
 | TheCellarV3 | Impl | `0x85d081275254f39d31ebC7b5b5DCBD7276C4E9dF` | ✅ 2025-01-XX | See upgrade tx | v1.5.0 - Price Calculation Fix (use currentPrice not initPrice) |
 | TheCellarV3 | Impl | `0x3Ae6fe0eD190Bd31bBE3fe7f91b310f9C8f45D5C` | ✅ 2025-01-XX | See upgrade tx | v1.4.0 - Withdrawal Fix (position liquidity checks) |
 | TheCellarV3 | Impl | `0x296d8B63c95013a6c972b3f08b0D52c859D37066` | ✅ 2025-12-07 | ... | v1.3.0 - Logic Fix (harvest/withdraw) |
@@ -295,6 +296,14 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
   - **Result**: Price is now bounded by actual payments, preventing huge numbers. New init price = current price paid × multiplier.
   - **Network**: Monad Mainnet (Chain 143)
   - **Date**: 2025-01-XX
+
+- **v1.6.0** - `TBD` (Impl) - Pot-Based Pricing (Stable Value Model)
+  - **Reason**: Exponential growth from multiplier-based pricing (2x per epoch) would cause prices to reach trillions. Need stable, value-aligned pricing.
+  - **Action**: Changed `raid()` to use `potBalanceMON * potPriceCoefficient / 100` instead of `currentPrice * multiplier`. Added `potPriceCoefficient` state variable (10-50%).
+  - **Result**: Price is now tied to pot value. Price grows smoothly with pot, cannot exceed pot, prevents exponential growth. Self-correcting model.
+  - **Network**: Monad Mainnet (Chain 143)
+  - **Date**: 2025-01-XX
+  - **Formula**: `newInitPrice = potBalanceMON * coefficient / 100` (e.g., 30% of pot value)
 
 
 

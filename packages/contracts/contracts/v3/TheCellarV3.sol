@@ -92,7 +92,7 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
 
     // Dutch Auction State
     uint256 public epochPeriod;
-    uint256 public priceMultiplier;
+    uint256 public priceMultiplier; // Legacy - kept for compatibility, but not used for new price calculation
     uint256 public minInitPrice;
 
     struct Slot0 {
@@ -409,9 +409,25 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
         if (serveMon > 0) IERC20(wmon).transfer(msg.sender, serveMon);
         if (serveKeep > 0) IERC20(keepToken).transfer(msg.sender, serveKeep);
 
-        // 3. Setup new auction (use currentPrice to match Office behavior - price based on what was paid, not old initPrice)
-        uint256 newInitPrice = currentPrice * priceMultiplier / PRICE_MULTIPLIER_SCALE;
+        // 3. Setup new auction (use pot size for stable, value-based pricing)
+        // Price = potBalanceMON * (100 + potPriceCoefficient) / 100
+        // This ensures price STARTS ABOVE pot, then decays down over the epoch
+        // Price exceeds pot for majority of hour, creating profitable window when price < pot
+        uint256 newInitPrice = 0;
+        uint256 coeff = _getPotPriceCoefficient();
+        if (coeff > 0) {
+            // Use pot-based pricing (new stable model)
+            // Formula: newInitPrice = serveMon * (100 + coefficient) / 100
+            // Example: pot = 100 MON, coefficient = 30 → initPrice = 130 MON (30% above pot)
+            // Price decays from 130 → 1 over epoch period
+            // For majority of hour, price > 100 MON (pot value), then becomes profitable
+            newInitPrice = serveMon * (100 + coeff) / 100;
+        } else {
+            // Fallback to legacy multiplier-based pricing if coefficient not set
+            newInitPrice = currentPrice * priceMultiplier / PRICE_MULTIPLIER_SCALE;
+        }
 
+        // Ensure price is within bounds
         if (newInitPrice > ABS_MAX_INIT_PRICE) {
             newInitPrice = ABS_MAX_INIT_PRICE;
         } else if (newInitPrice < minInitPrice) {
@@ -451,6 +467,14 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
      */
     function getAuctionPrice() external view nonReentrantView returns (uint256) {
         return getPriceFromCache(slot0);
+    }
+
+    /**
+     * @notice Get pot price coefficient (virtual function for upgrade contracts to override)
+     * @return coefficient The pot price coefficient (0 = use legacy multiplier)
+     */
+    function _getPotPriceCoefficient() internal view virtual returns (uint256) {
+        return 0; // Default: use legacy multiplier
     }
 
     /**

@@ -466,6 +466,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3Emergency__factory>;
     getContractFactory(
+      name: "TheCellarV3PotPrice",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.TheCellarV3PotPrice__factory>;
+    getContractFactory(
       name: "TheCellarV3PriceFix",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.TheCellarV3PriceFix__factory>;
@@ -1052,6 +1056,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.TheCellarV3Emergency>;
     getContractAt(
+      name: "TheCellarV3PotPrice",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.TheCellarV3PotPrice>;
+    getContractAt(
       name: "TheCellarV3PriceFix",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -1530,6 +1539,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3Emergency>;
     deployContract(
+      name: "TheCellarV3PotPrice",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3PotPrice>;
+    deployContract(
       name: "TheCellarV3PriceFix",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3PriceFix>;
@@ -2115,6 +2128,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.TheCellarV3Emergency>;
+    deployContract(
+      name: "TheCellarV3PotPrice",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.TheCellarV3PotPrice>;
     deployContract(
       name: "TheCellarV3PriceFix",
       args: any[],

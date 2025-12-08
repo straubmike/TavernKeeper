@@ -22,7 +22,7 @@ contract TheCellarV3Upgrade is TheCellarV3 {
      * @dev Can only be called once, by owner
      * @param _initPrice Initial auction price (in CLP tokens)
      * @param _epochPeriod Duration of each epoch in seconds
-     * @param _priceMultiplier Multiplier for next epoch price (e.g., 2e18 for 2x)
+     * @param _priceMultiplier Multiplier for next epoch price (e.g., 2e18 for 2x) - Legacy, kept for compatibility
      * @param _minInitPrice Minimum floor price (e.g., 1e18 for 1 MON)
      */
     function initializeAuction(
@@ -52,5 +52,6 @@ contract TheCellarV3Upgrade is TheCellarV3 {
 
         auctionInitialized = true;
     }
+
 
 }

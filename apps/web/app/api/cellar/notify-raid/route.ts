@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByAddress, postToFeed } from '../../../../lib/services/neynarService';
+import { getUserByAddress, postToFeed, sendNotification } from '../../../../lib/services/neynarService';
 import { supabase } from '../../../../lib/supabase';
 
 export async function POST(request: NextRequest) {
@@ -69,10 +69,37 @@ export async function POST(request: NextRequest) {
             console.warn('⚠️ Failed to post raid to feed (this is non-critical)');
         }
 
-        // Return success if feed post worked (feed post notifies all miniapp users)
+        // Send broadcast notification to all miniapp users (same pattern as office notifications)
+        let notificationSuccess = false;
+        const notificationTitle = 'Cellar Raided!';
+        const notificationBody = feedPostBody; // Use the same message as feed post
+        const targetUrl = 'https://tavernkeeper.xyz/miniapp';
+
+        console.log('📤 Sending broadcast notification to all miniapp users...');
+        try {
+            notificationSuccess = await sendNotification(
+                [], // Empty array = broadcast to all users with notifications enabled
+                notificationTitle,
+                notificationBody,
+                targetUrl
+            );
+
+            if (notificationSuccess) {
+                console.log('✅ Broadcast notification sent successfully to all miniapp users');
+            } else {
+                console.warn('⚠️ Failed to send broadcast notification (feed post will still happen)');
+            }
+        } catch (notificationError: any) {
+            console.error('❌ Exception while sending broadcast notification:', notificationError);
+            console.error('   Error message:', notificationError?.message);
+            notificationSuccess = false;
+        }
+
+        // Return success if feed post worked (notification is optional)
         return NextResponse.json({
             success: feedPostSuccess, // Success if feed post worked
-            message: feedPostSuccess ? 'Raid notification posted successfully' : 'Failed to post raid notification',
+            message: notificationSuccess ? 'Raid notification and feed post sent successfully' : (feedPostSuccess ? 'Feed post sent, but notification failed' : 'Failed to post raid notification'),
+            notificationSent: notificationSuccess,
             feedPosted: feedPostSuccess,
         });
     } catch (error) {

@@ -5209,8 +5209,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3.sol": {
-      "lastModificationDate": 1765226595364,
-      "contentHash": "e64a8d7db60988a1400d28e2a89e660e",
+      "lastModificationDate": 1765234110527,
+      "contentHash": "628e57ec1977d2779b65f1d12b974660",
       "sourceName": "contracts/v3/TheCellarV3.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -5540,8 +5540,8 @@
       ]
     },
     "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3Upgrade.sol": {
-      "lastModificationDate": 1765224078270,
-      "contentHash": "66efc81b8586111a61cf51e4f09e738c",
+      "lastModificationDate": 1765234110539,
+      "contentHash": "78ae4ad425aaeef8dbcc4ab03b573fa4",
       "sourceName": "contracts/v3/TheCellarV3Upgrade.sol",
       "solcConfig": {
         "version": "0.8.26",
@@ -5697,6 +5697,46 @@
       ],
       "artifacts": [
         "TheCellarV3PriceFix"
+      ]
+    },
+    "C:\\Users\\epj33\\Desktop\\InnKeeper\\packages\\contracts\\contracts\\v3\\TheCellarV3PotPrice.sol": {
+      "lastModificationDate": 1765234107563,
+      "contentHash": "ea14364b07a4cfbc9185f98dfc3f7807",
+      "sourceName": "contracts/v3/TheCellarV3PotPrice.sol",
+      "solcConfig": {
+        "version": "0.8.26",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "viaIR": true,
+          "evmVersion": "cancun",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./TheCellarV3PriceFix.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "TheCellarV3PotPrice"
       ]
     }
   }
