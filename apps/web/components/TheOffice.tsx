@@ -208,7 +208,20 @@ export const TheOffice: React.FC<{
             setIsLoading(false);
             theCellarService.clearCache();
 
-            const previousManagerAddress = state.currentKing;
+            // Try to get previous manager from sessionStorage first (captured before transaction)
+            // Fallback to state.currentKing if not found
+            let previousManagerAddress: string | undefined;
+            if (typeof window !== 'undefined' && receipt.transactionHash) {
+                const stored = sessionStorage.getItem(`previousManager_${receipt.transactionHash}`);
+                if (stored) {
+                    previousManagerAddress = stored;
+                    sessionStorage.removeItem(`previousManager_${receipt.transactionHash}`); // Clean up
+                }
+            }
+            // Fallback to state.currentKing (might be updated already, but better than nothing)
+            if (!previousManagerAddress) {
+                previousManagerAddress = state.currentKing;
+            }
 
             // Save office manager data to database (always try, even without userContext)
             if (receipt.status === 'success' && address) {
@@ -315,8 +328,10 @@ export const TheOffice: React.FC<{
         try {
             setIsLoading(true);
 
-            // Fetch FRESH state
+            // Fetch FRESH state BEFORE transaction to capture previous manager
             const freshState = await tavernKeeperService.getOfficeState(true);
+            const previousManagerAddress = freshState.currentKing; // Capture BEFORE transaction
+
             const epochId = BigInt(freshState.epochId);
             const deadline = BigInt(Math.floor(Date.now() / 1000) + 300); // 5 mins
 
@@ -329,6 +344,7 @@ export const TheOffice: React.FC<{
             const safePrice = effectivePriceWei + buffer;
 
             console.log(`Taking Office: Epoch ${epochId}, Price ${freshState.currentPrice}, Sending ${formatEther(safePrice)}`);
+            console.log(`Previous Manager: ${previousManagerAddress}`);
 
             const { CONTRACT_REGISTRY, getContractAddress } = await import('../lib/contracts/registry');
             const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
@@ -336,6 +352,8 @@ export const TheOffice: React.FC<{
 
             if (!contractAddress) throw new Error("TavernKeeper contract not found");
 
+            // Store previous manager address in a way that survives state updates
+            // We'll use a ref or store it in the receipt handler
             const hash = await writeContractAsync({
                 address: contractAddress,
                 abi: contractConfig.abi,
@@ -345,6 +363,12 @@ export const TheOffice: React.FC<{
                 account: address as Address,
                 chainId: monad.id,
             });
+
+            // Store previous manager address with the transaction hash for later retrieval
+            // We'll use sessionStorage or a ref to persist this
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem(`previousManager_${hash}`, previousManagerAddress);
+            }
 
             console.log('Transaction sent:', hash);
         } catch (error) {
