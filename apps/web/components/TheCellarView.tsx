@@ -1,5 +1,6 @@
 "use client";
 
+import sdk from '@farcaster/miniapp-sdk';
 import { Flame, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { formatEther, parseAbi, parseEther, type Address } from "viem";
@@ -8,6 +9,7 @@ import { monad } from "../lib/chains";
 import { CONTRACT_ADDRESSES } from "../lib/contracts/addresses";
 import { CONTRACT_REGISTRY, getContractAddress } from "../lib/contracts/registry";
 import { CellarState, theCellarService } from "../lib/services/theCellarService";
+import { checkIsInFarcasterMiniapp } from "../lib/utils/farcasterDetection";
 import { useSmartNavigate } from "../lib/utils/smartNavigation";
 import { PixelBox, PixelButton } from "./PixelComponents";
 
@@ -19,6 +21,15 @@ interface TheCellarViewProps {
 
 // TEMPORARILY DISABLED - Cellar functionality disabled due to liquidity calculation overflow issue
 const CELLAR_DISABLED = false;
+
+type MiniAppContext = {
+    user?: {
+        fid: number;
+        username?: string;
+        displayName?: string;
+        pfpUrl?: string;
+    };
+};
 
 export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBalance = "0" }: TheCellarViewProps = {}) {
     const { address, isConnected } = useAccount();
@@ -42,6 +53,29 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         positionLiquidity: bigint;
         totalLiquidity: bigint;
     } | null>(null);
+    const [raidTxHash, setRaidTxHash] = useState<`0x${string}` | null>(null);
+    const [context, setContext] = useState<MiniAppContext | null>(null);
+
+    // Get user context from SDK
+    useEffect(() => {
+        let cancelled = false;
+        const hydrateContext = async () => {
+            try {
+                const ctx = (await (sdk as unknown as {
+                    context: Promise<MiniAppContext> | MiniAppContext;
+                }).context) as MiniAppContext;
+                if (!cancelled) {
+                    setContext(ctx);
+                }
+            } catch {
+                if (!cancelled) setContext(null);
+            }
+        };
+        hydrateContext();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const fetchPoolRatio = async () => {
         if (!publicClient) return;
@@ -213,14 +247,102 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                 console.log("CLP Approved");
             }
 
-            // Use service with Wagmi wallet client
-            await theCellarService.claim(walletClient, bid);
-            alert("Raid successful! You claimed the pot.");
+            // Use service with Wagmi wallet client - returns transaction hash
+            const txHash = await theCellarService.claim(walletClient, bid);
+            setRaidTxHash(txHash as `0x${string}`);
+
+            // Wait for transaction receipt
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+            if (receipt.status === 'success') {
+                // Parse Raid event to get profit amounts
+                const contractConfig = CONTRACT_REGISTRY.THECELLAR;
+                const cellarAddress = getContractAddress(contractConfig);
+                if (cellarAddress) {
+                    const raidEventAbi = parseAbi([
+                        'event Raid(address indexed user, uint256 lpBurned, uint256 monPayout, uint256 keepPayout, uint256 newInitPrice, uint256 epochId)'
+                    ]);
+
+                    try {
+                        const logs = receipt.logs.filter(log =>
+                            log.address.toLowerCase() === cellarAddress.toLowerCase()
+                        );
+
+                        let monProfit = 0n;
+                        let keepProfit = 0n;
+
+                        for (const log of logs) {
+                            try {
+                                const decoded = publicClient.decodeEventLog({
+                                    abi: raidEventAbi,
+                                    data: log.data,
+                                    topics: log.topics,
+                                });
+
+                                if (decoded.eventName === 'Raid') {
+                                    monProfit = decoded.args.monPayout as bigint;
+                                    keepProfit = decoded.args.keepPayout as bigint;
+                                    break;
+                                }
+                            } catch (e) {
+                                // Not a Raid event, continue
+                            }
+                        }
+
+                        alert(`Raid successful! You claimed ${formatEther(monProfit)} MON and ${formatEther(keepProfit)} KEEP.`);
+
+                        // Trigger compose cast if in miniapp
+                        const isMiniapp = await checkIsInFarcasterMiniapp();
+                        if (isMiniapp && (monProfit > 0n || keepProfit > 0n)) {
+                            setTimeout(async () => {
+                                try {
+                                    const username = context?.user?.username;
+                                    const monFormatted = parseFloat(formatEther(monProfit)).toFixed(2);
+                                    const keepFormatted = parseFloat(formatEther(keepProfit)).toFixed(2);
+
+                                    let shareText: string;
+                                    if (username) {
+                                        shareText = `@${username} just raided The Cellar and claimed ${monFormatted} MON + ${keepFormatted} KEEP! 🔥 Raid it yourself at tavernkeeper.xyz/miniapp`;
+                                    } else {
+                                        shareText = `I just raided The Cellar and claimed ${monFormatted} MON + ${keepFormatted} KEEP! 🔥 Raid it yourself at tavernkeeper.xyz/miniapp`;
+                                    }
+
+                                    console.log('📝 Prompting user to compose cast for raid...', {
+                                        username,
+                                        monProfit: monFormatted,
+                                        keepProfit: keepFormatted,
+                                        shareText
+                                    });
+
+                                    await sdk.actions.composeCast({
+                                        text: shareText,
+                                        embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+                                    });
+                                    console.log('✅ Compose cast prompt completed for raid');
+                                } catch (error: any) {
+                                    console.warn('⚠️ Compose cast failed for raid (user may have cancelled):', {
+                                        error: error?.message || error,
+                                        errorType: error?.constructor?.name,
+                                    });
+                                }
+                            }, 1500);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing Raid event:', error);
+                        alert("Raid successful! You claimed the pot.");
+                    }
+                } else {
+                    alert("Raid successful! You claimed the pot.");
+                }
+            } else {
+                alert("Raid transaction failed.");
+            }
         } catch (error: any) {
             console.error("Claim failed:", error);
             alert("Raid failed: " + (error.message || "Unknown error. See console for details."));
         } finally {
             setIsClaiming(false);
+            setRaidTxHash(null);
             fetchData();
         }
     };

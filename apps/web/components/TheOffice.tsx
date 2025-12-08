@@ -320,57 +320,67 @@ export const TheOffice: React.FC<{
                 }).catch(err => console.error('Failed to save office manager to database:', err));
 
                 // Prompt user to share their office takeover on Farcaster (only in miniapp)
-                if (isMiniapp) {
-                    // Small delay to let the transaction complete UI update
-                    setTimeout(async () => {
-                        try {
-                            // Get current user's username (from userContext or try to fetch)
-                            let currentUsername = userContext?.username;
-                            if (!currentUsername && address) {
-                                // Try to get username from database
-                                const currentManagerData = await getOfficeManagerData(address);
-                                currentUsername = currentManagerData?.username;
-                            }
+                // Double-check miniapp status before triggering compose cast
+                (async () => {
+                    try {
+                        const doubleCheckMiniapp = await checkIsInFarcasterMiniapp();
+                        if (doubleCheckMiniapp) {
+                            // Small delay to let the transaction complete UI update
+                            setTimeout(async () => {
+                                try {
+                                    // Get current user's username (from userContext or try to fetch)
+                                    let currentUsername = userContext?.username;
+                                    if (!currentUsername && address) {
+                                        // Try to get username from database
+                                        const currentManagerData = await getOfficeManagerData(address);
+                                        currentUsername = currentManagerData?.username;
+                                    }
 
-                            // Get previous manager username if available
-                            const previousManagerData = await getOfficeManagerData(previousManagerAddress);
-                            let shareText: string;
+                                    // Get previous manager username if available
+                                    const previousManagerData = await getOfficeManagerData(previousManagerAddress);
+                                    let shareText: string;
 
-                            if (previousManagerData?.username && currentUsername) {
-                                shareText = `@${currentUsername} just took the Office from @${previousManagerData.username}! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
-                            } else if (currentUsername) {
-                                shareText = `@${currentUsername} just took the Office! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
-                            } else if (previousManagerData?.username) {
-                                shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
-                            } else {
-                                shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
-                            }
+                                    if (previousManagerData?.username && currentUsername) {
+                                        shareText = `@${currentUsername} just took the Office from @${previousManagerData.username}! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+                                    } else if (currentUsername) {
+                                        shareText = `@${currentUsername} just took the Office! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
+                                    } else if (previousManagerData?.username) {
+                                        shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+                                    } else {
+                                        shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+                                    }
 
-                            console.log('📝 Prompting user to compose cast...', {
-                                isMiniapp,
-                                hasUserContext: !!userContext,
-                                username: currentUsername,
-                                shareText
-                            });
+                                    console.log('📝 Prompting user to compose cast...', {
+                                        isMiniapp,
+                                        doubleCheckMiniapp,
+                                        hasUserContext: !!userContext,
+                                        username: currentUsername,
+                                        shareText
+                                    });
 
-                            await sdk.actions.composeCast({
-                                text: shareText,
-                                embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
-                            });
-                            console.log('✅ Compose cast prompt completed');
-                        } catch (error: any) {
-                            // User cancelled or error - log for debugging but don't show error to user
-                            console.warn('⚠️ Compose cast failed (user may have cancelled or SDK error):', {
-                                error: error?.message || error,
-                                errorType: error?.constructor?.name,
-                                isMiniapp,
-                                hasUserContext: !!userContext
-                            });
+                                    await sdk.actions.composeCast({
+                                        text: shareText,
+                                        embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+                                    });
+                                    console.log('✅ Compose cast prompt completed');
+                                } catch (error: any) {
+                                    // User cancelled or error - log for debugging but don't show error to user
+                                    console.warn('⚠️ Compose cast failed (user may have cancelled or SDK error):', {
+                                        error: error?.message || error,
+                                        errorType: error?.constructor?.name,
+                                        isMiniapp,
+                                        doubleCheckMiniapp,
+                                        hasUserContext: !!userContext
+                                    });
+                                }
+                            }, 1500);
+                        } else {
+                            console.log('ℹ️ Skipping compose cast - not in miniapp', { isMiniapp, doubleCheckMiniapp, hasUserContext: !!userContext });
                         }
-                    }, 1500);
-                } else {
-                    console.log('ℹ️ Skipping compose cast - not in miniapp', { isMiniapp, hasUserContext: !!userContext });
-                }
+                    } catch (error) {
+                        console.error('Error checking miniapp status:', error);
+                    }
+                })();
             }
 
             if (receipt.status === 'success' && previousManagerAddress &&
