@@ -92,7 +92,7 @@ test.describe('Multi-User Blockchain Competition', () => {
 
             // Mint LP (Zap)
             // Default amount is 1 MON.
-            const mintLpBtn = pageA.getByRole('button', { name: 'MINT LP (1:3 Ratio)' });
+            const mintLpBtn = pageA.getByRole('button', { name: 'MINT LP (1:10)' });
             await expect(mintLpBtn).toBeVisible();
             await mintLpBtn.click();
 

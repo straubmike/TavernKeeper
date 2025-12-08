@@ -36,6 +36,63 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     const [showMintModal, setShowMintModal] = useState(false);
     const [showRecoverModal, setShowRecoverModal] = useState(false);
     const [isRecovering, setIsRecovering] = useState(false);
+    const [keepPerMonRatio, setKeepPerMonRatio] = useState<number | null>(null);
+
+    const fetchPoolRatio = async () => {
+        if (!publicClient) return;
+
+        try {
+            const poolAddress = CONTRACT_ADDRESSES.V3_POOL;
+            if (!poolAddress || poolAddress === '0x0000000000000000000000000000000000000000') {
+                return;
+            }
+
+            const [slot0, token0, token1] = await Promise.all([
+                publicClient.readContract({
+                    address: poolAddress as `0x${string}`,
+                    abi: parseAbi(['function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)']),
+                    functionName: 'slot0',
+                }),
+                publicClient.readContract({
+                    address: poolAddress as `0x${string}`,
+                    abi: parseAbi(['function token0() view returns (address)']),
+                    functionName: 'token0',
+                }),
+                publicClient.readContract({
+                    address: poolAddress as `0x${string}`,
+                    abi: parseAbi(['function token1() view returns (address)']),
+                    functionName: 'token1',
+                }),
+            ]);
+
+            const sqrtPriceX96 = slot0[0] as bigint;
+            const Q96 = 2n ** 96n;
+            const sqrtPrice = Number(sqrtPriceX96) / Number(Q96);
+            const price = sqrtPrice * sqrtPrice; // price = token1/token0
+
+            const wmonAddress = CONTRACT_ADDRESSES.WMON;
+            const keepAddress = CONTRACT_ADDRESSES.KEEP_TOKEN;
+            const isToken0WMON = (token0 as string).toLowerCase() === wmonAddress.toLowerCase();
+            const isToken0KEEP = (token0 as string).toLowerCase() === keepAddress.toLowerCase();
+
+            // Calculate KEEP per MON ratio
+            let keepPerMon: number;
+            if (isToken0WMON) {
+                // token0 = WMON, token1 = KEEP, price = KEEP/WMON = KEEP/MON
+                keepPerMon = price;
+            } else if (isToken0KEEP) {
+                // token0 = KEEP, token1 = WMON, price = WMON/KEEP = MON/KEEP, so KEEP/MON = 1/price
+                keepPerMon = 1 / price;
+            } else {
+                keepPerMon = 10; // Fallback
+            }
+
+            setKeepPerMonRatio(keepPerMon);
+        } catch (error) {
+            console.error("Failed to fetch pool ratio:", error);
+            setKeepPerMonRatio(10); // Fallback to 10
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -53,7 +110,8 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
     useEffect(() => {
         fetchData();
-    }, [address]);
+        fetchPoolRatio();
+    }, [address, publicClient]);
 
     // Poll cellar state periodically
     useEffect(() => {
@@ -72,9 +130,13 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         };
 
         pollData();
-        const interval = setInterval(pollData, 30000); // Update every 30 seconds
+        fetchPoolRatio(); // Also refresh ratio
+        const interval = setInterval(() => {
+            pollData();
+            fetchPoolRatio();
+        }, 30000); // Update every 30 seconds
         return () => clearInterval(interval);
-    }, [address]);
+    }, [address, publicClient]);
 
     const handleClaimClick = () => {
         setShowConfirmModal(true);
@@ -215,8 +277,8 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                 // token0 = KEEP, token1 = WMON, price = WMON/KEEP = MON/KEEP, so KEEP/MON = 1/price
                 keepPerMon = 1 / price;
             } else {
-                console.warn("Could not determine token order, using fallback 1:3 ratio");
-                keepPerMon = 3; // Fallback
+                console.warn("Could not determine token order, using fallback 1:10 ratio");
+                keepPerMon = 10; // Fallback (1 MON = 10 KEEP)
             }
 
             const amountMON = parseEther(amount);
@@ -477,7 +539,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                             variant="primary"
                             className="w-full h-8 text-xs font-bold uppercase tracking-widest flex items-center justify-center"
                         >
-                            {isMinting ? <Loader2 className="w-3 h-3 animate-spin" /> : "MINT LP (1:3)"}
+                            {isMinting ? <Loader2 className="w-3 h-3 animate-spin" /> : keepPerMonRatio !== null ? `MINT LP (1:${keepPerMonRatio.toFixed(1)})` : "MINT LP"}
                         </PixelButton>
 
                         {lpBalance > 0n && (
