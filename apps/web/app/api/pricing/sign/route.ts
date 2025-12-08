@@ -47,11 +47,26 @@ export async function POST(request: NextRequest) {
         }
 
         // Get signer private key from environment
-        const signerPrivateKey = process.env.PRICING_SIGNER_PRIVATE_KEY;
-        if (!signerPrivateKey) {
+        const signerPrivateKeyRaw = process.env.PRICING_SIGNER_PRIVATE_KEY;
+        if (!signerPrivateKeyRaw) {
             console.error('PRICING_SIGNER_PRIVATE_KEY not set in environment');
             return NextResponse.json(
                 { error: 'Pricing signer not configured' },
+                { status: 500 }
+            );
+        }
+
+        // Normalize private key: ensure it starts with 0x and is valid hex
+        let signerPrivateKey = signerPrivateKeyRaw.trim();
+        if (!signerPrivateKey.startsWith('0x')) {
+            signerPrivateKey = `0x${signerPrivateKey}`;
+        }
+
+        // Validate private key format (should be 0x + 64 hex characters = 66 total)
+        if (!/^0x[a-fA-F0-9]{64}$/.test(signerPrivateKey)) {
+            console.error('PRICING_SIGNER_PRIVATE_KEY has invalid format. Expected 64 hex characters (with or without 0x prefix)');
+            return NextResponse.json(
+                { error: 'Invalid pricing signer private key format' },
                 { status: 500 }
             );
         }
