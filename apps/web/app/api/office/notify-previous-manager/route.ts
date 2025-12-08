@@ -132,17 +132,24 @@ export async function POST(request: NextRequest) {
                 targetUrl
             });
 
-            notificationSuccess = await sendNotification(
-                [fid],
-                notificationTitle,
-                notificationBody,
-                targetUrl
-            );
+            try {
+                notificationSuccess = await sendNotification(
+                    [fid],
+                    notificationTitle,
+                    notificationBody,
+                    targetUrl
+                );
 
-            if (notificationSuccess) {
-                console.log('✅ Notification sent successfully to FID:', fid);
-            } else {
-                console.error('❌ Failed to send notification');
+                if (notificationSuccess) {
+                    console.log('✅ Notification sent successfully to FID:', fid);
+                } else {
+                    console.error('❌ Failed to send notification to FID:', fid);
+                    console.error('   Check logs above for detailed error information');
+                }
+            } catch (notificationError: any) {
+                console.error('❌ Exception while sending notification:', notificationError);
+                console.error('   Error message:', notificationError?.message);
+                notificationSuccess = false;
             }
         } else {
             console.log('ℹ️ No FID found for previous manager - skipping direct notification (feed post will still happen)');

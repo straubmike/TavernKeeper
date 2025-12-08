@@ -153,6 +153,24 @@ export async function sendNotification(
 ): Promise<boolean> {
     try {
         const client = getNeynarClient();
+        const apiKey = process.env.NEYNAR_API_KEY;
+
+        // Check if API key is set
+        if (!apiKey || apiKey === 'DUMMY_KEY') {
+            console.error('❌ NEYNAR_API_KEY is not set or is dummy. Cannot send notifications.');
+            return false;
+        }
+
+        // Validate inputs
+        if (!targetFids || targetFids.length === 0) {
+            console.warn('⚠️ No target FIDs provided for notification');
+            return false;
+        }
+
+        if (!title || !body) {
+            console.error('❌ Notification title and body are required');
+            return false;
+        }
 
         const notification = {
             title,
@@ -160,14 +178,38 @@ export async function sendNotification(
             ...(targetUrl && { target_url: targetUrl }),
         };
 
+        console.log('📤 Attempting to send notification:', {
+            targetFids,
+            title,
+            bodyLength: body.length,
+            targetUrl,
+        });
+
         await client.publishFrameNotifications({
             targetFids,
             notification: notification as any, // Cast to any to avoid strict type checking on optional fields
         });
 
+        console.log('✅ Notification sent successfully to FIDs:', targetFids);
         return true;
-    } catch (error) {
-        console.error('Error sending notification via Neynar:', error);
+    } catch (error: any) {
+        console.error('❌ Error sending notification via Neynar:');
+        console.error('Error type:', error?.constructor?.name);
+        console.error('Error message:', error?.message);
+
+        // Log detailed error information if available
+        if (error?.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', JSON.stringify(error.response.data, null, 2));
+        } else if (error?.data) {
+            console.error('Error data:', JSON.stringify(error.data, null, 2));
+        }
+
+        // Log stack trace for debugging
+        if (error?.stack) {
+            console.error('Stack trace:', error.stack);
+        }
+
         return false;
     }
 }
