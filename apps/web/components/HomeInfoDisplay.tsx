@@ -227,6 +227,32 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                     </div>
                 </PixelBox>
             )}
+
+            {/* Community Links */}
+            <div className="grid grid-cols-2 gap-1.5">
+                <a
+                    href="https://discord.gg/85RxzdaR"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                >
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                        <span>💬</span>
+                        <span>Discord</span>
+                    </PixelButton>
+                </a>
+                <a
+                    href="https://t.me/tavernkeeper_portal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                >
+                    <PixelButton variant="wood" className="w-full h-8 text-[9px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                        <span>📱</span>
+                        <span>Telegram</span>
+                    </PixelButton>
+                </a>
+            </div>
         </div>
     );
 };
