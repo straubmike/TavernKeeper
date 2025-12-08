@@ -323,6 +323,13 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         type: 'function',
       },
       {
+        inputs: [{ name: 'tokenId', type: 'uint256' }],
+        name: 'tokenURI',
+        outputs: [{ name: '', type: 'string' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
         inputs: [
           { name: 'to', type: 'address' },
           { name: 'uri', type: 'string' },

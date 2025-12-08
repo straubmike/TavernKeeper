@@ -1,4 +1,4 @@
-import { createPublicClient, formatEther, http } from 'viem';
+import { createPublicClient, encodeFunctionData, formatEther, http } from 'viem';
 import { monad } from '../chains';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 
@@ -100,7 +100,10 @@ export const rpgService = {
     async getTavernKeeperTokenURI(tokenId: string): Promise<string> {
         const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
         const address = getContractAddress(contractConfig);
-        if (!address) return '';
+        if (!address) {
+            console.error(`[getTavernKeeperTokenURI] Contract address not found for tokenId ${tokenId}`);
+            return '';
+        }
 
         const publicClient = createPublicClient({
             chain: monad,
@@ -114,9 +117,15 @@ export const rpgService = {
                 functionName: 'tokenURI',
                 args: [BigInt(tokenId)],
             });
-            return uri as string;
+            const uriString = uri as string;
+            if (!uriString || uriString.trim() === '') {
+                console.warn(`[getTavernKeeperTokenURI] Empty tokenURI returned for tokenId ${tokenId}`);
+                return '';
+            }
+            console.log(`[getTavernKeeperTokenURI] TokenId ${tokenId}: ${uriString.substring(0, 100)}...`);
+            return uriString;
         } catch (e) {
-            console.error("Failed to fetch tavern keeper token URI", e);
+            console.error(`[getTavernKeeperTokenURI] Failed to fetch token URI for tokenId ${tokenId}:`, e);
             return '';
         }
     },
@@ -320,18 +329,10 @@ export const rpgService = {
             for (const idBigInt of tokenIds) {
                 const id = idBigInt.toString();
                 try {
-                    // Fetch metadata URI - add tokenURI to ABI if not present (ERC721URIStorage)
-                    const tokenURIAbi = {
-                        "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
-                        "name": "tokenURI",
-                        "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-                        "stateMutability": "view",
-                        "type": "function"
-                    };
-                    const abiWithTokenURI = [...contractConfig.abi, tokenURIAbi];
+                    // Fetch metadata URI using tokenURI from ABI
                     const uri = await publicClient.readContract({
                         address,
-                        abi: abiWithTokenURI,
+                        abi: contractConfig.abi,
                         functionName: 'tokenURI',
                         args: [BigInt(id)],
                     });
@@ -810,6 +811,7 @@ export const rpgService = {
 
     /**
      * Update Hero metadata URI
+     * Handles both direct ownership and TBA ownership
      */
     async updateHeroMetadata(
         walletClient: any,
@@ -821,13 +823,61 @@ export const rpgService = {
         const contractAddress = getContractAddress(contractConfig);
         if (!contractAddress) throw new Error("Contract not found");
 
-        return await walletClient.writeContract({
+        const publicClient = createPublicClient({
+            chain: monad,
+            transport: http(monad.rpcUrls.default.http[0]),
+        });
+
+        // Check who owns the hero
+        const owner = await publicClient.readContract({
             address: contractAddress,
             abi: contractConfig.abi,
-            functionName: 'updateTokenURI',
-            args: [BigInt(tokenId), newMetadataUri],
-            account: address as `0x${string}`,
-            chain: monad
-        });
+            functionName: 'ownerOf',
+            args: [BigInt(tokenId)],
+        }) as string;
+
+        console.log(`[updateHeroMetadata] Hero #${tokenId} owner: ${owner}, caller: ${address}`);
+
+        // If hero is owned by a TBA, we need to call through the TBA
+        if (owner.toLowerCase() !== address.toLowerCase()) {
+            // Hero is owned by TBA, use TBA execute
+            const tbaConfig = CONTRACT_REGISTRY.ERC6551_IMPLEMENTATION;
+            const tbaAddress = owner as `0x${string}`;
+
+            console.log(`[updateHeroMetadata] Hero is owned by TBA ${tbaAddress}, using TBA execute`);
+
+            // Encode the updateTokenURI call
+            const callData = encodeFunctionData({
+                abi: contractConfig.abi,
+                functionName: 'updateTokenURI',
+                args: [BigInt(tokenId), newMetadataUri],
+            });
+
+            // Call TBA execute to call updateTokenURI on behalf of the TBA
+            return await walletClient.writeContract({
+                address: tbaAddress,
+                abi: tbaConfig.abi,
+                functionName: 'execute',
+                args: [
+                    contractAddress, // to: Adventurer contract
+                    0n, // value: 0
+                    callData, // data: encoded updateTokenURI call
+                    0, // operation: 0 = call
+                ],
+                account: address as `0x${string}`,
+                chain: monad
+            });
+        } else {
+            // Hero is directly owned by the caller, use direct call
+            console.log(`[updateHeroMetadata] Hero is directly owned, using direct call`);
+            return await walletClient.writeContract({
+                address: contractAddress,
+                abi: contractConfig.abi,
+                functionName: 'updateTokenURI',
+                args: [BigInt(tokenId), newMetadataUri],
+                account: address as `0x${string}`,
+                chain: monad
+            });
+        }
     }
 };

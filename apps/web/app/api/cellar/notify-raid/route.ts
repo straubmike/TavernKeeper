@@ -45,8 +45,10 @@ export async function POST(request: NextRequest) {
         const monFormatted = parseFloat(monProfit).toFixed(4);
         const keepFormatted = parseFloat(keepProfit).toFixed(4);
 
-        // Post to feed (public announcement)
+        // Post to feed (ALWAYS happens - public announcement, notifies all miniapp users)
+        let feedPostSuccess = false;
         let feedPostBody: string;
+
         if (parseFloat(monProfit) > 0 && parseFloat(keepProfit) > 0) {
             feedPostBody = `@${raiderUsername} just raided The Cellar! 🔥 They claimed ${monFormatted} MON + ${keepFormatted} KEEP. Raid it yourself!`;
         } else if (parseFloat(monProfit) > 0) {
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
 
         // Use the Farcaster miniapp URL for proper embed
         const miniappEmbedUrl = 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper';
-        const feedPostSuccess = await postToFeed(feedPostBody, [miniappEmbedUrl]);
+        feedPostSuccess = await postToFeed(feedPostBody, [miniappEmbedUrl]);
 
         if (feedPostSuccess) {
             console.log('✅ Raid feed post published successfully');
@@ -67,8 +69,9 @@ export async function POST(request: NextRequest) {
             console.warn('⚠️ Failed to post raid to feed (this is non-critical)');
         }
 
+        // Return success if feed post worked (feed post notifies all miniapp users)
         return NextResponse.json({
-            success: feedPostSuccess,
+            success: feedPostSuccess, // Success if feed post worked
             message: feedPostSuccess ? 'Raid notification posted successfully' : 'Failed to post raid notification',
             feedPosted: feedPostSuccess,
         });

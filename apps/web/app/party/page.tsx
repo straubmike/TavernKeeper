@@ -98,6 +98,18 @@ export default function PartyPage() {
       for (const keeper of keepers) {
         try {
           const tokenURI = await rpgService.getTavernKeeperTokenURI(keeper.tokenId);
+
+          if (!tokenURI || tokenURI.trim() === '') {
+            console.warn(`[fetchKeepers] Empty tokenURI for keeper ${keeper.tokenId}, using defaults`);
+            // Use default values if no metadata available
+            metadataMap[keeper.tokenId] = {
+              name: `TavernKeeper #${keeper.tokenId}`,
+              gender: 'Male',
+              colorPalette: DEFAULT_COLORS,
+            };
+            continue;
+          }
+
           let metadata: {
             name?: string;
             keeper?: {
@@ -108,35 +120,83 @@ export default function PartyPage() {
 
           // Handle data URIs (base64 encoded JSON)
           if (tokenURI.startsWith('data:application/json;base64,')) {
-            const base64 = tokenURI.replace('data:application/json;base64,', '');
-            const jsonString = atob(base64);
-            metadata = JSON.parse(jsonString);
+            try {
+              const base64 = tokenURI.replace('data:application/json;base64,', '');
+              const jsonString = atob(base64);
+              metadata = JSON.parse(jsonString);
+              console.log(`[fetchKeepers] Parsed data URI metadata for keeper ${keeper.tokenId}:`, {
+                hasName: !!metadata.name,
+                hasKeeper: !!metadata.keeper,
+                hasGender: !!metadata.keeper?.gender,
+                hasColorPalette: !!metadata.keeper?.colorPalette,
+              });
+            } catch (parseError) {
+              console.error(`[fetchKeepers] Failed to parse data URI for keeper ${keeper.tokenId}:`, parseError);
+            }
           }
           // Handle HTTP URLs
           else if (tokenURI.startsWith('http://') || tokenURI.startsWith('https://')) {
-            const response = await fetch(tokenURI);
-            if (response.ok) {
-              metadata = await response.json();
+            try {
+              const response = await fetch(tokenURI);
+              if (response.ok) {
+                metadata = await response.json();
+                console.log(`[fetchKeepers] Fetched HTTP metadata for keeper ${keeper.tokenId}:`, {
+                  hasName: !!metadata.name,
+                  hasKeeper: !!metadata.keeper,
+                });
+              } else {
+                console.warn(`[fetchKeepers] HTTP fetch failed for keeper ${keeper.tokenId}: ${response.status} ${response.statusText}`);
+              }
+            } catch (fetchError) {
+              console.error(`[fetchKeepers] Failed to fetch HTTP metadata for keeper ${keeper.tokenId}:`, fetchError);
             }
           }
           // Handle IPFS URIs
           else if (tokenURI.startsWith('ipfs://')) {
-            const url = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
-            const response = await fetch(url);
-            if (response.ok) {
-              metadata = await response.json();
+            try {
+              const url = tokenURI.replace('ipfs://', 'https://ipfs.io/ipfs/');
+              const response = await fetch(url);
+              if (response.ok) {
+                metadata = await response.json();
+                console.log(`[fetchKeepers] Fetched IPFS metadata for keeper ${keeper.tokenId}:`, {
+                  hasName: !!metadata.name,
+                  hasKeeper: !!metadata.keeper,
+                });
+              } else {
+                console.warn(`[fetchKeepers] IPFS fetch failed for keeper ${keeper.tokenId}: ${response.status} ${response.statusText}`);
+              }
+            } catch (fetchError) {
+              console.error(`[fetchKeepers] Failed to fetch IPFS metadata for keeper ${keeper.tokenId}:`, fetchError);
             }
+          } else {
+            console.warn(`[fetchKeepers] Unknown URI format for keeper ${keeper.tokenId}: ${tokenURI.substring(0, 50)}...`);
           }
 
-          if (metadata.name) {
+          // Use metadata if available, otherwise use defaults
+          if (metadata.name || metadata.keeper) {
             metadataMap[keeper.tokenId] = {
-              name: metadata.name,
+              name: metadata.name || `TavernKeeper #${keeper.tokenId}`,
               gender: metadata.keeper?.gender || 'Male',
               colorPalette: metadata.keeper?.colorPalette || DEFAULT_COLORS,
             };
+            console.log(`[fetchKeepers] Set metadata for keeper ${keeper.tokenId}:`, metadataMap[keeper.tokenId]);
+          } else {
+            // No metadata found, use defaults
+            console.warn(`[fetchKeepers] No valid metadata found for keeper ${keeper.tokenId}, using defaults`);
+            metadataMap[keeper.tokenId] = {
+              name: `TavernKeeper #${keeper.tokenId}`,
+              gender: 'Male',
+              colorPalette: DEFAULT_COLORS,
+            };
           }
         } catch (e) {
-          console.warn(`Failed to fetch metadata for keeper ${keeper.tokenId}:`, e);
+          console.error(`[fetchKeepers] Failed to fetch metadata for keeper ${keeper.tokenId}:`, e);
+          // Use defaults on error
+          metadataMap[keeper.tokenId] = {
+            name: `TavernKeeper #${keeper.tokenId}`,
+            gender: 'Male',
+            colorPalette: DEFAULT_COLORS,
+          };
         }
       }
 
@@ -164,26 +224,66 @@ export default function PartyPage() {
       let metadata: HeroMetadata | null = null;
       const uri = hero.metadataUri;
 
+      if (!uri || uri.trim() === '') {
+        console.warn(`[fetchHeroMetadata] Empty URI for hero ${hero.tokenId}`);
+        setHeroMetadata(prev => ({ ...prev, [hero.tokenId]: null as any }));
+        return;
+      }
+
       // Handle data URIs (base64 encoded JSON)
       if (uri.startsWith('data:application/json;base64,')) {
-        const base64 = uri.replace('data:application/json;base64,', '');
-        const jsonString = atob(base64);
-        metadata = JSON.parse(jsonString) as HeroMetadata;
+        try {
+          const base64 = uri.replace('data:application/json;base64,', '');
+          const jsonString = atob(base64);
+          metadata = JSON.parse(jsonString) as HeroMetadata;
+          console.log(`[fetchHeroMetadata] Parsed data URI for hero ${hero.tokenId}:`, {
+            hasName: !!metadata?.name,
+            name: metadata?.name,
+            hasHero: !!metadata?.hero,
+            hasClass: !!metadata?.hero?.class,
+          });
+        } catch (parseError) {
+          console.error(`[fetchHeroMetadata] Failed to parse data URI for hero ${hero.tokenId}:`, parseError);
+        }
       }
       // Handle HTTP URLs
       else if (uri.startsWith('http://') || uri.startsWith('https://')) {
-        const response = await fetch(uri);
-        if (response.ok) {
-          metadata = await response.json() as HeroMetadata;
+        try {
+          const response = await fetch(uri);
+          if (response.ok) {
+            metadata = await response.json() as HeroMetadata;
+            console.log(`[fetchHeroMetadata] Fetched HTTP metadata for hero ${hero.tokenId}:`, {
+              hasName: !!metadata?.name,
+              name: metadata?.name,
+              hasHero: !!metadata?.hero,
+            });
+          } else {
+            console.warn(`[fetchHeroMetadata] HTTP fetch failed for hero ${hero.tokenId}: ${response.status} ${response.statusText}`);
+          }
+        } catch (fetchError) {
+          console.error(`[fetchHeroMetadata] Failed to fetch HTTP metadata for hero ${hero.tokenId}:`, fetchError);
         }
       }
       // Handle IPFS URIs
       else if (uri.startsWith('ipfs://')) {
-        const url = uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
-        const response = await fetch(url);
-        if (response.ok) {
-          metadata = await response.json() as HeroMetadata;
+        try {
+          const url = uri.replace('ipfs://', 'https://ipfs.io/ipfs/');
+          const response = await fetch(url);
+          if (response.ok) {
+            metadata = await response.json() as HeroMetadata;
+            console.log(`[fetchHeroMetadata] Fetched IPFS metadata for hero ${hero.tokenId}:`, {
+              hasName: !!metadata?.name,
+              name: metadata?.name,
+              hasHero: !!metadata?.hero,
+            });
+          } else {
+            console.warn(`[fetchHeroMetadata] IPFS fetch failed for hero ${hero.tokenId}: ${response.status} ${response.statusText}`);
+          }
+        } catch (fetchError) {
+          console.error(`[fetchHeroMetadata] Failed to fetch IPFS metadata for hero ${hero.tokenId}:`, fetchError);
         }
+      } else {
+        console.warn(`[fetchHeroMetadata] Unknown URI format for hero ${hero.tokenId}: ${uri.substring(0, 50)}...`);
       }
 
       if (metadata) {
