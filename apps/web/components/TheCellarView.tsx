@@ -205,7 +205,6 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             if (!cellarAddress) throw new Error("TheCellar contract not found");
 
             // 1. Check and wrap MON to WMON if needed, then check/approve WMON
-            const wmonAddress = CONTRACT_ADDRESSES.WMON;
             if (wmonAddress && wmonAddress !== '0x0000000000000000000000000000000000000000') {
                 try {
                     // Check WMON balance first

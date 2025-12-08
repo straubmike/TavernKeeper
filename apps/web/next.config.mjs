@@ -14,9 +14,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   transpilePackages: ['@innkeeper/lib', '@innkeeper/engine', '@innkeeper/agents'],
   // Turbopack disabled - use webpack (specify --webpack flag in dev script)
   webpack: (config, { isServer }) => {
