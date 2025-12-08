@@ -1,10 +1,11 @@
 'use client';
 
+import sdk from '@farcaster/miniapp-sdk';
 import React, { useEffect, useState } from 'react';
 import { createPublicClient, http, type Address } from 'viem';
 import { useAccount, useConnect, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { monad } from '../lib/chains';
-import { setOfficeManagerData } from '../lib/services/officeManagerCache';
+import { getOfficeManagerData, setOfficeManagerData } from '../lib/services/officeManagerCache';
 import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
 import { useGameStore } from '../lib/stores/gameStore';
@@ -196,12 +197,54 @@ export const TheOffice: React.FC<{
 
             const previousManagerAddress = state.currentKing;
 
-            if (receipt.status === 'success' && address && userContext && (userContext.fid || userContext.username)) {
-                setOfficeManagerData(address, {
-                    fid: userContext.fid,
-                    username: userContext.username,
-                    displayName: userContext.displayName,
-                });
+            // Save office manager data to database (always try, even without userContext)
+            if (receipt.status === 'success' && address) {
+                // Save to local cache first (for immediate UI updates)
+                if (userContext && (userContext.fid || userContext.username)) {
+                    setOfficeManagerData(address, {
+                        fid: userContext.fid,
+                        username: userContext.username,
+                        displayName: userContext.displayName,
+                    });
+                }
+
+                // Always save to database (will fetch from Neynar if needed)
+                fetch('/api/office/save-manager', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        address,
+                        fid: userContext?.fid,
+                        username: userContext?.username,
+                        displayName: userContext?.displayName,
+                    })
+                }).catch(err => console.error('Failed to save office manager to database:', err));
+
+                // Prompt user to share their office takeover on Farcaster (only in miniapp)
+                if (isInFarcasterMiniapp() && userContext?.username) {
+                    // Small delay to let the transaction complete UI update
+                    setTimeout(async () => {
+                        try {
+                            // Get previous manager username if available
+                            const previousManagerData = getOfficeManagerData(previousManagerAddress);
+                            let shareText: string;
+
+                            if (previousManagerData?.username) {
+                                shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+                            } else {
+                                shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
+                            }
+
+                            await sdk.actions.composeCast({
+                                text: shareText,
+                                embeds: ['https://tavernkeeper.xyz/miniapp'],
+                            });
+                        } catch (error) {
+                            // User cancelled or error - that's okay, don't show error
+                            console.log('User chose not to share or error:', error);
+                        }
+                    }, 1500);
+                }
             }
 
             if (receipt.status === 'success' && previousManagerAddress &&

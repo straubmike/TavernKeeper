@@ -63,6 +63,81 @@ export async function getUserByAddress(address: string): Promise<{
 }
 
 /**
+ * Get Farcaster user information by username
+ * Returns FID, username, and displayName if found
+ */
+export async function getUserByUsername(username: string): Promise<{
+    fid: number;
+    username?: string;
+    displayName?: string;
+} | null> {
+    try {
+        const apiKey = process.env.NEYNAR_API_KEY;
+        if (!apiKey) {
+            console.error('NEYNAR_API_KEY not set');
+            return null;
+        }
+
+        // Remove @ if present
+        const cleanUsername = username.replace(/^@/, '');
+
+        // Use direct API call (more reliable than SDK methods)
+        const response = await fetch(
+            `https://api.neynar.com/v2/farcaster/user/by_username?username=${encodeURIComponent(cleanUsername)}`,
+            {
+                headers: {
+                    'api_key': apiKey,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        if (!response.ok) {
+            // Try without .eth suffix if it was present
+            if (cleanUsername.endsWith('.eth')) {
+                const usernameWithoutEth = cleanUsername.replace(/\.eth$/, '');
+                const retryResponse = await fetch(
+                    `https://api.neynar.com/v2/farcaster/user/by_username?username=${encodeURIComponent(usernameWithoutEth)}`,
+                    {
+                        headers: {
+                            'api_key': apiKey,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+                if (retryResponse.ok) {
+                    const retryData = await retryResponse.json();
+                    if (retryData?.result?.user) {
+                        const user = retryData.result.user;
+                        return {
+                            fid: user.fid,
+                            username: user.username || undefined,
+                            displayName: user.display_name || undefined,
+                        };
+                    }
+                }
+            }
+            return null;
+        }
+
+        const data = await response.json();
+        if (data?.result?.user) {
+            const user = data.result.user;
+            return {
+                fid: user.fid,
+                username: user.username || undefined,
+                displayName: user.display_name || undefined,
+            };
+        }
+
+        return null;
+    } catch (error: any) {
+        console.error('Error fetching user by username from Neynar:', error);
+        return null;
+    }
+}
+
+/**
  * Send notification to Farcaster mini app users
  *
  * @param targetFids Array of FIDs to send notification to (empty array = all users with notifications enabled)

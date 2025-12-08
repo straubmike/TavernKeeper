@@ -1,14 +1,16 @@
 'use client';
 
+import sdk from '@farcaster/miniapp-sdk';
 import { useEffect, useState } from 'react';
 import { createPublicClient, formatEther, http } from 'viem';
 import { monad } from '../lib/chains';
+import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
 import { keepTokenService } from '../lib/services/keepToken';
 import { theCellarService } from '../lib/services/theCellarService';
 import { getPoolLiquidity } from '../lib/services/uniswapV4SwapService';
-import { PixelBox, PixelButton } from './PixelComponents';
-import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
+import { isInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
 import { SmartLink } from '../lib/utils/smartNavigation';
+import { PixelBox, PixelButton } from './PixelComponents';
 
 interface HomeInfoDisplayProps {
     address: string | undefined;
@@ -177,6 +179,36 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                     </PixelButton>
                 </SmartLink>
             </div>
+
+            {/* Add Miniapp Button - Only show in miniapp context */}
+            {isInFarcasterMiniapp() && (
+                <PixelBox variant="dark" className="p-2 border-2 border-purple-500/50 bg-purple-900/20">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col">
+                            <div className="text-[8px] text-purple-300 uppercase tracking-wider mb-0.5">
+                                Get Notifications
+                            </div>
+                            <div className="text-[7px] text-zinc-400">
+                                Add miniapp to receive updates
+                            </div>
+                        </div>
+                        <PixelButton
+                            variant="primary"
+                            size="sm"
+                            onClick={async () => {
+                                try {
+                                    await sdk.actions.addMiniapp();
+                                } catch (error) {
+                                    console.error('Failed to add miniapp:', error);
+                                }
+                            }}
+                            className="flex-shrink-0 text-[8px] px-2"
+                        >
+                            Add
+                        </PixelButton>
+                    </div>
+                </PixelBox>
+            )}
         </div>
     );
 };

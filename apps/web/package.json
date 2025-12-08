@@ -24,7 +24,8 @@
     "network:testnet": "node scripts/set-network.js testnet",
     "network:mainnet": "node scripts/set-network.js mainnet",
     "test:v3-pool": "tsx scripts/test-v3-pool.ts",
-    "fix:pool": "tsx scripts/fix-pool-and-cellar.ts"
+    "fix:pool": "tsx scripts/fix-pool-and-cellar.ts",
+    "test:notifications": "tsx scripts/test-notifications.ts"
   },
   "dependencies": {
     "@base-org/account": "^1.0.0",

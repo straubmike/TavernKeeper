@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOfficeManagerData } from '../../../../lib/services/officeManagerCache';
 import { getUserByAddress, sendNotification } from '../../../../lib/services/neynarService';
+import { supabase } from '../../../../lib/supabase';
 
 export async function POST(request: NextRequest) {
     try {
@@ -19,16 +19,36 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, message: 'No previous manager to notify' });
         }
 
-        // Try to get FID from cache first
+        const normalizedPreviousAddress = previousManagerAddress.toLowerCase();
+        const normalizedNewAddress = newManagerAddress.toLowerCase();
+
+        // Try to get FID from database first
         let fid: number | undefined;
-        const cachedData = getOfficeManagerData(previousManagerAddress);
-        if (cachedData?.fid) {
-            fid = cachedData.fid;
+        const { data: previousManagerData } = await supabase
+            .from('office_managers')
+            .select('farcaster_fid, username, display_name')
+            .eq('wallet_address', normalizedPreviousAddress)
+            .single();
+
+        if (previousManagerData?.farcaster_fid) {
+            fid = previousManagerData.farcaster_fid;
         } else {
             // Fallback: fetch from Neynar API
-            const userData = await getUserByAddress(previousManagerAddress);
+            const userData = await getUserByAddress(normalizedPreviousAddress);
             if (userData?.fid) {
                 fid = userData.fid;
+                // Save to database for next time
+                await supabase
+                    .from('office_managers')
+                    .upsert({
+                        wallet_address: normalizedPreviousAddress,
+                        farcaster_fid: fid,
+                        username: userData.username || null,
+                        display_name: userData.displayName || null,
+                        last_updated_at: new Date().toISOString(),
+                    }, {
+                        onConflict: 'wallet_address'
+                    });
             }
         }
 
@@ -39,26 +59,42 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get new manager's username/display name for personalized message
-        let newManagerName: string = 'Someone';
-        const newManagerCached = getOfficeManagerData(newManagerAddress);
-        if (newManagerCached?.username) {
-            newManagerName = `@${newManagerCached.username}`;
-        } else if (newManagerCached?.displayName) {
-            newManagerName = newManagerCached.displayName;
+        // Get previous manager's username for @mention
+        let previousManagerUsername: string | null = null;
+        if (previousManagerData?.username) {
+            previousManagerUsername = previousManagerData.username;
+        }
+
+        // Get new manager's username for @mention
+        let newManagerUsername: string = 'Someone';
+        const { data: newManagerData } = await supabase
+            .from('office_managers')
+            .select('username, display_name')
+            .eq('wallet_address', normalizedNewAddress)
+            .single();
+
+        if (newManagerData?.username) {
+            newManagerUsername = newManagerData.username;
         } else {
             // Fallback: fetch from Neynar API
-            const newManagerData = await getUserByAddress(newManagerAddress);
-            if (newManagerData?.username) {
-                newManagerName = `@${newManagerData.username}`;
-            } else if (newManagerData?.displayName) {
-                newManagerName = newManagerData.displayName;
+            const userData = await getUserByAddress(normalizedNewAddress);
+            if (userData?.username) {
+                newManagerUsername = userData.username;
             }
         }
 
-        // Send notification with personalized message
+        // Format notification message with @mentions
         const notificationTitle = 'Office Taken';
-        const notificationBody = `${newManagerName} just claimed the office from you! You received ${parseFloat(pricePaid).toFixed(4)} MON as the previous manager.`;
+        let notificationBody: string;
+
+        if (previousManagerUsername) {
+            // Personal message with @mentions
+            notificationBody = `Hey @${previousManagerUsername}, @${newManagerUsername} stole your spot in the office! You received ${parseFloat(pricePaid).toFixed(4)} MON as the previous manager.`;
+        } else {
+            // Fallback without previous username
+            notificationBody = `Hey there! @${newManagerUsername} just claimed the office from you! You received ${parseFloat(pricePaid).toFixed(4)} MON as the previous manager.`;
+        }
+
         const targetUrl = 'https://tavernkeeper.xyz/';
 
         const success = await sendNotification(
