@@ -1,8 +1,8 @@
-import { createPublicClient, formatEther, http, parseEther, parseAbi, type PublicClient, type WalletClient } from 'viem';
+import { createPublicClient, formatEther, http, parseEther, type WalletClient } from 'viem';
+import KeepTokenABI from '../abis/KeepToken.json';
+import TavernRegularsManagerABI from '../abis/TavernRegularsManager.json';
 import { monad } from '../chains';
 import { LOCALHOST_ADDRESSES } from '../contracts/addresses';
-import TavernRegularsManagerABI from '../abis/TavernRegularsManager.json';
-import KeepTokenABI from '../abis/KeepToken.json';
 
 // Use standard contract addresses or fallbacks
 const TAVERN_REGULARS_ADDRESS = LOCALHOST_ADDRESSES.TAVERN_REGULARS_MANAGER as `0x${string}`;
@@ -22,8 +22,7 @@ export interface TavernRegularsGroup {
 
 export const tavernRegularsService = {
     getPublicClient() {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
         return createPublicClient({
             chain: monad,
@@ -167,7 +166,7 @@ export const tavernRegularsService = {
                 ]);
 
                 // groupData depends on struct return, usually an array or object in viem depending on ABI
-                // Assuming standard tuple return for struct in array form if not mapped. 
+                // Assuming standard tuple return for struct in array form if not mapped.
                 // However, readContract with struct usually returns object if named in ABI or array.
                 // Let's assume array-like access or object matching the struct based on JSON ABI.
                 // Safest to log or cast. Based on ethers code: groupData.groupId etc.

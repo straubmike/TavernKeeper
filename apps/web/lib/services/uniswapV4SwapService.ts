@@ -1,5 +1,5 @@
 
-import { createPublicClient, http, type Address, type WalletClient, parseEther, formatEther, encodeFunctionData, parseAbi, keccak256, encodeAbiParameters } from 'viem';
+import { createPublicClient, formatEther, http, parseAbi, type Address, type WalletClient } from 'viem';
 import { monad } from '../chains';
 import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 
@@ -68,8 +68,7 @@ export async function getPoolState(forceRefresh = false): Promise<{
     }
 
     try {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
         const publicClient = createPublicClient({
             chain: monad,
@@ -166,8 +165,7 @@ export async function getSwapQuote(params: SwapParams): Promise<SwapQuote | null
     }
 
     // Get actual token addresses from pool
-    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-        (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
     const publicClient = createPublicClient({
         chain: monad,
@@ -341,8 +339,7 @@ export async function getPoolLiquidity(forceRefresh = false): Promise<{
     }
 
     // Get actual token addresses from pool to determine order
-    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-        (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
     const publicClient = createPublicClient({
         chain: monad,
@@ -412,8 +409,7 @@ export async function getPoolLiquidity(forceRefresh = false): Promise<{
 }
 
 export async function getTokenBalances(address: Address): Promise<{ mon: bigint; keep: bigint; wmon: bigint }> {
-    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-        (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
     const publicClient = createPublicClient({ chain: monad, transport: http(rpcUrl) });
 
@@ -464,8 +460,7 @@ export async function executeSwap(
     walletClient: WalletClient,
     params: SwapParams
 ): Promise<`0x${string}`> {
-    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-        (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
     const publicClient = createPublicClient({
         chain: monad,
@@ -611,8 +606,7 @@ export async function executeSwap(
 }
 
 export async function checkAllowance(token: Address, owner: Address, spender: Address, amount: bigint): Promise<boolean> {
-    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-        (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+    const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
     const publicClient = createPublicClient({ chain: monad, transport: http(rpcUrl) });
     const allowance = await publicClient.readContract({
         address: token,

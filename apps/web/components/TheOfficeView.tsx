@@ -287,7 +287,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                 )}
                             </div>
                             <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-1 flex flex-col items-center justify-center">
-                                <div className="text-[6px] text-[#86efac] uppercase tracking-widest mb-0.5">Office PNL</div>
+                                <div className="text-[6px] text-[#86efac] uppercase tracking-widest mb-0.5">Previous Owner PNL</div>
                                 <div className={`font-bold text-[10px] ${enhancedPnl?.totalPnl.color === 'green' ? 'text-green-400' : enhancedPnl?.totalPnl.color === 'red' ? 'text-red-400' : (pnl && pnl.startsWith('+') ? 'text-green-400' : 'text-red-400')}`}>
                                     {enhancedPnl?.totalPnl.formatted || pnl || '$0.00'}
                                 </div>
@@ -297,6 +297,9 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                         <div>KEEP: {enhancedPnl.keepEarningsPnl.formatted}</div>
                                     </div>
                                 )}
+                                <div className="text-[4px] text-zinc-600 mt-0.5 text-center leading-tight italic">
+                                    (if you take it)
+                                </div>
                             </div>
 
                             {/* Cellar Stats */}
@@ -471,7 +474,20 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                     </div>
                                 </div>
 
+                                {isKing && (
+                                    <div className="bg-red-900/30 border border-red-800/50 rounded p-3">
+                                        <p className="text-xs text-red-200 font-bold mb-1">
+                                            ⚠️ WARNING: You Already Own The Office!
+                                        </p>
+                                        <p className="text-xs text-red-300">
+                                            Taking the office from yourself does nothing - you'll just pay yourself back (minus 20% in fees). You won't make any profit from this.
+                                        </p>
+                                    </div>
+                                )}
                                 <div className="bg-amber-50/10 border border-amber-800/50 rounded p-3">
+                                    <p className="text-xs text-amber-200 mb-2">
+                                        <strong>Important:</strong> The "Previous Owner PNL" shown above is what the PREVIOUS owner would receive if you take the office, NOT what you'll earn. You earn KEEP tokens over time while holding the office.
+                                    </p>
                                     <p className="text-xs text-amber-200">
                                         <strong>Note:</strong> You will also pay gas fees for this transaction. The wallet popup will show the gas cost.
                                     </p>

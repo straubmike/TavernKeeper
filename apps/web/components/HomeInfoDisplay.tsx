@@ -157,8 +157,7 @@ export const HomeInfoDisplay: React.FC<HomeInfoDisplayProps> = ({ address }) => 
                 await new Promise(resolve => setTimeout(resolve, 300));
 
                 // Fetch MON Balance (native token)
-                const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-                    (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+                const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
                 const publicClient = createPublicClient({
                     chain: monad,

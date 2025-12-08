@@ -1,13 +1,12 @@
 
 import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
+import { cookieStorage, createConfig, createStorage, fallback, http } from 'wagmi';
 import { injected } from 'wagmi/connectors';
-import { fallback, http, createStorage, cookieStorage } from 'wagmi';
-import { createConfig } from 'wagmi';
 import { monad } from './chains';
 
-const monadTransports = process.env.NEXT_PUBLIC_MONAD_RPC_URL
-  ? [http(process.env.NEXT_PUBLIC_MONAD_RPC_URL), http()]
-  : [http()];
+// Use chain's RPC URL (which includes Alchemy if configured)
+const monadRpcUrl = monad.rpcUrls.default.http[0];
+const monadTransports = [http(monadRpcUrl), http()]; // Fallback to default if first fails
 
 export const wagmiConfig = createConfig({
   chains: [monad],

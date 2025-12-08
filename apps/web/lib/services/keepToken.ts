@@ -1,6 +1,6 @@
 import { createPublicClient, formatEther, http } from 'viem';
-import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 import { monad } from '../chains';
+import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 
 export const keepTokenService = {
     /**
@@ -20,8 +20,7 @@ export const keepTokenService = {
             }
 
             // Use RPC from env or default based on chain ID
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
             const publicClient = createPublicClient({
                 chain: monad,

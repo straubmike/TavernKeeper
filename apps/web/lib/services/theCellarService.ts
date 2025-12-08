@@ -1,8 +1,8 @@
 
-import { createPublicClient, formatEther, http, parseEther, encodeFunctionData, parseAbi } from 'viem';
+import { createPublicClient, formatEther, http, parseAbi } from 'viem';
 import { monad } from '../chains';
-import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 import { CONTRACT_ADDRESSES } from '../contracts/addresses';
+import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 
 export interface CellarState {
     potSize: string; // MON in the contract
@@ -41,9 +41,8 @@ export const theCellarService = {
                 throw new Error("TheCellar contract not found");
             }
 
-            // Use RPC from env or default based on chain ID
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+            // Use chain's RPC URL (includes Alchemy if configured)
+            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
             const publicClient = createPublicClient({
                 chain: monad,
@@ -123,8 +122,7 @@ export const theCellarService = {
     },
 
     async getAllowance(owner: string, tokenAddress: string): Promise<bigint> {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
         const publicClient = createPublicClient({
             chain: monad,
@@ -234,8 +232,7 @@ export const theCellarService = {
             return 0n;
         }
 
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
         const publicClient = createPublicClient({
             chain: monad,

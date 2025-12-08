@@ -1,8 +1,8 @@
-import { createPublicClient, formatEther, http, parseEther, parseAbi, type WalletClient } from 'viem';
+import { createPublicClient, formatEther, http, parseEther, type WalletClient } from 'viem';
+import KeepTokenABI from '../abis/KeepToken.json';
+import TownPosseManagerABI from '../abis/TownPosseManager.json';
 import { monad } from '../chains';
 import { LOCALHOST_ADDRESSES } from '../contracts/addresses';
-import TownPosseManagerABI from '../abis/TownPosseManager.json';
-import KeepTokenABI from '../abis/KeepToken.json';
 
 const TOWN_POSSE_ADDRESS = LOCALHOST_ADDRESSES.TOWN_POSSE_MANAGER as `0x${string}`;
 const KEEP_TOKEN_ADDRESS = LOCALHOST_ADDRESSES.KEEP_TOKEN as `0x${string}`;
@@ -35,8 +35,7 @@ export interface Proposal {
 
 export const townPosseService = {
     getPublicClient() {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
         return createPublicClient({
             chain: monad,

@@ -5,7 +5,6 @@
  * Includes all connectors - RainbowKit will show appropriate ones based on context
  */
 
-import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { cookieStorage, createStorage, http } from 'wagmi';
 import { monad } from './chains';
@@ -22,11 +21,11 @@ const safeStorage = createStorage({
 });
 
 import {
+  injectedWallet,
   // metaMaskWallet,
   phantomWallet,
   rainbowWallet,
   walletConnectWallet,
-  injectedWallet,
 } from '@rainbow-me/rainbowkit/wallets';
 
 export const wagmiConfig = getDefaultConfig({
@@ -36,9 +35,7 @@ export const wagmiConfig = getDefaultConfig({
   ssr: true,
   storage: safeStorage,
   transports: {
-    [monad.id]: process.env.NEXT_PUBLIC_MONAD_RPC_URL
-      ? http(process.env.NEXT_PUBLIC_MONAD_RPC_URL)
-      : http(),
+    [monad.id]: http(monad.rpcUrls.default.http[0]),
   },
   wallets: [
     {

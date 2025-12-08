@@ -6,8 +6,8 @@
 import { createPublicClient, formatEther, http, parseAbi } from 'viem';
 import { monad } from '../chains';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
-import { getPoolLiquidity } from './uniswapV4SwapService';
 import { getMonPrice } from './monPriceService';
+import { getPoolLiquidity } from './uniswapV4SwapService';
 
 export interface KeepMcapData {
     totalSupply: string;        // Total KEEP supply (formatted)
@@ -41,8 +41,7 @@ export const mcapService = {
                 return 0n;
             }
 
-            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-                (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+            const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
             const publicClient = createPublicClient({
                 chain: monad,

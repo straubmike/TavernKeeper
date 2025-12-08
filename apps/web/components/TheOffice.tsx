@@ -145,6 +145,21 @@ export const TheOffice: React.FC<{
         return () => { cancelled = true; };
     }, [address]);
 
+    // Poll office state periodically (every 30 seconds)
+    useEffect(() => {
+        const pollOfficeState = async () => {
+            try {
+                await fetchOfficeState(true); // Force refresh to get latest on-chain data
+            } catch (e) {
+                console.error("Failed to poll office state", e);
+            }
+        };
+
+        pollOfficeState();
+        const interval = setInterval(pollOfficeState, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
     // Poll cellar state periodically
     useEffect(() => {
         const fetchCellarState = async () => {
@@ -161,7 +176,22 @@ export const TheOffice: React.FC<{
         return () => clearInterval(interval);
     }, []);
 
-    // Interpolation Loop
+    // Poll office state periodically (every 30 seconds) - ensures price and other state updates
+    useEffect(() => {
+        const pollOfficeState = async () => {
+            try {
+                await fetchOfficeState(true); // Force refresh to get latest on-chain data
+            } catch (e) {
+                console.error("Failed to poll office state", e);
+            }
+        };
+
+        pollOfficeState();
+        const interval = setInterval(pollOfficeState, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    // Interpolation Loop (updates UI smoothly between polling intervals)
     useEffect(() => {
         const interval = setInterval(() => {
             const now = Date.now();
@@ -389,6 +419,14 @@ export const TheOffice: React.FC<{
         if (chainId !== monad.id) {
             // ... (keep logic)
             alert('Please switch to Monad Mainnet manually.');
+            return;
+        }
+
+        // Check if user is trying to take office from themselves
+        const currentKing = state.currentKing?.toLowerCase();
+        const userAddress = address?.toLowerCase();
+        if (currentKing && userAddress && currentKing === userAddress) {
+            alert('⚠️ You already own the Office!\n\nTaking it from yourself does nothing - you\'ll just pay yourself back (minus fees).\n\nThe Office PnL shown is what the PREVIOUS owner would receive, not what you get from taking it.');
             return;
         }
 

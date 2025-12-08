@@ -1,5 +1,5 @@
 
-import { createPublicClient, http, type Address, formatEther, parseAbi, parseEther } from 'viem';
+import { createPublicClient, formatEther, http, parseAbi, type Address } from 'viem';
 import { monad } from '../chains';
 import { CONTRACT_ADDRESSES } from '../contracts/addresses';
 
@@ -26,8 +26,7 @@ export interface PoolState {
 
 export async function getV3PoolState(): Promise<PoolState | null> {
     try {
-        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL ||
-            (monad.id === 143 ? 'https://rpc.monad.xyz' : 'https://testnet-rpc.monad.xyz');
+        const rpcUrl = process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0];
 
         const client = createPublicClient({
             chain: monad,
