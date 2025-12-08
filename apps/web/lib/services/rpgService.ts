@@ -413,24 +413,37 @@ export const rpgService = {
     async hasClaimedFreeHero(tavernKeeperId: string): Promise<boolean> {
         const contractConfig = CONTRACT_REGISTRY.ADVENTURER;
         const contractAddress = getContractAddress(contractConfig);
-        if (!contractAddress) return false;
+        if (!contractAddress) {
+            console.warn('⚠️ Adventurer contract address not found. Cannot check free hero claim status.');
+            return false;
+        }
 
         const publicClient = createPublicClient({
             chain: monad,
-            transport: http(monad.rpcUrls.default.http[0]),
+            transport: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0]),
         });
 
         try {
+            console.log(`🔍 Checking free hero claim status for TavernKeeper #${tavernKeeperId}...`);
             const claimed = await publicClient.readContract({
                 address: contractAddress,
                 abi: contractConfig.abi,
                 functionName: 'freeHeroClaimed',
                 args: [BigInt(tavernKeeperId)],
             });
-            return claimed as boolean;
-        } catch (error) {
-            console.error('Failed to check free hero claim status:', error);
-            return false; // Default to false if check fails
+            const isClaimed = claimed as boolean;
+            console.log(`✅ Free hero claim status for TavernKeeper #${tavernKeeperId}: ${isClaimed ? 'CLAIMED' : 'NOT CLAIMED'}`);
+            return isClaimed;
+        } catch (error: any) {
+            console.error('❌ Failed to check free hero claim status:', {
+                error: error?.message || error,
+                tavernKeeperId,
+                contractAddress,
+                rpcUrl: process.env.NEXT_PUBLIC_MONAD_RPC_URL || monad.rpcUrls.default.http[0],
+            });
+            // Return false on error - this means we won't show the free hero banner if there's an RPC issue
+            // But at least we log it so the user can see what went wrong
+            return false;
         }
     },
 

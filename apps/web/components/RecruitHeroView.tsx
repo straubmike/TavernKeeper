@@ -88,10 +88,13 @@ export default function RecruitHeroView({ tbaAddress, tavernKeeperId, onSuccess,
 
         const checkFreeHero = async () => {
             try {
+                console.log(`🔍 RecruitHeroView: Checking free hero for TavernKeeper #${tavernKeeperId}...`);
                 const claimed = await rpgService.hasClaimedFreeHero(tavernKeeperId);
-                setHasUnclaimedFreeHero(!claimed);
+                const hasUnclaimed = !claimed;
+                console.log(`✅ RecruitHeroView: Free hero status - claimed: ${claimed}, hasUnclaimed: ${hasUnclaimed}`);
+                setHasUnclaimedFreeHero(hasUnclaimed);
             } catch (error) {
-                console.error('Failed to check free hero status:', error);
+                console.error('❌ RecruitHeroView: Failed to check free hero status:', error);
                 setHasUnclaimedFreeHero(false);
             } finally {
                 setCheckingFreeHero(false);
