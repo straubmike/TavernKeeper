@@ -26,9 +26,9 @@ export const theCellarService = {
         this._cache.timestamp = 0;
     },
 
-    async getCellarState(): Promise<CellarState> {
+    async getCellarState(forceRefresh = false): Promise<CellarState> {
         const now = Date.now();
-        if (this._cache.data && (now - this._cache.timestamp < this._cache.ttl)) {
+        if (!forceRefresh && this._cache.data && (now - this._cache.timestamp < this._cache.ttl)) {
             return this._cache.data;
         }
 

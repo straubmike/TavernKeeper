@@ -304,9 +304,9 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
 
                 (uint256 potCollected0, uint256 potCollected1) = positionManager.collect(collectPotParams);
 
-                bool wmonIsToken0 = wmon < keepToken;
-                potBalanceMON += wmonIsToken0 ? potCollected0 : potCollected1;
-                potBalanceKEEP += wmonIsToken0 ? potCollected1 : potCollected0;
+                bool _wmonIsToken0 = wmon < keepToken;
+                potBalanceMON += _wmonIsToken0 ? potCollected0 : potCollected1;
+                potBalanceKEEP += _wmonIsToken0 ? potCollected1 : potCollected0;
             }
         }
 
@@ -341,6 +341,47 @@ contract TheCellarV3 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IERC
          if (serveKeep > 0) IERC20(keepToken).transfer(msg.sender, serveKeep);
 
          emit Raid(msg.sender, lpBid, serveMon, serveKeep);
+    }
+
+    /**
+     * @notice Handle incoming native MON (e.g. from The Office).
+     * @dev Wraps MON to WMON and updates pot balance.
+     */
+    event PotSweetened(address indexed contributor, uint256 amount);
+
+    /**
+     * @notice Handle incoming native MON (e.g. from The Office).
+     * @dev Wraps MON to WMON and updates pot balance.
+     */
+    receive() external payable {
+        if (msg.value > 0) {
+            // Wrap MON -> WMON
+            (bool success, ) = wmon.call{value: msg.value}(abi.encodeWithSignature("deposit()"));
+            require(success, "WMON deposit failed");
+
+            // Update Accounting
+            potBalanceMON += msg.value;
+            
+            // Emit event (reusing FeesCollected for simplicity, effectively 0 KEEP collected here)
+            emit FeesCollected(msg.value, 0); 
+        }
+    }
+
+    /**
+     * @notice Manually add MON to the cellar pot (sweeten the pot)
+     * @dev Wraps native MON to WMON and adds to potBalanceMON
+     */
+    function sweetenPot() external payable {
+        require(msg.value > 0, "Must send MON");
+        
+        // Wrap native MON to WMON
+        (bool success, ) = wmon.call{value: msg.value}(abi.encodeWithSignature("deposit()"));
+        require(success, "WMON deposit failed");
+
+        // Add wrapped WMON to pot
+        potBalanceMON += msg.value;
+
+        emit PotSweetened(msg.sender, msg.value);
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {

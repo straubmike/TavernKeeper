@@ -21,6 +21,14 @@ const safeStorage = createStorage({
   storage: typeof window !== 'undefined' ? cookieStorage : noOpStorage,
 });
 
+import {
+  // metaMaskWallet,
+  phantomWallet,
+  rainbowWallet,
+  walletConnectWallet,
+  injectedWallet,
+} from '@rainbow-me/rainbowkit/wallets';
+
 export const wagmiConfig = getDefaultConfig({
   appName: 'TavernKeeper',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '1b99af504ddb38a0f6dc1b85e16ef5c9',
@@ -32,6 +40,18 @@ export const wagmiConfig = getDefaultConfig({
       ? http(process.env.NEXT_PUBLIC_MONAD_RPC_URL)
       : http(),
   },
+  wallets: [
+    {
+      groupName: 'Recommended',
+      wallets: [
+        // metaMaskWallet, // Causes MetaMaskSDK constructor error if SDK not installed
+        phantomWallet,
+        rainbowWallet,
+        walletConnectWallet,
+        injectedWallet,
+      ],
+    },
+  ],
 });
 
 // Manually append the Farcaster Miniapp connector

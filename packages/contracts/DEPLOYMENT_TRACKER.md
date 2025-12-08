@@ -282,6 +282,11 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
   - **Reason**: `raid()` calling `harvest()` was draining swap fees from LPs.
   - **Action**: Removed `harvest()` from `raid()`. Restricted `harvest()` to `onlyOwner`. Verified `withdraw()` correctly calculates user fee share without relying on `harvest()` clearing the slate.
 
+- **v1.4.0** - `0xAf3353c5f417d5906D170B304869040eb28E7B45` (Impl) - Pot Logic Fix (Receive/Sweeten)
+  - **Reason**: `potBalance` remained 0 because contract lacked `receive()` handler for Native MON. Funds were reverting.
+  - **Action**: Added `receive()` to accept and wrap Native MON to WMON. Added `sweetenPot()` for manual contributions.
+  - **Result**: "Take Office" now triggers fee deposits correctly.
+
 
 
 ---
