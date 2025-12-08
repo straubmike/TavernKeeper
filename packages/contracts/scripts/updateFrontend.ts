@@ -21,6 +21,7 @@ export function updateFrontendAddresses(addresses: {
     POOL_MANAGER?: string;
     TAVERN_REGULARS_MANAGER?: string;
     TOWN_POSSE_MANAGER?: string;
+    CELLAR_TOKEN?: string;
 }) {
     const addressesPath = path.join(__dirname, '../../../apps/web/lib/contracts/addresses.ts');
 
@@ -49,6 +50,7 @@ export function updateFrontendAddresses(addresses: {
         'POOL_MANAGER': addresses.POOL_MANAGER || '',
         'TAVERN_REGULARS_MANAGER': addresses.TAVERN_REGULARS_MANAGER || '',
         'TOWN_POSSE_MANAGER': addresses.TOWN_POSSE_MANAGER || '',
+        'CELLAR_TOKEN': addresses.CELLAR_TOKEN || '',
     };
 
     // Map of keys to update in IMPLEMENTATION_ADDRESSES

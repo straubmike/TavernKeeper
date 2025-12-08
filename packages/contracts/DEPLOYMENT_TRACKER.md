@@ -232,7 +232,8 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 
 | Contract | Type | Address | Deployed | TX Hash | Notes |
 |----------|------|---------|----------|---------|-------|
-| TheCellarV3 | Proxy | `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` | ✅ 2025-12-06 | 0x... | V3 Migration - UUPS Proxy |
+| TheCellarV3 | Proxy | `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` | ✅ 2025-12-07 | ... | V3 Migration - UUPS Proxy |
+| TheCellarV3 | Impl | `0x296d8B63c95013a6c972b3f08b0D52c859D37066` | ✅ 2025-12-07 | ... | v1.3.0 - Logic Fix (harvest/withdraw) |
 | CellarToken | Contract | `0x6eF142a2203102F6c58b0C15006BF9F6F5CFe39E` | ✅ 2025-12-06 | 0x... | Migrated V3 LP Token |
 | The Cellar (OLD - Broken Pool) | Proxy | `0x6c7612F44B71E5E6E2bA0FEa799A23786A537755` | ✅ 2025-01-XX | See upgrade tx | **DEPRECATED** - Broken pool (price=0), replaced by new pool |
 | The Cellar (OLD - Broken Pool) | Impl | `0xA349006F388DA608052395755d08E765b1960ecC` | ✅ 2025-01-XX | See upgrade tx | v3.0.0 - Broken pool, do not use |
@@ -276,6 +277,11 @@ This file tracks all contract deployments. **ALWAYS** update this file when depl
 - **v1.2.0** - `0x32A920be00dfCE1105De0415ba1d4f06942E9ed0` (Proxy Unchanged) - Logic Fix
   - **Reason**: Fix `addLiquidity` revert on Mainnet where `KEEP < WMON`.
   - **Action**: updated `TheCellarV3` to dynamically sort tokens for V3 interactions (`token0` vs `token1`) and map amounts correctly. Matches V3 Pool (KEEP=Token0).
+
+- **v1.3.0** - `0x296d8B63c95013a6c972b3f08b0D52c859D37066` (Impl) - Fee Logic Fix
+  - **Reason**: `raid()` calling `harvest()` was draining swap fees from LPs.
+  - **Action**: Removed `harvest()` from `raid()`. Restricted `harvest()` to `onlyOwner`. Verified `withdraw()` correctly calculates user fee share without relying on `harvest()` clearing the slate.
+
 
 
 ---

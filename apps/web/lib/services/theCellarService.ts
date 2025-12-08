@@ -212,11 +212,12 @@ export const theCellarService = {
     },
 
     async getUserLpBalance(userAddress: string): Promise<bigint> {
-        const contractConfig = CONTRACT_REGISTRY.CELLAR_TOKEN;
-        const contractAddress = getContractAddress(contractConfig);
+        // 1. Get TheCellar contract address
+        const cellarConfig = CONTRACT_REGISTRY.THECELLAR;
+        const cellarAddress = getContractAddress(cellarConfig);
 
-        if (!contractAddress) {
-            console.error("CellarToken contract not found");
+        if (!cellarAddress) {
+            console.error("TheCellar contract not found");
             return 0n;
         }
 
@@ -229,9 +230,17 @@ export const theCellarService = {
         });
 
         try {
+            // 2. Fetch the correct LP token address from TheCellar contract
+            const lpTokenAddress = await publicClient.readContract({
+                address: cellarAddress as `0x${string}`,
+                abi: parseAbi(['function cellarToken() view returns (address)']),
+                functionName: 'cellarToken',
+            }) as string;
+
+            // 3. Get User Balance
             const balance = await publicClient.readContract({
-                address: contractAddress as `0x${string}`,
-                abi: contractConfig.abi,
+                address: lpTokenAddress as `0x${string}`,
+                abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
                 functionName: 'balanceOf',
                 args: [userAddress as `0x${string}`],
             });

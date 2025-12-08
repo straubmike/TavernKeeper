@@ -3,7 +3,7 @@ import { ethers, upgrades } from "hardhat";
 
 /**
  * MIGRATION SCRIPT: V3
- * 
+ *
  * 1. Deploys CellarToken (ERC20).
  * 2. Checks/Deploys Uniswap V3 Infrastructure (Factory, Router, PositionManager) if missing.
  * 3. Deploys TheCellarV3 (UUPS Proxy).
@@ -32,9 +32,13 @@ async function main() {
     const network = await ethers.provider.getNetwork();
     const chainId = Number(network.chainId);
 
+    // Get deployer address from .env
+    const deployerAddress = process.env.DEPLOYER_ADDRESS || deployer.address;
+
     console.log(`=== MIGRATION TO V3 ===`);
     console.log(`Network: ${chainId}`);
     console.log(`Deployer: ${deployer.address}`);
+    console.log(`Deployer Address (fees): ${deployerAddress}`);
 
     let wmonAddress = "";
     let keepAddress = "";
@@ -80,7 +84,8 @@ async function main() {
         positionManagerAddress,
         await cellarToken.getAddress(),
         wmonAddress,
-        keepAddress
+        keepAddress,
+        deployerAddress // Deployer address that receives all swap fees
     ], { kind: 'uups' });
 
     await cellar.waitForDeployment();

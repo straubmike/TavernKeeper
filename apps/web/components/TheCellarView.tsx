@@ -60,7 +60,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
     };
 
     const handleClaim = async () => {
-        if (!address || !isConnected || !walletClient) return;
+        if (!address || !isConnected || !walletClient || !publicClient) return;
 
         setShowConfirmModal(false);
         setIsClaiming(true);
@@ -68,12 +68,58 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
             // Raid Bid: 1.05 LP (Fixed for now, V3 Migration default)
             const bid = parseEther("1.05");
 
+            // Get TheCellar address and CLP token address
+            const contractConfig = CONTRACT_REGISTRY.THECELLAR;
+            const cellarAddress = getContractAddress(contractConfig);
+            if (!cellarAddress) throw new Error("TheCellar contract not found");
+
+            // Get CLP token address
+            const clpTokenAddress = await publicClient.readContract({
+                address: cellarAddress,
+                abi: parseAbi(['function cellarToken() view returns (address)']),
+                functionName: 'cellarToken',
+            }) as string;
+
+            // Check CLP balance
+            const clpBalance = await publicClient.readContract({
+                address: clpTokenAddress as `0x${string}`,
+                abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+                functionName: 'balanceOf',
+                args: [address],
+            }) as bigint;
+
+            if (clpBalance < bid) {
+                throw new Error(`Insufficient CLP balance. You have ${formatEther(clpBalance)} CLP but need ${formatEther(bid)} CLP.`);
+            }
+
+            // Check and approve CLP if needed
+            const clpAllowance = await publicClient.readContract({
+                address: clpTokenAddress as `0x${string}`,
+                abi: parseAbi(['function allowance(address,address) view returns (uint256)']),
+                functionName: 'allowance',
+                args: [address, cellarAddress],
+            }) as bigint;
+
+            if (clpAllowance < bid) {
+                console.log("Approving CLP tokens...");
+                const approveHash = await walletClient.writeContract({
+                    address: clpTokenAddress as `0x${string}`,
+                    abi: parseAbi(['function approve(address,uint256) returns (bool)']),
+                    functionName: 'approve',
+                    chain: monad,
+                    account: address,
+                    args: [cellarAddress, bid],
+                });
+                await publicClient.waitForTransactionReceipt({ hash: approveHash });
+                console.log("CLP Approved");
+            }
+
             // Use service with Wagmi wallet client
             await theCellarService.claim(walletClient, bid);
             alert("Raid successful! You claimed the pot.");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Claim failed:", error);
-            alert("Raid failed. See console for details.");
+            alert("Raid failed: " + (error.message || "Unknown error. See console for details."));
         } finally {
             setIsClaiming(false);
             fetchData();
@@ -101,8 +147,57 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
         setShowMintModal(false);
         setIsMinting(true);
         try {
+            // Get current pool price to calculate correct ratio
+            const poolAddress = CONTRACT_ADDRESSES.V3_POOL;
+            if (!poolAddress || poolAddress === '0x0000000000000000000000000000000000000000') {
+                throw new Error("V3 Pool address not configured");
+            }
+
+            // Get pool state to calculate correct ratio
+            const [slot0, token0, token1] = await Promise.all([
+                publicClient.readContract({
+                    address: poolAddress as `0x${string}`,
+                    abi: parseAbi(['function slot0() view returns (uint160 sqrtPriceX96, int24 tick, uint16 observationIndex, uint16 observationCardinality, uint16 observationCardinalityNext, uint8 feeProtocol, bool unlocked)']),
+                    functionName: 'slot0',
+                }),
+                publicClient.readContract({
+                    address: poolAddress as `0x${string}`,
+                    abi: parseAbi(['function token0() view returns (address)']),
+                    functionName: 'token0',
+                }),
+                publicClient.readContract({
+                    address: poolAddress as `0x${string}`,
+                    abi: parseAbi(['function token1() view returns (address)']),
+                    functionName: 'token1',
+                }),
+            ]);
+
+            const sqrtPriceX96 = slot0[0] as bigint;
+            const Q96 = 2n ** 96n;
+            const sqrtPrice = Number(sqrtPriceX96) / Number(Q96);
+            const price = sqrtPrice * sqrtPrice; // price = token1/token0
+
+            const wmonAddress = CONTRACT_ADDRESSES.WMON;
+            const keepAddress = CONTRACT_ADDRESSES.KEEP_TOKEN;
+            const isToken0WMON = (token0 as string).toLowerCase() === wmonAddress.toLowerCase();
+            const isToken0KEEP = (token0 as string).toLowerCase() === keepAddress.toLowerCase();
+
+            // Calculate KEEP per MON ratio
+            let keepPerMon: number;
+            if (isToken0WMON) {
+                // token0 = WMON, token1 = KEEP, price = KEEP/WMON = KEEP/MON
+                keepPerMon = price;
+            } else if (isToken0KEEP) {
+                // token0 = KEEP, token1 = WMON, price = WMON/KEEP = MON/KEEP, so KEEP/MON = 1/price
+                keepPerMon = 1 / price;
+            } else {
+                console.warn("Could not determine token order, using fallback 1:3 ratio");
+                keepPerMon = 3; // Fallback
+            }
+
             const amountMON = parseEther(amount);
-            const amountKEEP = parseEther((parseFloat(amount) * 3).toString()); // 1:3 Ratio
+            // Calculate KEEP amount based on actual pool price
+            const amountKEEP = parseEther((parseFloat(amount) * keepPerMon).toString());
 
             // Get TheCellar address for approval
             const contractConfig = CONTRACT_REGISTRY.THECELLAR;

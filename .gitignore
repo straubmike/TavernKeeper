@@ -164,3 +164,7 @@ pnpm-debug.log*
 .project
 .classpath
 .settings/
+
+# Heavy Folders (Cleaned up)
+m00n-cabal/
+donut demos/
