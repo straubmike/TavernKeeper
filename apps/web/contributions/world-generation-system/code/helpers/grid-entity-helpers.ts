@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Grid Entity Helpers
  * 
  * Helper functions for registering entities that appear on the 2D surface grid:
@@ -348,3 +348,4 @@ export function registerGridLeader(
 
   return leaderEntity;
 }
+

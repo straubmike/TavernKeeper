@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Combat System - Usage Examples
  * 
  * Examples showing how to use the combat system.
@@ -14,6 +14,14 @@ import {
   checkCombatStatus,
   executeAmbushRound,
 } from '../services/combatService';
+import {
+  resolveTrap,
+  calculateTrapDC,
+  calculateTrapDamage,
+  checkAmbushPerception,
+} from '../services/trapService';
+import type { TrapResolutionConfig } from '../types/trap';
+import type { RoomEncounter } from '../../themed-dungeon-generation/code/types/dungeon-generation';
 import type { AdventurerRecord } from '../../adventurer-tracking/code/types/adventurer-stats';
 import type { MonsterInstance } from '../../monster-stat-blocks/code/types/monster-stats';
 import { createMonsterInstance } from '../../monster-stat-blocks/code/services/monsterService';
@@ -188,4 +196,162 @@ export async function exampleStepByStepCombat() {
   }
 
   console.log(`Combat ended: ${state.status}`);
+}
+
+/**
+ * Example 5: Resolve a trap encounter
+ */
+export function exampleTrapResolution() {
+  const partyMembers: AdventurerRecord[] = [
+    // ... your party members
+  ];
+
+  // Create a trap encounter
+  const trapEncounter: RoomEncounter = {
+    id: 'trap-123',
+    type: 'trap',
+    name: 'Mechanical Trap',
+    description: 'A room filled with mechanical traps',
+    difficulty: 5,
+    trapSubtype: 'mechanical',
+    rewards: [
+      {
+        type: 'experience',
+        amount: 150,
+        description: '150 experience points',
+      },
+    ],
+    metadata: {},
+  };
+
+  // Resolve the trap
+  const result = resolveTrap(
+    trapEncounter,
+    'room-123',
+    10, // Room level (affects DC)
+    partyMembers
+  );
+
+  console.log(`Trap ${result.status}: ${result.message}`);
+  console.log(`Detected: ${result.detected}, Disarmed: ${result.disarmed}`);
+  console.log(`DC: ${result.difficultyClass}`);
+  console.log(`Total Damage: ${result.totalDamage}`);
+  console.log(`XP Awarded: ${result.xpAwarded}`);
+
+  // Show perception check results
+  result.perceptionChecks.forEach(check => {
+    console.log(`${check.adventurerName}: ${check.roll} + ${check.modifier} + ${check.proficiencyBonus} = ${check.total} vs DC ${check.dc} (${check.success ? 'SUCCESS' : 'FAIL'})`);
+  });
+
+  // Show disarm check results (if detected)
+  if (result.detected) {
+    result.disarmChecks.forEach(check => {
+      console.log(`${check.adventurerName}: ${check.roll} + ${check.modifier} + ${check.proficiencyBonus} = ${check.total} vs DC ${check.dc} (${check.success ? 'SUCCESS' : 'FAIL'})`);
+    });
+  }
+
+  // Update party members with new HP
+  result.updatedPartyMembers.forEach(updatedMember => {
+    console.log(`${updatedMember.name}: HP ${updatedMember.stats.health}/${updatedMember.stats.maxHealth}`);
+  });
+}
+
+/**
+ * Example 6: Trap resolution with custom configuration
+ */
+export function exampleTrapResolutionWithConfig() {
+  const partyMembers: AdventurerRecord[] = [
+    // ... your party members
+  ];
+
+  const trapEncounter: RoomEncounter = {
+    id: 'trap-456',
+    type: 'trap',
+    name: 'Magical Trap',
+    description: 'A room filled with magical traps',
+    difficulty: 8,
+    trapSubtype: 'magical',
+    rewards: [
+      {
+        type: 'experience',
+        amount: 240,
+        description: '240 experience points',
+      },
+      {
+        type: 'lore',
+        description: 'Knowledge gained from understanding the magic',
+      },
+    ],
+    metadata: {},
+  };
+
+  const config: TrapResolutionConfig = {
+    useBestRoll: true, // Any party member passing = success
+    damageScalingFactor: 1.2, // 20% more damage
+    puzzleTrapsDealDamage: false, // Puzzle traps don't deal damage
+  };
+
+  const result = resolveTrap(
+    trapEncounter,
+    'room-456',
+    50, // Higher level = harder DC
+    partyMembers,
+    config
+  );
+
+  console.log(`Trap resolution: ${result.status}`);
+  console.log(`DC: ${result.difficultyClass} (scaled with level 50)`);
+}
+
+/**
+ * Example 7: Calculate trap DC and damage for different levels
+ */
+export function exampleTrapScaling() {
+  // Show how DC and damage scale with dungeon level
+  for (const level of [1, 10, 25, 50, 75, 99]) {
+    const dc = calculateTrapDC(level);
+    const damage = calculateTrapDamage(level, dc);
+    
+    console.log(`Level ${level}: DC ${dc}, Damage ~${damage}`);
+  }
+}
+
+/**
+ * Example 8: Check for ambush before combat
+ */
+export function exampleAmbushPerception() {
+  const partyMembers: AdventurerRecord[] = [
+    // ... your party members
+  ];
+
+  const roomLevel = 10; // Dungeon level
+
+  // Check if party detects the ambush
+  const perceptionResult = checkAmbushPerception(partyMembers, roomLevel);
+
+  console.log(`Ambush detected: ${perceptionResult.detected}`);
+  console.log(`DC: ${perceptionResult.checks[0]?.dc || 0}`);
+
+  // Show perception check results
+  perceptionResult.checks.forEach(check => {
+    console.log(`${check.adventurerName}: ${check.roll} + modifiers = ${check.total} vs DC ${check.dc} (${check.success ? 'SUCCESS' : 'FAIL'})`);
+  });
+
+  // Initialize combat with appropriate flags
+  const monsters: MonsterInstance[] = [
+    // ... your monsters
+  ];
+
+  const combatState = initializeCombat(
+    partyMembers,
+    monsters,
+    'room-10',
+    !perceptionResult.detected, // isAmbush: true if NOT detected
+    undefined,
+    perceptionResult.detected // isSurprise: true if detected
+  );
+
+  // If detected, party gets surprise round (all party act first)
+  // If not detected, monsters get ambush round (all monsters act first)
+  console.log(`Combat initialized: isAmbush=${!perceptionResult.detected}, isSurprise=${perceptionResult.detected}`);
 }

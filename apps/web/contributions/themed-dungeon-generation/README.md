@@ -1,6 +1,6 @@
-﻿# Themed Dungeon Generation System
+# Themed Dungeon Generation System
 
-## ΓÜá∩╕Å Primary Implementation: TypeScript
+## ⚠️ Primary Implementation: TypeScript
 
 **The main implementation is TypeScript code in `code/` directory. This is what should be integrated into the game.**
 
@@ -14,22 +14,22 @@ This contribution provides a themed dungeon generation system for TavernKeeper. 
 
 - **Themed Dungeons**: Multiple dungeon themes (Undead, Fire, Ice, Nature, Shadow, Mechanical, Abyssal, Crystal) that influence monster types, room types, and atmosphere
 - **Pre-Generated Bosses**: Final boss at the bottom and mid-bosses at strategic intervals (e.g., every 25 levels)
-- **Boss Theme Influence**: Bosses influence theme selection (e.g., Necromancer ΓåÆ Undead theme)
+- **Boss Theme Influence**: Bosses influence theme selection (e.g., Necromancer → Undead theme)
 - **On-Demand Room Generation**: Regular levels generate rooms on-demand as the player progresses
 - **Deterministic**: Seed-based generation for reproducibility
 - **List Data Structure**: Level layout stored as a list for deterministic access
 
 ## Game Flow
 
-1. **Player clicks "Enter Dungeon"** ΓåÆ Blockchain backend processes (not this system's concern)
-2. **Get list of dungeons** ΓåÆ Query available dungeons
-3. **Choose one randomly** ΓåÆ Select from available dungeons
-4. **Begin building** ΓåÆ Check dungeon depth
-5. **Assign bosses** ΓåÆ Final boss at bottom, mid-bosses at intervals
-6. **Consider boss influence** ΓåÆ Boss type influences theme selection
-7. **Select theme** ΓåÆ Choose appropriate theme based on boss
-8. **Fill dungeon levels** ΓåÆ Create level layout structure
-9. **Generate rooms on-demand** ΓåÆ As player progresses, generate rooms from templates
+1. **Player clicks "Enter Dungeon"** → Blockchain backend processes (not this system's concern)
+2. **Get list of dungeons** → Query available dungeons
+3. **Choose one randomly** → Select from available dungeons
+4. **Begin building** → Check dungeon depth
+5. **Assign bosses** → Final boss at bottom, mid-bosses at intervals
+6. **Consider boss influence** → Boss type influences theme selection
+7. **Select theme** → Choose appropriate theme based on boss
+8. **Fill dungeon levels** → Create level layout structure
+9. **Generate rooms on-demand** → As player progresses, generate rooms from templates
 
 ## Quick Start (Integration)
 
@@ -123,44 +123,44 @@ None - this is an additive feature.
 
 ```
 Themed Dungeon
-Γö£ΓöÇΓöÇ Metadata (seed, depth, theme, name)
-Γö£ΓöÇΓöÇ Final Boss (pre-generated at bottom level)
-Γö£ΓöÇΓöÇ Mid-Bosses (pre-generated at intervals)
-ΓööΓöÇΓöÇ Level Layout (list structure)
-    Γö£ΓöÇΓöÇ Level 1
-    Γöé   Γö£ΓöÇΓöÇ Boss: null
-    Γöé   ΓööΓöÇΓöÇ Room Template (for on-demand generation)
-    Γö£ΓöÇΓöÇ Level 25
-    Γöé   Γö£ΓöÇΓöÇ Boss: Mid-Boss (pre-generated)
-    Γöé   ΓööΓöÇΓöÇ Room Template
-    Γö£ΓöÇΓöÇ ...
-    ΓööΓöÇΓöÇ Level 100
-        Γö£ΓöÇΓöÇ Boss: Final Boss (pre-generated)
-        ΓööΓöÇΓöÇ Room Template
+├── Metadata (seed, depth, theme, name)
+├── Final Boss (pre-generated at bottom level)
+├── Mid-Bosses (pre-generated at intervals)
+└── Level Layout (list structure)
+    ├── Level 1
+    │   ├── Boss: null
+    │   └── Room Template (for on-demand generation)
+    ├── Level 25
+    │   ├── Boss: Mid-Boss (pre-generated)
+    │   └── Room Template
+    ├── ...
+    └── Level 100
+        ├── Boss: Final Boss (pre-generated)
+        └── Room Template
 ```
 
 ## Code Structure
 
 ```
 contributions/themed-dungeon-generation/
-Γö£ΓöÇΓöÇ README.md (this file)
-Γö£ΓöÇΓöÇ DESIGN.md (design overview)
-Γö£ΓöÇΓöÇ code/
-Γöé   Γö£ΓöÇΓöÇ types/
-Γöé   Γöé   ΓööΓöÇΓöÇ dungeon-generation.ts      # Type definitions
-Γöé   Γö£ΓöÇΓöÇ themes/
-Γöé   Γöé   ΓööΓöÇΓöÇ theme-definitions.ts       # Theme definitions
-Γöé   ΓööΓöÇΓöÇ generators/
-Γöé       Γö£ΓöÇΓöÇ dungeon-generator.ts        # Main generator
-Γöé       Γö£ΓöÇΓöÇ theme-generator.ts          # Theme selection
-Γöé       Γö£ΓöÇΓöÇ boss-generator.ts           # Boss generation
-Γöé       ΓööΓöÇΓöÇ room-generator.ts           # Room generation
-ΓööΓöÇΓöÇ examples/
-    ΓööΓöÇΓöÇ usage-examples.ts               # Usage examples
+├── README.md (this file)
+├── DESIGN.md (design overview)
+├── code/
+│   ├── types/
+│   │   └── dungeon-generation.ts      # Type definitions
+│   ├── themes/
+│   │   └── theme-definitions.ts       # Theme definitions
+│   └── generators/
+│       ├── dungeon-generator.ts        # Main generator
+│       ├── theme-generator.ts          # Theme selection
+│       ├── boss-generator.ts           # Boss generation
+│       └── room-generator.ts           # Room generation
+└── examples/
+    └── usage-examples.ts               # Usage examples
 
 tools/dungeon-generator/
-Γö£ΓöÇΓöÇ dungeon-generator-tool.html         # HTML testing tool
-ΓööΓöÇΓöÇ README.md                           # Tool documentation
+├── dungeon-generator-tool.html         # HTML testing tool
+└── README.md                           # Tool documentation
 ```
 
 ## Integration Example
@@ -195,3 +195,4 @@ The HTML tool in `tools/dungeon-generator/dungeon-generator-tool.html` is for **
 - Level layout is stored as a list for indexed access
 - Theme selection considers boss influence for cohesion
 - Default depth is 100 levels, but can be dynamic
+

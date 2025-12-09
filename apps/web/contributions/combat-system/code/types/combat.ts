@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Combat System - Type Definitions
  * 
  * Types for turn-based combat encounters between party members and monsters.
@@ -22,6 +22,7 @@ export interface CombatEntity {
   mana?: number;          // For party members (clerics/mages)
   maxMana?: number;       // For party members
   class?: 'warrior' | 'mage' | 'rogue' | 'cleric'; // For party members
+  proficiencyBonus?: number; // Proficiency bonus for party members (D&D 5e)
   adventurerRecord?: AdventurerRecord; // Reference to full adventurer data
   monsterInstance?: MonsterInstance;   // Reference to full monster data
 }
@@ -34,9 +35,12 @@ export type WeaponType = 'melee-strength' | 'melee-dexterity' | 'ranged' | 'magi
 /**
  * Weapon definition
  * 
- * TODO: This interface will be used to represent weapons from the inventory system.
- * When the inventory system is implemented, weapons will be retrieved from equipped
- * inventory items rather than using default class-based weapons.
+ * This interface represents weapons used in combat. Weapons are retrieved from the
+ * inventory-tracking service via getEquippedItems() and converted using inventoryItemToWeapon().
+ * If no weapon is equipped, the combat system falls back to default class-based weapons.
+ * 
+ * See: apps/web/contributions/inventory-tracking for the inventory system.
+ * See: apps/web/contributions/combat-system/code/services/combatService.ts for weapon retrieval.
  */
 export interface Weapon {
   name: string;
@@ -70,6 +74,12 @@ export interface AttackResult {
   damage?: number;        // Damage dealt (if hit)
   damageRoll?: number[];  // Individual dice rolls
   criticalHit?: boolean;
+  targetHpBefore?: number; // Target HP before damage (for display)
+  targetHpAfter?: number;  // Target HP after damage (for display)
+  targetMaxHp?: number;    // Target max HP (for display)
+  attackModifier?: number; // Stat modifier used for attack (for display)
+  proficiencyBonus?: number; // Proficiency bonus (for display)
+  weaponModifier?: number;   // Weapon modifier (for display)
 }
 
 /**
@@ -79,7 +89,8 @@ export interface HealResult {
   casterId: string;
   targetId: string;
   amount: number;
-  targetNewHp: number;
+  targetHpBefore: number;  // Target HP before healing (for accurate display)
+  targetNewHp: number;    // Target HP after healing
   targetMaxHp: number;
   manaCost: number;
   casterNewMana: number;
@@ -92,6 +103,8 @@ export interface CombatTurn {
   turnNumber: number;
   entityId: string;
   entityName: string;
+  targetId?: string;      // Target entity ID (for display)
+  targetName?: string;    // Target entity name (for display)
   action: CombatAction;
   result: AttackResult | HealResult;
 }
@@ -106,8 +119,10 @@ export interface CombatState {
   turnOrder: string[];    // Entity IDs in initiative order
   currentTurn: number;     // Index in turnOrder
   turns: CombatTurn[];     // History of all turns
-  isAmbush: boolean;       // If monsters got ambush round
+  isAmbush: boolean;       // If monsters got ambush round (party failed perception)
+  isSurprise: boolean;     // If party got surprise round (party passed perception)
   ambushCompleted: boolean;
+  surpriseCompleted: boolean;
   status: 'active' | 'victory' | 'defeat';
   startedAt: Date;
   endedAt?: Date;
@@ -137,6 +152,10 @@ export interface CombatConfig {
 
 /**
  * Combat result summary
+ * 
+ * NOTE: The finalState contains the updated entities with current HP/mana after combat.
+ * This should be used to update adventurer records between rooms in dungeon runs.
+ * HP and mana carry over between combat rooms, and only safe rooms reset them to max.
  */
 export interface CombatResult {
   combatId: string;
@@ -149,4 +168,5 @@ export interface CombatResult {
   monstersTotal: number;
   xpAwarded?: number;
   duration: number; // milliseconds
+  finalState: CombatState; // Final state with updated HP/mana for party members
 }

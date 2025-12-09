@@ -1,4 +1,4 @@
-﻿# Monster Stat Block System
+# Monster Stat Block System
 
 ## What This Does
 
@@ -89,16 +89,16 @@ None - this is an additive feature. Existing monster systems can be gradually mi
 
 ```
 contributions/monster-stat-blocks/
-Γö£ΓöÇΓöÇ README.md (this file)
-Γö£ΓöÇΓöÇ code/
-Γöé   Γö£ΓöÇΓöÇ types/
-Γöé   Γöé   ΓööΓöÇΓöÇ monster-stats.ts        # Stat block types and interfaces
-Γöé   Γö£ΓöÇΓöÇ data/
-Γöé   Γöé   ΓööΓöÇΓöÇ monster-registry.ts     # All monster stat blocks
-Γöé   ΓööΓöÇΓöÇ services/
-Γöé       ΓööΓöÇΓöÇ monsterService.ts       # Service for retrieving stat blocks
-ΓööΓöÇΓöÇ examples/
-    ΓööΓöÇΓöÇ usage-examples.ts           # Code examples showing integration
+├── README.md (this file)
+├── code/
+│   ├── types/
+│   │   └── monster-stats.ts        # Stat block types and interfaces
+│   ├── data/
+│   │   └── monster-registry.ts     # All monster stat blocks
+│   └── services/
+│       └── monsterService.ts       # Service for retrieving stat blocks
+└── examples/
+    └── usage-examples.ts           # Code examples showing integration
 ```
 
 ## Monster List

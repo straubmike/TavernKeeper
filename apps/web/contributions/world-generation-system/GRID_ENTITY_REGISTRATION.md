@@ -1,4 +1,4 @@
-﻿# Grid Entity Registration Implementation
+# Grid Entity Registration Implementation
 
 ## Overview
 
@@ -158,3 +158,4 @@ All entities are registered in the `EntityRegistry` and are linkable in the worl
 - Leaders are linked to their organizations
 - All entities have proper entity IDs for linking in pop-ups
 - History events are logged with proper years and metadata
+

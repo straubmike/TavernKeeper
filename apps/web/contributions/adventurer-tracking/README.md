@@ -1,4 +1,4 @@
-﻿# Adventurer Tracking System
+# Adventurer Tracking System
 
 ## What This Does
 
@@ -86,7 +86,7 @@ None - this is an additive feature. Existing hero metadata and ownership systems
 
 3. **Health Calculation (D&D 5e)**: 
    - Health is calculated from Constitution and level
-   - Formula: HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) ├ù (level - 1)
+   - Formula: HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) × (level - 1)
    - Hit dice by class: Warrior (d10), Mage (d6), Rogue (d8), Cleric (d8)
    - HP increases on level up based on Constitution modifier
 
@@ -117,16 +117,16 @@ None - this is an additive feature. Existing hero metadata and ownership systems
 
 ```
 contributions/adventurer-tracking/
-Γö£ΓöÇΓöÇ README.md (this file)
-Γö£ΓöÇΓöÇ code/
-Γöé   Γö£ΓöÇΓöÇ types/
-Γöé   Γöé   ΓööΓöÇΓöÇ adventurer-stats.ts      # Stat types and interfaces
-Γöé   Γö£ΓöÇΓöÇ database/
-Γöé   Γöé   ΓööΓöÇΓöÇ migration.sql             # Database schema
-Γöé   ΓööΓöÇΓöÇ services/
-Γöé       ΓööΓöÇΓöÇ adventurerService.ts     # Service for managing stats
-ΓööΓöÇΓöÇ examples/
-    ΓööΓöÇΓöÇ usage-examples.ts             # Code examples showing integration
+├── README.md (this file)
+├── code/
+│   ├── types/
+│   │   └── adventurer-stats.ts      # Stat types and interfaces
+│   ├── database/
+│   │   └── migration.sql             # Database schema
+│   └── services/
+│       └── adventurerService.ts     # Service for managing stats
+└── examples/
+    └── usage-examples.ts             # Code examples showing integration
 ```
 
 ## Integration Example
@@ -188,3 +188,63 @@ if (result.detected && result.disarmed) {
 - Stat history is optional and can be disabled for performance
 - The system assumes heroes are owned by wallets (resolves through NFT ownership chain)
 - Combat bonuses are calculated from base stats and can be modified by equipment (handled by inventory system)
+
+## CRITICAL: Initial Weapon Setup for Minted Heroes
+
+**IMPORTANT**: When heroes are minted, they MUST be initialized with a base weapon equipped. Without this, heroes will use unarmed strikes (1 damage) and cannot progress in combat.
+
+### Required Initialization Steps
+
+When a hero is first minted/synced, the following must happen:
+
+1. **Generate Base Weapon**: Create a common (base) weapon appropriate for the hero's class:
+   - Warriors → Longsword
+   - Mages → Staff
+   - Rogues → Dagger
+   - Clerics → Mace
+
+2. **Add to Inventory**: Use the inventory-tracking service to add the weapon:
+   ```typescript
+   import { addItemToInventory } from '@/lib/services/inventoryService';
+   import { ItemGenerator } from '@/lib/services/itemGenerator';
+   
+   const generator = new ItemGenerator();
+   const baseWeapon = generator.generateItem({
+     context: 'dungeon_loot',
+     level: 1,
+     classPreference: heroClass,
+     rarityModifier: 100, // Common rarity
+   });
+   
+   await addItemToInventory(
+     walletAddress,
+     baseWeapon,
+     1,
+     'hero_mint' // Source: hero was minted
+   );
+   ```
+
+3. **Equip Weapon**: Immediately equip the weapon to the hero:
+   ```typescript
+   import { equipItem } from '@/lib/services/inventoryService';
+   
+   await equipItem({
+     itemId: baseWeapon.id,
+     heroId: { tokenId, contractAddress, chainId },
+     slot: 'main_hand',
+     action: 'equip',
+   });
+   ```
+
+### Integration Point
+
+This initialization should happen in the hero minting/syncing flow, likely in:
+- `apps/web/lib/services/heroOwnership.ts` - When syncing heroes from blockchain
+- `apps/web/app/api/heroes/sync/route.ts` - Hero sync endpoint
+- Or wherever heroes are first created in the database
+
+### Why This Matters
+
+The combat system (`combatService.ts`) retrieves weapons from the inventory-tracking service via `getEquippedItems()`. If no weapon is equipped, the system falls back to default unarmed strikes which deal minimal damage (1 damage), making progression impossible.
+
+**See also**: `apps/web/contributions/inventory-tracking/README.md` section "Hero Minting & Base Weapon Initialization" for additional details.

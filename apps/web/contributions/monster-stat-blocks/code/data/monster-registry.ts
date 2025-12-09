@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Monster Registry
  * 
  * This file contains all monster stat blocks organized by theme.

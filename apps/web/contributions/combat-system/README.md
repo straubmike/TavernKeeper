@@ -1,15 +1,25 @@
-﻿# Combat System
+# Combat System
 
 ## What This Does
 
-This contribution implements a turn-based combat system for dungeon encounters. It handles:
+This contribution implements a turn-based combat system and trap resolution system for dungeon encounters. It handles:
 
+### Combat System
 - **Turn Order**: Entities sorted by DEX for initiative
 - **Attack Resolution**: d20 + stat modifiers vs AC
 - **Damage Calculation**: Weapon dice + modifiers
 - **Special Abilities**: Cleric healing and mage magic attacks
 - **Ambush Rounds**: Monsters attack first if ambush trap failed
 - **Combat Resolution**: Victory when all monsters defeated, defeat when all party members defeated
+
+### Trap Resolution System
+- **Perception Checks**: Wisdom-based checks to detect traps (with proficiency bonus if proficient)
+- **Disarm Checks**: Stat-based checks to disarm traps (DEX/STR for mechanical, WIS for magical, INT for puzzle)
+- **DC Scaling**: Trap DC scales with dungeon level (DC 10 at level 1, DC 25 at level 99)
+- **Damage Scaling**: Trap damage scales with dungeon level and DC
+- **Party-Wide Checks**: Any party member passing a check = success for the party
+- **Trap Subtypes**: Mechanical (DEX/STR), Magical (WIS), Fake Treasure (mechanical or magical)
+- **Rewards**: XP and loot awarded for successfully disarming traps
 
 ## Where It Should Be Integrated
 
@@ -103,17 +113,19 @@ None - this is an additive feature.
 
 ```
 contributions/combat-system/
-Γö£ΓöÇΓöÇ README.md (this file)
-Γö£ΓöÇΓöÇ code/
-Γöé   Γö£ΓöÇΓöÇ types/
-Γöé   Γöé   ΓööΓöÇΓöÇ combat.ts              # Combat types and interfaces
-Γöé   Γö£ΓöÇΓöÇ engine/
-Γöé   Γöé   Γö£ΓöÇΓöÇ turn-order.ts          # Initiative and turn order logic
-Γöé   Γöé   ΓööΓöÇΓöÇ attack-resolution.ts  # Attack rolls and damage calculation
-Γöé   Γö£ΓöÇΓöÇ services/
-Γöé   Γöé   ΓööΓöÇΓöÇ combatService.ts      # Main combat service
-Γöé   ΓööΓöÇΓöÇ examples/
-Γöé       ΓööΓöÇΓöÇ usage-examples.ts      # Code examples
+├── README.md (this file)
+├── code/
+│   ├── types/
+│   │   ├── combat.ts              # Combat types and interfaces
+│   │   └── trap.ts                # Trap resolution types and interfaces
+│   ├── engine/
+│   │   ├── turn-order.ts          # Initiative and turn order logic
+│   │   └── attack-resolution.ts  # Attack rolls and damage calculation
+│   ├── services/
+│   │   ├── combatService.ts      # Main combat service
+│   │   └── trapService.ts        # Trap resolution service
+│   └── examples/
+│       └── usage-examples.ts      # Code examples
 ```
 
 ## Integration Example
@@ -184,8 +196,81 @@ while (state.status === 'active') {
 }
 ```
 
+## Trap Resolution System
+
+### How It Works
+
+1. **Perception Phase**: All party members make Wisdom-based perception checks
+   - Uses Wisdom modifier + proficiency bonus (if proficient in Perception)
+   - If ANY party member succeeds, trap is detected
+   - If ALL party members fail, trap triggers and deals damage
+
+2. **Disarm Phase** (if detected): All party members make stat-based disarm checks
+   - **Mechanical Traps**: 70% DEX, 30% STR (randomly determined)
+   - **Magical Traps**: WIS
+   - **Fake Treasure**: 50% mechanical (DEX/STR), 50% magical (WIS)
+   - If ANY party member succeeds, trap is disarmed
+   - If ALL party members fail, trap triggers and deals damage
+
+3. **Damage Calculation**: 
+   - Scales with dungeon level: `DC * 2 * (0.8 to 1.2 random factor)`
+   - Level 1: ~20 damage (DC 10)
+   - Level 99: ~50 damage (DC 25)
+   - Applied to all party members if checks fail
+
+4. **XP and Rewards**:
+   - Full XP if disarmed: `difficulty * 30`
+   - Partial XP if detected but not disarmed: `difficulty * 15`
+   - Minimal XP if not detected: `difficulty * 5`
+   - Rewards (gold, items, lore) only if trap is disarmed
+
+### Trap Subtypes
+
+- **Mechanical**: Physical traps (pressure plates, spikes, etc.) - DEX or STR check
+- **Magical**: Magical traps (runes, wards, etc.) - WIS check
+- **Fake Treasure**: Treasure disguised as trap - mechanical or magical (50/50)
+- **Ambush**: Handled by combat system (not trap resolution)
+
+### Usage Example
+
+```typescript
+import { resolveTrap } from '@/contributions/combat-system/code/services/trapService';
+import type { RoomEncounter } from '@/contributions/themed-dungeon-generation/code/types/dungeon-generation';
+
+const trapEncounter: RoomEncounter = {
+  id: 'trap-123',
+  type: 'trap',
+  name: 'Mechanical Trap',
+  description: 'A room filled with mechanical traps',
+  difficulty: 5,
+  trapSubtype: 'mechanical',
+  rewards: [
+    { type: 'experience', amount: 150, description: '150 XP' },
+  ],
+  metadata: {},
+};
+
+const result = resolveTrap(
+  trapEncounter,
+  'room-123',
+  10, // Dungeon level (affects DC)
+  partyMembers
+);
+
+if (result.status === 'success') {
+  // Trap disarmed - award XP and rewards
+  console.log(`XP: ${result.xpAwarded}`);
+} else {
+  // Trap triggered - apply damage
+  result.updatedPartyMembers.forEach(member => {
+    // Update adventurer records with new HP
+  });
+}
+```
+
 ## Notes
 
+### Combat System
 - **Weapon Types**: Retrieved from equipped inventory items, with fallback to class-based defaults
 - **Weapon Integration**: Fully integrated with inventory system
   - Uses `getEquippedItems()` to retrieve equipped weapons from inventory
@@ -198,6 +283,14 @@ while (state.status === 'active') {
 - **Turn Skipping**: Entities at 0 HP are automatically skipped in turn order
 - **Combat Limits**: Maximum 1000 turns to prevent infinite loops
 - **XP Calculation**: Sum of all defeated monsters' XP values
+
+### Trap Resolution System
+- **DC Scaling**: Linear scaling from DC 10 (level 1) to DC 25 (level 99)
+- **Damage Scaling**: Base damage = DC * 2, with 80-120% random factor
+- **Proficiency**: Perception proficiency bonus applies if adventurer is proficient
+- **Best Roll**: Uses best party member's roll (any success = party success)
+- **Puzzle Traps**: Not yet implemented (will use time cost instead of damage)
+- **Ambush Traps**: Handled by combat system, not trap resolution
 
 ## Inventory System Integration
 

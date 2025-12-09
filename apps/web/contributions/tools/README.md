@@ -1,4 +1,4 @@
-﻿# Development Tools
+# Development Tools
 
 This directory contains standalone development and testing tools for the various contribution systems.
 
@@ -10,7 +10,7 @@ A comprehensive HTML tool that unifies all generation systems (World, Map, Dunge
 
 **Features:**
 - Tabbed interface consolidating to 3 systems (World, Dungeon, Item)
-- Full integration workflow (seeded World ΓåÆ associated seeded Dungeon)
+- Full integration workflow (seeded World → associated seeded Dungeon)
 - (some) Parametric configuration via UI
 - Real-time integration statistics
 

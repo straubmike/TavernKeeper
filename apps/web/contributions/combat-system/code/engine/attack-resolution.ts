@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Attack Resolution System
  * 
  * Handles attack rolls, damage calculation, and hit determination.
@@ -69,8 +69,9 @@ export function resolveAttack(
   }
 
   const attackModifier = calculateModifier(attackStat);
+  const proficiencyBonus = attacker.proficiencyBonus || 0; // All heroes proficient with weapons
   const weaponModifier = weapon.attackModifier || 0;
-  const attackTotal = attackRoll + attackModifier + weaponModifier;
+  const attackTotal = attackRoll + attackModifier + proficiencyBonus + weaponModifier;
 
   // Check if hit (attack total > target AC, or critical hit)
   const hit = isCritical || attackTotal > target.ac;
@@ -114,6 +115,12 @@ export function resolveAttack(
     damage,
     damageRoll,
     criticalHit: isCritical,
+    targetHpBefore: target.currentHp, // Target HP before damage (for display)
+    targetHpAfter: hit && damage !== undefined ? Math.max(0, target.currentHp - damage) : target.currentHp, // Target HP after damage
+    targetMaxHp: target.maxHp, // Target max HP (for display)
+    attackModifier, // Stat modifier (for display)
+    proficiencyBonus, // Proficiency bonus (for display)
+    weaponModifier, // Weapon modifier (for display)
   };
 }
 

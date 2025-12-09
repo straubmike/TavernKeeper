@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Turn Order System
  * 
  * Handles initiative and turn order determination based on DEX.

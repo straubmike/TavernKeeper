@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Usage Examples for Themed Dungeon Generation
  * 
  * Demonstrates how to use the dungeon generation system.
@@ -205,3 +205,4 @@ export async function example6_LevelLayout() {
 
   return dungeon;
 }
+

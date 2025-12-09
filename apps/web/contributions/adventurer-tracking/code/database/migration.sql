@@ -1,4 +1,4 @@
-﻿-- Adventurer Tracking System - Database Migration
+-- Adventurer Tracking System - Database Migration
 -- Creates tables for tracking hero/adventurer stats and attributes
 
 -- Adventurers table - stores hero stats and metadata

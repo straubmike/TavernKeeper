@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dungeon Generator
  * 
  * Generates Level 7.5: Dungeons

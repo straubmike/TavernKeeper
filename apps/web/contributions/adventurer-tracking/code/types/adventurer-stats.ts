@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Adventurer Tracking System - Type Definitions
  * 
  * These types define the structure for tracking hero/adventurer stats and attributes.
@@ -17,20 +17,26 @@ export interface AdventurerStats {
   maxMana: number;          // Maximum mana
   
   // Primary attributes
-  strength: number;          // STR - melee attacks (1d20 + STR + mods > target AC)
-  dexterity: number;        // DEX - ranged/finesse weapons (1d20 + DEX + mods > AC)
-  wisdom: number;           // WIS - mage spell attacks (1d20 + WIS + mods > AC), detect/dispel magic traps
+  strength: number;          // STR - melee attacks (1d20 + STR modifier + proficiency + equipment > target AC)
+  dexterity: number;        // DEX - ranged/finesse weapons (1d20 + DEX modifier + proficiency + equipment > AC)
+  wisdom: number;           // WIS - mage spell attacks (1d20 + WIS modifier + proficiency + equipment > AC), detect/dispel magic traps
   intelligence: number;     // INT - solve puzzle traps
   constitution: number;     // CON - affects max HP and damage resistance
   charisma: number;         // CHA - social interactions, party coordination
   
   // Secondary attributes
-  perception: number;       // Ability to spot traps
+  perception: number;       // Ability to spot traps (legacy - now calculated from Wisdom + proficiency)
   armorClass: number;       // AC - base armor class (modified by equipment)
   
-  // Calculated combat bonuses
-  attackBonus: number;      // Base attack bonus (modified by equipment)
-  spellAttackBonus: number; // Spell attack bonus (for mages/clerics)
+  // Proficiency system (D&D 5e)
+  proficiencyBonus: number; // Proficiency bonus based on level (+2 to +6)
+  skillProficiencies: {
+    perception: boolean;     // Whether proficient in Perception skill
+  };
+  
+  // Calculated combat bonuses (equipment bonuses, separate from proficiency)
+  attackBonus: number;      // Equipment attack bonus (modified by equipment, separate from proficiency)
+  spellAttackBonus: number; // Equipment spell attack bonus (for mages/clerics, separate from proficiency)
 }
 
 /**
@@ -78,8 +84,8 @@ export function calculateLevelFromXP(totalXP: number): number {
 
 /**
  * Calculate HP from Constitution and level (D&D 5e)
- * HP = (Hit Die + CON modifier) + (Hit Die + CON modifier) ├ù (level - 1)
- * Or simplified: HP = level ├ù (Hit Die Average + CON modifier)
+ * HP = (Hit Die + CON modifier) + (Hit Die + CON modifier) × (level - 1)
+ * Or simplified: HP = level × (Hit Die Average + CON modifier)
  */
 export function calculateMaxHP(
   constitution: number,
@@ -117,6 +123,23 @@ export function calculateHPGainOnLevelUp(
 }
 
 /**
+ * Calculate proficiency bonus from level (D&D 5e)
+ * Formula: 2 + floor((level - 1) / 4)
+ * Returns: +2 (levels 1-4), +3 (5-8), +4 (9-12), +5 (13-16), +6 (17-20)
+ */
+export function calculateProficiencyBonus(level: number): number {
+  return 2 + Math.floor((level - 1) / 4);
+}
+
+/**
+ * Calculate ability modifier from ability score (D&D 5e)
+ * Formula: floor((score - 10) / 2)
+ */
+export function calculateAbilityModifier(score: number): number {
+  return Math.floor((score - 10) / 2);
+}
+
+/**
  * Hero identifier - links to on-chain NFT
  */
 export interface HeroIdentifier {
@@ -127,6 +150,14 @@ export interface HeroIdentifier {
 
 /**
  * Complete adventurer record
+ * 
+ * CRITICAL NOTE: When creating an AdventurerRecord for a newly minted hero,
+ * you MUST also initialize the hero with a base weapon via the inventory-tracking
+ * service. See apps/web/contributions/adventurer-tracking/README.md section
+ * "CRITICAL: Initial Weapon Setup for Minted Heroes" for details.
+ * 
+ * Without an equipped weapon, heroes will use unarmed strikes (1 damage) in combat,
+ * making progression impossible.
  */
 export interface AdventurerRecord {
   // On-chain identifier

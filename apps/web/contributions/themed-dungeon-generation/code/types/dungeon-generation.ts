@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Themed Dungeon Generation Types
  * 
  * Defines the structure for generating themed dungeons with pre-generated
@@ -242,3 +242,4 @@ export interface GeneratedRoom {
   room: DungeonRoom;
   encounter?: RoomEncounter;
 }
+

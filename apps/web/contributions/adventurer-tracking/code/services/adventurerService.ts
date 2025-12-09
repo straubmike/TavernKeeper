@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Adventurer Tracking Service
  * 
  * Service for managing hero/adventurer stats and attributes.
@@ -17,7 +17,12 @@ import type {
   AdventurerQueryFilters,
   HeroClass,
 } from '../types/adventurer-stats';
-import { XP_PER_LEVEL, calculateLevelFromXP } from '../types/adventurer-stats';
+import { 
+  XP_PER_LEVEL, 
+  calculateLevelFromXP,
+  calculateProficiencyBonus,
+  calculateAbilityModifier,
+} from '../types/adventurer-stats';
 
 /**
  * Get adventurer record by hero identifier
@@ -112,6 +117,12 @@ export async function updateAdventurerStats(update: StatUpdate): Promise<Adventu
     ...adventurer.stats,
     ...update.updates,
   };
+  
+  // Recalculate proficiency bonus if level changed
+  if (update.updates.proficiencyBonus === undefined && update.reason === 'level_up') {
+    const newLevel = adventurer.level ? adventurer.level + 1 : 1;
+    updatedStats.proficiencyBonus = calculateProficiencyBonus(newLevel);
+  }
 
   // Ensure health/mana don't exceed max
   if (updatedStats.health > updatedStats.maxHealth) {
@@ -212,8 +223,12 @@ export function calculateTrapInteraction(
   trapType: TrapType,
   difficultyClass: number
 ): TrapInteractionResult {
-  // Perception check to detect trap
-  const perceptionRoll = rollD20() + adventurer.stats.perception;
+  // Perception check to detect trap (D&D 5e formula: d20 + Wisdom Modifier + Proficiency if proficient)
+  const wisdomModifier = calculateAbilityModifier(adventurer.stats.wisdom);
+  const proficiencyBonus = adventurer.stats.skillProficiencies?.perception 
+    ? adventurer.stats.proficiencyBonus 
+    : 0;
+  const perceptionRoll = rollD20() + wisdomModifier + proficiencyBonus;
   const detected = perceptionRoll >= difficultyClass;
 
   if (!detected) {
@@ -235,30 +250,30 @@ export function calculateTrapInteraction(
   switch (trapType) {
     case 'physical':
       // Physical traps: strength for forcing doors/levers, dexterity for tripwires
-      // Default to dexterity for most physical traps
+      // Default to dexterity for most physical traps (D&D: d20 + DEX modifier + proficiency)
       statUsed = 'dexterity';
-      statValue = adventurer.stats.dexterity;
-      roll = rollD20() + statValue;
+      const dexModifier = calculateAbilityModifier(adventurer.stats.dexterity);
+      roll = rollD20() + dexModifier + adventurer.stats.proficiencyBonus; // All heroes proficient with weapons/tools
       break;
 
     case 'magical':
-      // Magical traps: wisdom to detect and dispel
+      // Magical traps: wisdom to detect and dispel (D&D: d20 + WIS modifier + proficiency)
       statUsed = 'wisdom';
-      statValue = adventurer.stats.wisdom;
-      roll = rollD20() + statValue;
+      const wisModifier = calculateAbilityModifier(adventurer.stats.wisdom);
+      roll = rollD20() + wisModifier + adventurer.stats.proficiencyBonus;
       break;
 
     case 'puzzle':
-      // Puzzle traps: intelligence to solve
+      // Puzzle traps: intelligence to solve (D&D: d20 + INT modifier + proficiency)
       statUsed = 'intelligence';
-      statValue = adventurer.stats.intelligence;
-      roll = rollD20() + statValue;
+      const intModifier = calculateAbilityModifier(adventurer.stats.intelligence);
+      roll = rollD20() + intModifier + adventurer.stats.proficiencyBonus;
       break;
 
     default:
       statUsed = 'dexterity';
-      statValue = adventurer.stats.dexterity;
-      roll = rollD20() + statValue;
+      const defaultDexModifier = calculateAbilityModifier(adventurer.stats.dexterity);
+      roll = rollD20() + defaultDexModifier + adventurer.stats.proficiencyBonus;
   }
 
   const success = roll >= difficultyClass;
@@ -274,7 +289,7 @@ export function calculateTrapInteraction(
 }
 
 /**
- * Calculate melee attack roll
+ * Calculate melee attack roll (D&D 5e: d20 + STR modifier + proficiency + equipment)
  */
 export function calculateMeleeAttack(
   adventurer: AdventurerRecord,
@@ -282,14 +297,16 @@ export function calculateMeleeAttack(
   modifiers: number = 0
 ): { hit: boolean; roll: number; total: number } {
   const roll = rollD20();
-  const total = roll + adventurer.stats.strength + adventurer.stats.attackBonus + modifiers;
+  const strModifier = calculateAbilityModifier(adventurer.stats.strength);
+  const proficiencyBonus = adventurer.stats.proficiencyBonus; // All heroes proficient with weapons
+  const total = roll + strModifier + proficiencyBonus + adventurer.stats.attackBonus + modifiers;
   const hit = total > targetAC;
 
   return { hit, roll, total };
 }
 
 /**
- * Calculate ranged/finesse attack roll
+ * Calculate ranged/finesse attack roll (D&D 5e: d20 + DEX modifier + proficiency + equipment)
  */
 export function calculateRangedAttack(
   adventurer: AdventurerRecord,
@@ -297,14 +314,16 @@ export function calculateRangedAttack(
   modifiers: number = 0
 ): { hit: boolean; roll: number; total: number } {
   const roll = rollD20();
-  const total = roll + adventurer.stats.dexterity + adventurer.stats.attackBonus + modifiers;
+  const dexModifier = calculateAbilityModifier(adventurer.stats.dexterity);
+  const proficiencyBonus = adventurer.stats.proficiencyBonus; // All heroes proficient with weapons
+  const total = roll + dexModifier + proficiencyBonus + adventurer.stats.attackBonus + modifiers;
   const hit = total > targetAC;
 
   return { hit, roll, total };
 }
 
 /**
- * Calculate spell attack roll (for mages)
+ * Calculate spell attack roll (D&D 5e: d20 + WIS modifier + proficiency + equipment)
  */
 export function calculateSpellAttack(
   adventurer: AdventurerRecord,
@@ -312,7 +331,9 @@ export function calculateSpellAttack(
   modifiers: number = 0
 ): { hit: boolean; roll: number; total: number } {
   const roll = rollD20();
-  const total = roll + adventurer.stats.wisdom + adventurer.stats.spellAttackBonus + modifiers;
+  const wisModifier = calculateAbilityModifier(adventurer.stats.wisdom);
+  const proficiencyBonus = adventurer.stats.proficiencyBonus; // All spellcasters proficient with spells
+  const total = roll + wisModifier + proficiencyBonus + adventurer.stats.spellAttackBonus + modifiers;
   const hit = total > targetAC;
 
   return { hit, roll, total };
@@ -370,6 +391,10 @@ function mapDbToAdventurer(dbRecord: any): AdventurerRecord {
       charisma: dbRecord.charisma,
       perception: dbRecord.perception,
       armorClass: dbRecord.armor_class,
+      proficiencyBonus: dbRecord.proficiency_bonus ?? calculateProficiencyBonus(dbRecord.level ?? 1),
+      skillProficiencies: {
+        perception: dbRecord.perception_proficient ?? false,
+      },
       attackBonus: dbRecord.attack_bonus,
       spellAttackBonus: dbRecord.spell_attack_bonus,
     },
@@ -381,6 +406,10 @@ function mapDbToAdventurer(dbRecord: any): AdventurerRecord {
 }
 
 function mapAdventurerToDb(adventurer: AdventurerRecord): any {
+  // Recalculate proficiency bonus if level changed
+  const level = adventurer.level ?? 1;
+  const proficiencyBonus = calculateProficiencyBonus(level);
+  
   return {
     token_id: adventurer.heroId.tokenId,
     contract_address: adventurer.heroId.contractAddress,
@@ -388,7 +417,7 @@ function mapAdventurerToDb(adventurer: AdventurerRecord): any {
     wallet_address: adventurer.walletAddress.toLowerCase(),
     name: adventurer.name,
     class: adventurer.class,
-    level: adventurer.level ?? 1,
+    level: level,
     experience: adventurer.experience ?? 0,
     health: adventurer.stats.health,
     max_health: adventurer.stats.maxHealth,
@@ -402,6 +431,8 @@ function mapAdventurerToDb(adventurer: AdventurerRecord): any {
     charisma: adventurer.stats.charisma,
     perception: adventurer.stats.perception,
     armor_class: adventurer.stats.armorClass,
+    proficiency_bonus: proficiencyBonus,
+    perception_proficient: adventurer.stats.skillProficiencies?.perception ?? false,
     attack_bonus: adventurer.stats.attackBonus,
     spell_attack_bonus: adventurer.stats.spellAttackBonus,
     last_combat_at: adventurer.lastCombatAt?.toISOString(),
@@ -440,6 +471,8 @@ async function recordStatHistory(
     charisma: newStats.charisma,
     perception: newStats.perception,
     armor_class: newStats.armorClass,
+    proficiency_bonus: newStats.proficiencyBonus,
+    perception_proficient: newStats.skillProficiencies?.perception ?? false,
     attack_bonus: newStats.attackBonus,
     spell_attack_bonus: newStats.spellAttackBonus,
     reason: update.reason,
@@ -460,7 +493,7 @@ function shouldRecordHistory(update: StatUpdate): boolean {
 
 /**
  * Calculate max HP from Constitution and level (D&D 5e)
- * HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) ├ù (level - 1)
+ * HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) × (level - 1)
  */
 export function calculateMaxHPFromConstitution(
   constitution: number,

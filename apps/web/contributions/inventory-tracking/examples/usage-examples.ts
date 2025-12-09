@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Inventory Tracking System - Usage Examples
  * 
  * Examples showing how to integrate and use the inventory tracking system.

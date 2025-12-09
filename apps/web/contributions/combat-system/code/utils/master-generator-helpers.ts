@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Combat System - Master Generator Tool Helpers
  * 
  * Helper functions specifically designed for integration with the master-generator-tool.html.

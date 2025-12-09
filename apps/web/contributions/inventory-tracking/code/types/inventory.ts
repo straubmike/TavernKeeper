@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Inventory Tracking System - Type Definitions
  * 
  * These types define the structure for tracking player inventory.

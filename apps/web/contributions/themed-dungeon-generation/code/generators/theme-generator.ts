@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Theme Generator
  * 
  * Selects and manages dungeon themes, considering boss influences.
@@ -77,3 +77,4 @@ export class ThemeGenerator {
     return getThemeById(themeId);
   }
 }
+

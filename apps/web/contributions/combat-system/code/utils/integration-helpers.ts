@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Combat System - Integration Helpers
  * 
  * Helper functions for integrating combat system with test data and other systems.
