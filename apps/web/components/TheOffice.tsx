@@ -5,11 +5,13 @@ import React, { useEffect, useState } from 'react';
 import { createPublicClient, http, type Address } from 'viem';
 import { useAccount, useConnect, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { monad } from '../lib/chains';
+import { mcapService, type KeepMcapData } from '../lib/services/mcapService';
 import { getMonPrice } from '../lib/services/monPriceService';
 import { getOfficeManagerData, setOfficeManagerData } from '../lib/services/officeManagerCache';
 import { officePnlService, type OfficePnlData } from '../lib/services/officePnlService';
 import { OfficeState, tavernKeeperService } from '../lib/services/tavernKeeperService';
 import { CellarState, theCellarService } from '../lib/services/theCellarService';
+import { getPoolLiquidity } from '../lib/services/uniswapV4SwapService';
 import { useGameStore } from '../lib/stores/gameStore';
 import { GameView } from '../lib/types';
 import { checkIsInFarcasterMiniapp } from '../lib/utils/farcasterDetection';
@@ -79,6 +81,9 @@ export const TheOffice: React.FC<{
     const [enhancedPnl, setEnhancedPnl] = useState<OfficePnlData | null>(null);
     const [interpolatedState, setInterpolatedState] = useState<OfficeState>(state);
     const [refreshKey, setRefreshKey] = useState<number>(0);
+    const [poolMon, setPoolMon] = useState<bigint>(0n);
+    const [poolKeep, setPoolKeep] = useState<bigint>(0n);
+    const [mcapData, setMcapData] = useState<KeepMcapData | null>(null);
 
     // Set viewMode based on currentView
     useEffect(() => {
@@ -90,6 +95,44 @@ export const TheOffice: React.FC<{
             setViewMode(null);
         }
     }, [currentView]);
+
+    // Fetch pool liquidity and MCAP
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchPoolData = async () => {
+            // Delay initial fetch to let other components load first
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            if (cancelled) return;
+
+            try {
+                // Fetch pool liquidity
+                const poolLiquidity = await getPoolLiquidity();
+                if (poolLiquidity && !cancelled) {
+                    setPoolMon(poolLiquidity.mon);
+                    setPoolKeep(poolLiquidity.keep);
+                }
+
+                // Fetch MCAP data
+                const data = await mcapService.getKeepMcap();
+                if (data && !cancelled) {
+                    setMcapData(data);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('Error fetching pool data:', error);
+                }
+            }
+        };
+
+        fetchPoolData();
+        const interval = setInterval(fetchPoolData, 30000); // Poll every 30s
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, []);
 
     // Fetch Office State
     const fetchOfficeState = async (forceRefresh = false) => {
@@ -624,6 +667,9 @@ export const TheOffice: React.FC<{
             cellarState={cellarState}
             onClaim={handleClaim}
             refreshKey={refreshKey}
+            poolMon={poolMon}
+            poolKeep={poolKeep}
+            mcapData={mcapData}
         >
             {children}
         </TheOfficeView>

@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { formatEther } from 'viem';
+import { type KeepMcapData } from '../lib/services/mcapService';
 import { getMonPrice } from '../lib/services/monPriceService';
 import { getOfficeManagerData } from '../lib/services/officeManagerCache';
 import { type OfficePnlData } from '../lib/services/officePnlService';
@@ -34,6 +35,9 @@ interface TheOfficeViewProps {
     onClaim?: () => void;
     onViewSwitch?: (mode: 'office' | 'cellar' | 'staking' | 'posse' | 'regulars' | null) => void;
     refreshKey?: number; // Key to trigger refresh when changed
+    poolMon?: bigint;
+    poolKeep?: bigint;
+    mcapData?: KeepMcapData | null;
 }
 
 export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
@@ -55,6 +59,9 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
     onClaim,
     onViewSwitch,
     refreshKey,
+    poolMon = 0n,
+    poolKeep = 0n,
+    mcapData = null,
 }) => {
     const [mounted, setMounted] = React.useState(false);
     const [cellarState, setCellarState] = React.useState<CellarState | null>(propCellarState || null);
@@ -166,11 +173,22 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
 
     if (viewMode === 'cellar') {
         return (
-            <TheCellarView
-                onBackToOffice={() => onViewSwitch?.('office')}
-                monBalance={monBalance}
-                keepBalance={keepBalance}
-            />
+            <>
+                <TheCellarView
+                    monBalance={monBalance}
+                    keepBalance={keepBalance}
+                />
+                {/* Floating Back Button */}
+                {onViewSwitch && (
+                    <button
+                        onClick={() => onViewSwitch('office')}
+                        className="fixed bottom-20 left-4 z-50 w-12 h-12 bg-[#3e2b22] border-2 border-[#8c7b63] rounded-full flex items-center justify-center shadow-lg hover:bg-[#5c4033] transition-colors"
+                        title="Back to Office"
+                    >
+                        <span className="text-xl">←</span>
+                    </button>
+                )}
+            </>
         );
     }
 
@@ -336,6 +354,30 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                             <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-0.5 flex flex-col items-center justify-center">
                                 <div className="text-[5px] text-[#86efac] uppercase tracking-widest mb-0.5">PNL</div>
                                 <div className={`font-bold text-[9px] ${isCellarProfitable ? 'text-green-400' : 'text-red-400'}`}>{cellarPnL}</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Row 3: Pool Stats - Hidden when minimized */}
+                    {!isHeaderMinimized && (
+                        <div className="grid grid-cols-3 gap-0.5 mt-0.5">
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-0.5 flex flex-col items-center justify-center">
+                                <div className="text-[5px] text-[#a8a29e] uppercase tracking-widest mb-0.5">Pool MON</div>
+                                <div className="text-yellow-400 font-bold text-[9px] font-mono">
+                                    {parseFloat(formatEther(poolMon)).toFixed(4)}
+                                </div>
+                            </div>
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-0.5 flex flex-col items-center justify-center">
+                                <div className="text-[5px] text-[#a8a29e] uppercase tracking-widest mb-0.5">Pool KEEP</div>
+                                <div className="text-orange-400 font-bold text-[9px] font-mono">
+                                    {parseFloat(formatEther(poolKeep)).toFixed(2)}
+                                </div>
+                            </div>
+                            <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-0.5 flex flex-col items-center justify-center">
+                                <div className="text-[5px] text-[#a8a29e] uppercase tracking-widest mb-0.5">MCAP</div>
+                                <div className="text-green-400 font-bold text-[9px] font-mono">
+                                    {mcapData?.mcapUsd ? `$${parseFloat(mcapData.mcapUsd).toFixed(2)}` : '...'}
+                                </div>
                             </div>
                         </div>
                     )}

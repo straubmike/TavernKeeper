@@ -693,15 +693,6 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                         We're working on fixing an arithmetic overflow error in the liquidity addition function.
                         The Cellar will be re-enabled once the fix is deployed.
                     </div>
-                    {onBackToOffice && (
-                        <PixelButton
-                            onClick={onBackToOffice}
-                            variant="neutral"
-                            className="mt-4 w-full"
-                        >
-                            Back to Office
-                        </PixelButton>
-                    )}
                 </PixelBox>
             </div>
         );
@@ -860,18 +851,6 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
                 </div>
 
-                {/* Sticky Bottom Navigation */}
-                {onBackToOffice && (
-                    <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black via-black to-transparent z-20">
-                        <PixelButton
-                            onClick={onBackToOffice}
-                            variant="wood"
-                            className="w-full h-12 text-sm font-bold uppercase tracking-widest shadow-lg"
-                        >
-                            ← BACK TO OFFICE
-                        </PixelButton>
-                    </div>
-                )}
 
                 {/* Confirmation Modal */}
                 {showConfirmModal && state && (
