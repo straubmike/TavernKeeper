@@ -10,6 +10,7 @@ export async function GET(
   const since = searchParams.get('since'); // ISO timestamp to get events after this time
 
   try {
+    console.log(`[Events API] Fetching events for run ${id}${since ? ` since ${since}` : ''}`);
     let query = supabase
       .from('world_events')
       .select('*')
@@ -24,8 +25,13 @@ export async function GET(
     const { data: events, error } = await query;
 
     if (error) {
-      console.error('Error fetching run events:', error);
+      console.error(`[Events API] Error fetching run events for ${id}:`, error);
       return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });
+    }
+
+    console.log(`[Events API] Found ${events?.length || 0} events for run ${id}`);
+    if (events && events.length > 0) {
+      console.log(`[Events API] Sample event:`, JSON.stringify(events[0], null, 2));
     }
 
     return NextResponse.json({ events: events || [] });

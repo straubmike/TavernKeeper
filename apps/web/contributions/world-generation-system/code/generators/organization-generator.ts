@@ -13,6 +13,7 @@ export class OrganizationGenerator {
     context: GenerationContext,
     density: 'sparse' | 'normal' | 'dense' = 'normal'
   ): Promise<Organization[]> {
+    console.log(`[OrganizationGenerator] Starting generation (density: ${density})...`);
     if (context.mortalRaces.length === 0) {
       throw new Error('Mortal races must be generated before organizations');
     }
@@ -20,6 +21,8 @@ export class OrganizationGenerator {
     if (context.geography.length === 0) {
       throw new Error('Geography must be generated before organizations');
     }
+    
+    console.log(`[OrganizationGenerator] Found ${context.mortalRaces.length} races and ${context.geography.length} geography entries`);
 
     const densityMap = {
       sparse: 0.5,
@@ -65,13 +68,19 @@ export class OrganizationGenerator {
         }
       }
       
-      // Fill remaining slots if needed
-      while (selectedTypes.length < orgCount) {
+      // Fill remaining slots if needed (with safety limit)
+      let fillAttempts = 0;
+      const maxFillAttempts = availableTypes.length * 10;
+      while (selectedTypes.length < orgCount && fillAttempts < maxFillAttempts) {
         const type = availableTypes[Math.floor(context.rng() * availableTypes.length)];
         if (!selectedTypes.includes(type)) {
           selectedTypes.push(type);
         }
+        fillAttempts++;
       }
+      
+      // If we still don't have enough unique types, just use what we have
+      // (This can happen if orgCount > availableTypes.length)
       
       // Generate organizations
       selectedTypes.forEach((orgType, typeIndex) => {
@@ -131,6 +140,7 @@ export class OrganizationGenerator {
       });
     });
 
+    console.log(`[OrganizationGenerator] Completed! Generated ${organizations.length} organizations.`);
     return organizations;
   }
   

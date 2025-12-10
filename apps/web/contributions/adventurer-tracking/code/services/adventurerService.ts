@@ -45,6 +45,11 @@ export async function getAdventurer(heroId: HeroIdentifier): Promise<AdventurerR
     throw error;
   }
 
+  // Handle case where data is null (no record found)
+  if (!data) {
+    return null;
+  }
+
   return mapDbToAdventurer(data);
 }
 

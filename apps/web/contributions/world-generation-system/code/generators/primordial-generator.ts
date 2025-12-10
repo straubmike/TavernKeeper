@@ -32,10 +32,13 @@ export class PrimordialGenerator {
     const primordials: PrimordialBeing[] = [];
 
     types.forEach((type, index) => {
+      // Use context RNG for deterministic generation (matching HTML tool behavior)
       const name = generateName(
         NameTemplates.primordial[type],
         context.seed,
-        index
+        index,
+        undefined, // No usedNames tracking for primordials
+        context.rng // Use the seeded RNG from context
       );
 
       const primordial: PrimordialBeing = {

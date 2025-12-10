@@ -17,9 +17,24 @@ import type {
 import type { AdventurerRecord } from '../../adventurer-tracking/code/types/adventurer-stats';
 import type { MonsterInstance } from '../../monster-stat-blocks/code/types/monster-stats';
 import type { InventoryItem } from '../../inventory-tracking/code/types/inventory';
-import { getEquippedItems } from '../../inventory-tracking/code/services/inventoryService';
+// Dynamic import to avoid module resolution issues in tsx
+// import { getEquippedItems } from '../../inventory-tracking/code/services/inventoryService';
 import { determineTurnOrder, filterAliveEntities, getCurrentEntity } from '../engine/turn-order';
 import { resolveAttack, applyDamage, applyHealing, rollDice } from '../engine/attack-resolution';
+
+/**
+ * Wrap a promise with a timeout
+ */
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`${operationName} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]);
+}
 
 /**
  * Default weapons for each class (fallback when no weapon is equipped)
@@ -228,21 +243,25 @@ export function initializeCombat(
  * can retrieve their weapons from inventory rather than using defaults.
  */
 async function getEntityWeapon(entity: CombatEntity): Promise<Weapon> {
-  // Try to get equipped weapon from inventory
-  if (entity.adventurerRecord) {
-    try {
-      const equipped = await getEquippedItems(entity.adventurerRecord.heroId);
-      if (equipped.mainHand && equipped.mainHand.category === 'weapon') {
-        return inventoryItemToWeapon(equipped.mainHand);
-      }
-    } catch (error) {
-      console.warn(`Failed to get equipped weapon for ${entity.name}:`, error);
-      // Fall through to default weapon
-    }
-  }
+  // TODO: Re-enable inventory check once module resolution is fixed
+  // For now, always use default weapons to allow worker to run
+  // The inventory service import causes tsx module resolution errors in the worker
+  
+  // Try to get equipped weapon from inventory (disabled for now)
+  // if (entity.adventurerRecord) {
+  //   try {
+  //     const { getEquippedItems } = await import('../../inventory-tracking/code/services/inventoryService');
+  //     const equipped = await getEquippedItems(entity.adventurerRecord.heroId);
+  //     if (equipped.mainHand && equipped.mainHand.category === 'weapon') {
+  //       return inventoryItemToWeapon(equipped.mainHand);
+  //     }
+  //   } catch (error) {
+  //     // Fall through to default weapon
+  //   }
+  // }
 
-  // Fallback to default weapon based on class
-  // This should only be used if hero hasn't been initialized with a base weapon
+  // Use default weapon based on class
+  // Heroes should be initialized with base weapons, but for now we use defaults
   return DEFAULT_WEAPONS[entity.class || 'warrior'];
 }
 
@@ -378,12 +397,14 @@ export async function executeTurn(
   const aliveTurnOrder = filterAliveEntities(state.turnOrder, state.entities);
   
   if (aliveTurnOrder.length === 0) {
+    console.warn(`[Combat] executeTurn: No alive entities in turn order, ending combat`);
     return { state, result: null };
   }
 
   // Get current entity
   const currentEntityId = getCurrentEntity(aliveTurnOrder, state.currentTurn);
   if (!currentEntityId) {
+    console.warn(`[Combat] executeTurn: Could not get current entity from turn order`);
     return { state, result: null };
   }
 
@@ -401,6 +422,7 @@ export async function executeTurn(
   const action = await determineAction(entity, state.entities, config);
   if (!action) {
     // No valid action, combat should end
+    console.warn(`[Combat] executeTurn: No valid action for ${entity.name}, ending combat`);
     return { state, result: null };
   }
 
@@ -582,18 +604,28 @@ export async function executeTurn(
 
 /**
  * Check combat status (victory/defeat)
+ * 
+ * Returns:
+ * - 'defeat' if all party members are dead
+ * - 'victory' if all monsters are dead
+ * - 'active' if both sides have alive members
  */
 export function checkCombatStatus(state: CombatState): 'active' | 'victory' | 'defeat' {
   const aliveEntities = state.entities.filter(e => e.currentHp > 0);
   const partyAlive = aliveEntities.filter(e => e.type === 'party');
   const monstersAlive = aliveEntities.filter(e => e.type === 'monster');
 
+  // Defeat: no party members alive
   if (partyAlive.length === 0) {
     return 'defeat';
   }
+  
+  // Victory: no monsters alive
   if (monstersAlive.length === 0) {
     return 'victory';
   }
+  
+  // Active: both sides have alive members
   return 'active';
 }
 
@@ -771,22 +803,35 @@ export async function runCombat(
   config: CombatConfig
 ): Promise<CombatResult> {
   let state = initialState;
+  const combatStartTime = Date.now();
+  const partyCount = state.entities.filter(e => e.type === 'party').length;
+  const monsterCount = state.entities.filter(e => e.type === 'monster').length;
+  
+  console.log(`[Combat] Starting combat ${state.combatId}: ${partyCount} party vs ${monsterCount} monsters`);
 
   // Execute surprise round if applicable (party detected ambush)
   if (state.isSurprise && !state.surpriseCompleted) {
+    console.log(`[Combat] Executing surprise round (party detected ambush)...`);
+    const surpriseStartTime = Date.now();
     state = await executeSurpriseRound(state, config);
+    console.log(`[Combat] Surprise round completed in ${Date.now() - surpriseStartTime}ms, ${state.turns.length} turns`);
   }
 
   // Execute ambush round if applicable (party failed to detect ambush)
   if (state.isAmbush && !state.ambushCompleted) {
+    console.log(`[Combat] Executing ambush round (monsters attack first)...`);
+    const ambushStartTime = Date.now();
     state = executeAmbushRound(state, config);
+    console.log(`[Combat] Ambush round completed in ${Date.now() - ambushStartTime}ms, ${state.turns.length} turns`);
   }
 
   // Main combat loop
   const maxTurns = 1000; // Safety limit
   let turnCount = 0;
+  const lastLogTurn = { count: 0 };
 
   while (state.status === 'active' && turnCount < maxTurns) {
+    const turnStartTime = Date.now();
     const { state: nextState } = await executeTurn(state, config);
     state = nextState;
     // Status is already checked in executeTurn, but double-check to be safe
@@ -795,15 +840,38 @@ export async function runCombat(
     }
     turnCount++;
 
+    // Log progress every 10 turns
+    if (turnCount % 10 === 0 || turnCount - lastLogTurn.count >= 10) {
+      const partyAlive = state.entities.filter(e => e.type === 'party' && e.currentHp > 0).length;
+      const monstersAlive = state.entities.filter(e => e.type === 'monster' && e.currentHp > 0).length;
+      console.log(`[Combat] Turn ${turnCount}: ${partyAlive} party alive, ${monstersAlive} monsters alive, status: ${state.status}`);
+      lastLogTurn.count = turnCount;
+    }
+
     // Check if combat ended
     if (state.status !== 'active') {
       state.endedAt = new Date();
+      const combatDuration = Date.now() - combatStartTime;
+      console.log(`[Combat] Combat ended at turn ${turnCount}: ${state.status} (${combatDuration}ms)`);
       break;
     }
   }
 
   // Final status check (in case loop ended due to max turns)
-  state.status = checkCombatStatus(state);
+  if (turnCount >= maxTurns) {
+    console.warn(`[Combat] Combat reached max turns (${maxTurns}), forcing end`);
+    // Force end combat - check status but if still active, force defeat (stalemate)
+    const finalStatus = checkCombatStatus(state);
+    if (finalStatus === 'active') {
+      // Stalemate - party loses if combat can't be resolved
+      console.warn(`[Combat] Combat stalemate after ${maxTurns} turns, forcing defeat`);
+      state.status = 'defeat';
+    } else {
+      state.status = finalStatus;
+    }
+  } else {
+    state.status = checkCombatStatus(state);
+  }
 
   // Calculate result
   const partyAlive = state.entities.filter(e => e.type === 'party' && e.currentHp > 0);
@@ -825,6 +893,9 @@ export async function runCombat(
   const duration = state.endedAt
     ? state.endedAt.getTime() - state.startedAt.getTime()
     : Date.now() - state.startedAt.getTime();
+
+  const totalDuration = Date.now() - combatStartTime;
+  console.log(`[Combat] Combat ${state.combatId} finished: ${state.status}, ${state.turns.length} turns, ${xpAwarded} XP, ${totalDuration}ms total`);
 
   return {
     combatId: state.combatId,

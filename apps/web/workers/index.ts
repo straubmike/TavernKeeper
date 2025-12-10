@@ -7,30 +7,51 @@ import path from 'path';
 // 2. Try default .env in current dir (apps/web) - in case they have one there
 dotenv.config();
 
-// 3. Try root .env (../../.env) - This is the PRIMARY source as per user
-const rootEnvPath = path.resolve(process.cwd(), '../../.env');
-const result = dotenv.config({ path: rootEnvPath });
+// 3. Try root .env - multiple possible locations
+const possibleEnvPaths = [
+  path.resolve(process.cwd(), '../../.env'), // From apps/web/workers -> root
+  path.resolve(process.cwd(), '../.env'),   // From apps/web -> root
+  path.resolve(process.cwd(), '.env'),       // Current directory
+];
 
-if (result.error) {
-  console.warn('Warning: Could not load root .env file from:', rootEnvPath);
-} else {
-  console.log('Loaded root .env file from:', rootEnvPath);
+let envLoaded = false;
+for (const envPath of possibleEnvPaths) {
+  const result = dotenv.config({ path: envPath, override: false });
+  if (!result.error) {
+    console.log(`✅ Loaded .env file from: ${envPath}`);
+    envLoaded = true;
+    break;
+  }
+}
+
+if (!envLoaded) {
+  console.warn('⚠️  Warning: Could not load .env file from any of these locations:');
+  possibleEnvPaths.forEach(p => console.warn(`   - ${p}`));
 }
 
 console.log('Worker Environment Loaded. REDIS_URL present:', !!process.env.REDIS_URL);
+if (process.env.REDIS_URL) {
+  console.log('REDIS_URL:', process.env.REDIS_URL.replace(/:[^:@]+@/, ':****@'));
+}
 
 async function start() {
   // Initialize world on startup if not already initialized
+  console.log('🌍 Checking world initialization status...');
   try {
     const { initializeWorldOnStartup } = await import('../lib/services/worldInitializationService');
     await initializeWorldOnStartup();
+    console.log('✅ World initialization check complete');
   } catch (error) {
-    console.error('World initialization error (non-fatal):', error);
+    console.error('❌ World initialization error (non-fatal, workers will continue):', error);
+    console.error('   You can manually initialize via: POST /api/world/initialize');
   }
 
   // Use dynamic imports to ensure env vars are loaded BEFORE modules initialize
+  console.log('📦 Loading workers...');
   await import('./runWorker');
+  console.log('✅ Run worker loaded');
   await import('./replayWorker');
+  console.log('✅ Replay worker loaded');
 
   // Start auto-harvest worker if enabled
   if (process.env.ENABLE_AUTO_HARVEST === 'true') {

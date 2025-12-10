@@ -17,7 +17,7 @@ const WORLD_SEED = process.env.WORLD_SEED || 'innkeeper-world-v1';
  */
 export async function isWorldInitialized(): Promise<boolean> {
   try {
-    // Check if we have world content entries
+    // PRIMARY check: Must have world_content entry with type='world'
     const { data: worldContent, error: worldError } = await supabase
       .from('world_content')
       .select('id')
@@ -29,22 +29,26 @@ export async function isWorldInitialized(): Promise<boolean> {
       return false;
     }
 
+    // World is only initialized if we have a world_content entry
+    // Having dungeons alone is not enough - we need the world entry
     if (worldContent && worldContent.length > 0) {
       return true;
     }
 
-    // Also check if we have dungeons
+    // If no world_content entry, check if we have multiple dungeons (indicating full initialization)
+    // Single dungeon might be old/test data
     const { data: dungeons, error: dungeonError } = await supabase
       .from('dungeons')
       .select('id')
-      .limit(1);
+      .limit(10);
 
     if (dungeonError && dungeonError.code !== 'PGRST116') {
       console.error('Error checking dungeons:', dungeonError);
       return false;
     }
 
-    return (dungeons && dungeons.length > 0) || false;
+    // Require at least 3 dungeons to consider initialized (single dungeon is likely old data)
+    return (dungeons && dungeons.length >= 3) || false;
   } catch (error) {
     console.error('Error checking world initialization:', error);
     return false;
@@ -66,20 +70,49 @@ export async function initializeWorld(): Promise<void> {
 
   try {
     // Step 1: Generate world using WorldGenerator
+    // NOTE: The world generator now handles dependency order correctly
+    // (Mortal races are generated before conceptual beings)
     console.log('📦 Generating world content...');
     const worldGenerator = new WorldGenerator();
-    const generatedWorld = await worldGenerator.generateWorld({
+    
+    // Generate with progress logging and timeout protection
+    const startTime = Date.now();
+    console.log('   Starting world generation with seed:', WORLD_SEED);
+    
+    // Add timeout wrapper (5 minutes max - should be plenty for world generation)
+    const generationPromise = worldGenerator.generateWorld({
       seed: WORLD_SEED,
       includeLevels: [1, 2, 2.5, 3, 4, 5, 6, 6.5, 7.5], // All levels including dungeons
       depth: 'full',
+      organizationDensity: 'normal', // Match the HTML tool's default 'normal' density
     });
+    
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('World generation timed out after 5 minutes')), 5 * 60 * 1000);
+    });
+    
+    const generatedWorld = await Promise.race([generationPromise, timeoutPromise]) as Awaited<typeof generationPromise>;
+    const generationTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    console.log(`✅ Generated world with ${generatedWorld.dungeons.length} dungeons`);
+    console.log(`✅ Generated world in ${generationTime}s`);
+    console.log(`   - ${generatedWorld.primordials.length} primordials`);
+    console.log(`   - ${generatedWorld.cosmicCreators.length} cosmic creators`);
+    console.log(`   - ${generatedWorld.geography.length} geography entries`);
+    console.log(`   - ${generatedWorld.mortalRaces.length} mortal races`);
+    console.log(`   - ${generatedWorld.conceptualBeings.length} conceptual beings`);
+    console.log(`   - ${generatedWorld.demiGods.length} demi-gods`);
+    console.log(`   - ${generatedWorld.organizations.length} organizations`);
+    console.log(`   - ${generatedWorld.standoutMortals.length} standout mortals`);
+    console.log(`   - ${generatedWorld.dungeons.length} dungeons (from world generator)`);
+    
+    // Warn if dungeon count seems low (HTML tool typically generates 20+)
+    if (generatedWorld.dungeons.length < 5) {
+      console.warn(`   ⚠️  Low dungeon count (${generatedWorld.dungeons.length}). Expected 20+ with normal density.`);
+      console.warn(`      This might indicate incomplete generation or filtering issues.`);
+    }
 
     // Step 2: Store world content in database
-    // For now, we'll store the world content structure
-    // The world-content-hierarchy system will handle detailed storage
-    // We'll create a root world entry
+    console.log('💾 Storing world content in database...');
     const worldContentId = `world-${WORLD_SEED}`;
     const { error: worldContentError } = await supabase
       .from('world_content')
@@ -108,14 +141,18 @@ export async function initializeWorld(): Promise<void> {
       });
 
     if (worldContentError) {
-      console.error('Error storing world content:', worldContentError);
+      console.error('❌ Error storing world content:', worldContentError);
       throw worldContentError;
     }
+    console.log('✅ World content stored');
 
     // Step 3: Generate themed dungeons from world dungeons
-    console.log('🏰 Generating themed dungeons...');
+    console.log(`🏰 Generating ${generatedWorld.dungeons.length} themed dungeons...`);
     const themedDungeonGenerator = new ThemedDungeonGenerator();
+    let dungeonIndex = 0;
     const dungeonPromises = generatedWorld.dungeons.map(async (worldDungeon) => {
+      dungeonIndex++;
+      console.log(`   [${dungeonIndex}/${generatedWorld.dungeons.length}] Generating dungeon: ${worldDungeon.name || worldDungeon.id}...`);
       // Create world context for dungeon generation
       const worldContext: DungeonWorldContext = {
         locationId: worldDungeon.locationId,
@@ -192,10 +229,11 @@ export async function initializeWorld(): Promise<void> {
         });
 
       if (dungeonError) {
-        console.error(`Error storing dungeon ${dungeonSeed}:`, dungeonError);
+        console.error(`❌ Error storing dungeon ${dungeonSeed}:`, dungeonError);
         throw dungeonError;
       }
 
+      console.log(`   ✅ Stored dungeon: ${themedDungeon.name}`);
       return themedDungeon;
     });
 
@@ -212,12 +250,27 @@ export async function initializeWorld(): Promise<void> {
 /**
  * Initialize world on startup if not already initialized
  * This should be called from workers/index.ts
+ * 
+ * This is a non-fatal initialization - if it fails, workers will still start
+ * and world can be initialized manually via the API endpoint.
  */
 export async function initializeWorldOnStartup(): Promise<void> {
+  console.log('[WORKER] Checking if world needs initialization...');
   try {
+    // Check first to avoid unnecessary work
+    const initialized = await isWorldInitialized();
+    if (initialized) {
+      console.log('[WORKER] ✅ World already initialized, skipping generation');
+      return;
+    }
+
+    console.log('[WORKER] World not initialized, starting generation...');
     await initializeWorld();
+    console.log('[WORKER] ✅ World initialization completed successfully');
   } catch (error) {
-    console.error('Failed to initialize world on startup:', error);
+    console.error('[WORKER] ❌ Failed to initialize world on startup:', error);
+    console.error('[WORKER]    This is non-fatal - workers will continue running');
+    console.error('[WORKER]    You can manually initialize via: POST /api/world/initialize');
     // Don't throw - allow workers to start even if world init fails
     // World can be initialized manually via API endpoint
   }

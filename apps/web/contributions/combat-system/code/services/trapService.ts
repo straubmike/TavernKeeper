@@ -14,12 +14,19 @@ import type {
   TrapDamage,
   TrapCheckType,
 } from '../types/trap';
-import type { AdventurerRecord } from '../../adventurer-tracking/code/types/adventurer-stats';
-import type { RoomEncounter } from '../../themed-dungeon-generation/code/types/dungeon-generation';
-import {
-  calculateAbilityModifier,
-  calculateProficiencyBonus,
-} from '../../adventurer-tracking/code/types/adventurer-stats';
+// Type-only import - using correct relative path (from combat-system/code/services to contributions root)
+import type { AdventurerRecord } from '../../../adventurer-tracking/code/types/adventurer-stats';
+import type { RoomEncounter } from '../../../themed-dungeon-generation/code/types/dungeon-generation';
+
+// Inline utility functions to avoid module resolution issues in tsx worker
+function calculateAbilityModifier(score: number): number {
+  return Math.floor((score - 10) / 2);
+}
+
+function calculateProficiencyBonus(level: number): number {
+  // D&D 5e proficiency bonus formula: 2 + floor((level - 1) / 4)
+  return 2 + Math.floor((level - 1) / 4);
+}
 
 /**
  * Roll a d20

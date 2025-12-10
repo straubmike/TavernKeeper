@@ -34,16 +34,39 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/world/initialize
- * Check if world is initialized
+ * Check if world is initialized with detailed status
  */
 export async function GET(request: NextRequest) {
   try {
     const initialized = await isWorldInitialized();
-    return NextResponse.json({ initialized }, { status: 200 });
+    
+    // Get detailed counts
+    const { supabase } = await import('@/lib/supabase');
+    
+    const [worldContentResult, dungeonsResult] = await Promise.all([
+      supabase.from('world_content').select('id', { count: 'exact' }).eq('type', 'world'),
+      supabase.from('dungeons').select('id', { count: 'exact' }),
+    ]);
+
+    const worldCount = worldContentResult.data?.length || 0;
+    const dungeonCount = dungeonsResult.data?.length || 0;
+
+    return NextResponse.json({ 
+      initialized,
+      details: {
+        worldEntries: worldCount,
+        dungeons: dungeonCount,
+        hasWorld: worldCount > 0,
+        hasDungeons: dungeonCount > 0,
+      }
+    }, { status: 200 });
   } catch (error) {
     console.error('Error checking world initialization:', error);
     return NextResponse.json(
-      { error: 'Failed to check world initialization' },
+      { 
+        error: 'Failed to check world initialization',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

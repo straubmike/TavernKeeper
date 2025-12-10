@@ -24,7 +24,7 @@ import {
   getMonstersByTheme as getMonsterEntriesByTheme,
   getRegularMonsters,
   type MonsterRegistryEntry,
-} from '../../monster-stat-blocks/code/data/monster-registry';
+} from '../../../monster-stat-blocks/code/data/monster-registry';
 import type { ChallengeRating } from '../../monster-stat-blocks/code/types/monster-stats';
 
 /**

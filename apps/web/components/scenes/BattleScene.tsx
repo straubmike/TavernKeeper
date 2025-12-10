@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useRunEvents } from '../../lib/hooks/useRunEvents';
 import { useRunStatus } from '../../lib/hooks/useRunStatus';
-import { getEntityName, parseCombatEvent } from '../../lib/services/eventParser';
 import { useGameStore } from '../../lib/stores/gameStore';
 import { GameView } from '../../lib/types';
 import { PixelBox, PixelButton } from '../PixelComponents';
@@ -11,91 +10,225 @@ interface BattleSceneProps {
     onComplete: (success: boolean) => void;
 }
 
-interface EntityState {
+interface DungeonEvent {
     id: string;
-    name: string;
-    hp: number;
-    maxHp: number;
-    isPlayer: boolean;
+    type: string;
+    level: number;
+    roomType: string;
+    description: string;
+    timestamp: string;
+    combatTurns?: any[]; // Combat turn details if available
+}
+
+interface LevelProgress {
+    level: number;
+    events: DungeonEvent[];
+    status: 'pending' | 'in_progress' | 'completed';
+    roomType?: string;
+}
+
+interface CombatTurn {
+    turnNumber: number;
+    entityName: string;
+    targetName?: string;
+    actionType?: string;
+    result?: any;
 }
 
 export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
     const { currentRunId, selectedPartyTokenIds, switchView } = useGameStore();
-    const { combatEvents, events } = useRunEvents(currentRunId);
+    const { events, loading: eventsLoading } = useRunEvents(currentRunId);
     const { status: runStatus } = useRunStatus(currentRunId);
+    const [dungeonInfo, setDungeonInfo] = useState<{ name: string; depth: number; theme?: string } | null>(null);
+    const [totalXP, setTotalXP] = useState(0);
+    const [revealedEventCount, setRevealedEventCount] = useState(0);
+    const hasInitializedRef = useRef(false);
+    const revealIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    const [battleLog, setBattleLog] = useState<string[]>(['Battle begins!']);
-    const [shake, setShake] = useState(false);
-    const [flash, setFlash] = useState(false);
-    const [entityStates, setEntityStates] = useState<Map<string, EntityState>>(new Map());
-    const [processedEventIds, setProcessedEventIds] = useState<Set<string>>(new Set());
-
-    // Initialize entity states from party token IDs
-    useEffect(() => {
-        if (selectedPartyTokenIds.length > 0) {
-            const newStates = new Map<string, EntityState>();
-            selectedPartyTokenIds.forEach(tokenId => {
-                newStates.set(tokenId, {
-                    id: tokenId,
-                    name: `Hero #${tokenId}`,
-                    hp: 100, // Will be updated from events
-                    maxHp: 100,
-                    isPlayer: true,
-                });
-            });
-            setEntityStates(newStates);
-        }
-    }, [selectedPartyTokenIds]);
-
-    // Process new combat events
-    useEffect(() => {
-        combatEvents.forEach(event => {
-            if (processedEventIds.has(event.id)) return;
-
-            const parsed = parseCombatEvent(event);
-            if (!parsed) return;
-
-            setProcessedEventIds(prev => new Set([...prev, event.id]));
-            setBattleLog(prev => [parsed.message, ...prev.slice(0, 9)]);
-
-            // Update entity HP
-            if (parsed.damage && parsed.targetId) {
-                setEntityStates(prev => {
-                    const newStates = new Map(prev);
-                    const target = newStates.get(parsed.targetId!);
-                    if (target) {
-                        const newHp = Math.max(0, target.hp - parsed.damage!);
-                        newStates.set(parsed.targetId!, {
-                            ...target,
-                            hp: newHp,
-                        });
-                    } else {
-                        // New entity (enemy)
-                        newStates.set(parsed.targetId!, {
-                            id: parsed.targetId!,
-                            name: getEntityName(parsed.targetId!, selectedPartyTokenIds),
-                            hp: 100 - parsed.damage!,
-                            maxHp: 100,
-                            isPlayer: false,
-                        });
-                    }
-                    return newStates;
+    // Parse events from world_events (they're stored in the payload field)
+    const dungeonEvents = useMemo(() => {
+        console.log(`[BattleScene] Processing ${events.length} raw events`);
+        const parsed: DungeonEvent[] = [];
+        events.forEach((event, idx) => {
+            // Events from world_events table have a payload field
+            const eventData = event.payload || {};
+            
+            // Debug: log first few events to see structure
+            if (idx < 3) {
+                console.log(`[BattleScene] Event ${idx}:`, {
+                    id: event.id,
+                    type: event.type,
+                    payload: eventData,
+                    hasLevel: eventData.level !== undefined,
                 });
             }
-
-            // Visual effects
-            if (parsed.type === 'attack' && parsed.hit) {
-                setShake(true);
-                if (parsed.damage && parsed.damage > 0) {
-                    setFlash(true);
+            
+            // Check if this is a dungeon event (has level property)
+            if (eventData.level !== undefined) {
+                parsed.push({
+                    id: event.id,
+                    type: eventData.type || event.type,
+                    level: eventData.level,
+                    roomType: eventData.roomType || 'unknown',
+                    description: eventData.description || eventData.text || `Event: ${event.type}`,
+                    timestamp: event.timestamp,
+                    combatTurns: eventData.combatTurns || eventData.turns || null,
+                });
+            } else {
+                // Log events that don't have level for debugging
+                if (event.type && (event.type.includes('combat') || event.type.includes('trap') || event.type.includes('room'))) {
+                    console.warn(`[BattleScene] Event missing level:`, event);
                 }
-                setTimeout(() => {
-                    setShake(false);
-                    setFlash(false);
-                }, 300);
             }
         });
-    }, [combatEvents, processedEventIds, selectedPartyTokenIds]);
+        
+        console.log(`[BattleScene] Parsed ${parsed.length} dungeon events from ${events.length} total events`);
+        if (parsed.length > 0) {
+            console.log(`[BattleScene] Sample parsed event:`, parsed[0]);
+        }
+        
+        return parsed.sort((a, b) => {
+            // Sort by level first, then timestamp
+            if (a.level !== b.level) return a.level - b.level;
+            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        });
+    }, [events]);
+
+    // Mark as initialized once we have events or have tried loading
+    useEffect(() => {
+        if (events.length > 0 || (!eventsLoading && currentRunId)) {
+            hasInitializedRef.current = true;
+        }
+    }, [events.length, eventsLoading, currentRunId]);
+
+    // Group events by level
+    const levelsProgress = useMemo(() => {
+        const levels = new Map<number, LevelProgress>();
+        let maxLevel = 0;
+
+        dungeonEvents.forEach(event => {
+            maxLevel = Math.max(maxLevel, event.level);
+            if (!levels.has(event.level)) {
+                levels.set(event.level, {
+                    level: event.level,
+                    events: [],
+                    status: 'pending',
+                });
+            }
+            const levelData = levels.get(event.level)!;
+            levelData.events.push(event);
+            
+            // Update status based on event type
+            if (event.type === 'room_enter') {
+                levelData.status = 'in_progress';
+                levelData.roomType = event.roomType;
+            } else if (event.type === 'combat_victory' || event.type === 'trap_disarmed' || event.type === 'rest' || event.type === 'treasure_found') {
+                levelData.status = 'completed';
+            } else if (event.type === 'combat_defeat' || event.type === 'party_wipe') {
+                levelData.status = 'completed';
+            }
+        });
+
+        // Create array for all levels up to max
+        const result: LevelProgress[] = [];
+        const maxDepth = dungeonInfo?.depth || Math.max(maxLevel, 1);
+        for (let i = 1; i <= maxDepth; i++) {
+            if (levels.has(i)) {
+                result.push(levels.get(i)!);
+            } else {
+                result.push({
+                    level: i,
+                    events: [],
+                    status: 'pending',
+                });
+            }
+        }
+        return result;
+    }, [dungeonEvents, dungeonInfo]);
+
+    // Calculate current level (highest level with events)
+    const currentLevel = useMemo(() => {
+        if (dungeonEvents.length === 0) return 1;
+        return Math.max(...dungeonEvents.map(e => e.level));
+    }, [dungeonEvents]);
+
+    // Calculate total XP from events
+    useEffect(() => {
+        let xp = 0;
+        dungeonEvents.forEach(event => {
+            // Extract XP from description if present
+            const xpMatch = event.description.match(/(\d+)\s*XP/i);
+            if (xpMatch) {
+                xp += parseInt(xpMatch[1], 10);
+            }
+        });
+        setTotalXP(xp);
+    }, [dungeonEvents]);
+
+    // Fetch dungeon info
+    useEffect(() => {
+        if (!currentRunId) return;
+
+        const fetchDungeonInfo = async () => {
+            try {
+                const res = await fetch(`/api/runs/${currentRunId}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.dungeon) {
+                    const mapData = typeof data.dungeon.map === 'string' 
+                        ? JSON.parse(data.dungeon.map) 
+                        : data.dungeon.map;
+                    setDungeonInfo({
+                        name: mapData?.name || data.dungeon.name || 'Unknown Dungeon',
+                        depth: mapData?.depth || 100,
+                        theme: mapData?.theme?.name || mapData?.theme?.id,
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching dungeon info:', error);
+            }
+        };
+
+        fetchDungeonInfo();
+    }, [currentRunId]);
+
+    // Progressive reveal of events (1 line every 6 seconds)
+    useEffect(() => {
+        const currentLevelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
+        
+        // Calculate total items to reveal (room_enter + combat turns + other events)
+        const roomEnterCount = currentLevelEvents.filter(e => e.type === 'room_enter').length;
+        const combatEvent = currentLevelEvents.find(e => e.combatTurns && e.combatTurns.length > 0);
+        const combatTurnsCount = combatEvent?.combatTurns?.length || 0;
+        const otherEventsCount = currentLevelEvents.filter(e => e.type !== 'room_enter' && !e.combatTurns).length;
+        const totalItems = roomEnterCount + combatTurnsCount + otherEventsCount;
+        
+        // Reset revealed count when level changes
+        setRevealedEventCount(0);
+
+        // Clear any existing interval
+        if (revealIntervalRef.current) {
+            clearInterval(revealIntervalRef.current);
+        }
+
+        // Start revealing events
+        if (totalItems > 0) {
+            revealIntervalRef.current = setInterval(() => {
+                setRevealedEventCount(prev => {
+                    if (prev < totalItems) {
+                        return prev + 1;
+                    }
+                    return prev;
+                });
+            }, 6000); // 6 seconds per item
+        }
+
+        return () => {
+            if (revealIntervalRef.current) {
+                clearInterval(revealIntervalRef.current);
+            }
+        };
+    }, [currentLevel, levelsProgress]);
 
     // Check for victory/defeat
     useEffect(() => {
@@ -114,17 +247,6 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         }
     }, [runStatus, onComplete, switchView]);
 
-    // Separate players and enemies
-    const players = useMemo(() => {
-        return Array.from(entityStates.values()).filter(e => e.isPlayer);
-    }, [entityStates]);
-
-    const enemies = useMemo(() => {
-        return Array.from(entityStates.values()).filter(e => !e.isPlayer);
-    }, [entityStates]);
-
-    const primaryEnemy = enemies[0] || { id: 'unknown', name: 'Enemy', hp: 100, maxHp: 100, isPlayer: false };
-
     if (!currentRunId) {
         return (
             <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
@@ -138,95 +260,416 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         );
     }
 
-    if (players.length === 0) {
+    // Only show loading on very first load, use ref to prevent re-renders
+    if (!hasInitializedRef.current && eventsLoading && dungeonEvents.length === 0) {
         return (
             <div className="w-full h-full bg-[#2a1d17] flex flex-col items-center justify-center font-pixel text-[#eaddcf] gap-4">
                 <div className="text-4xl animate-pulse">⚔️</div>
-                <div className="text-xl">Loading battle...</div>
-                <div className="text-xs text-slate-400">Waiting for run events...</div>
+                <div className="text-xl">Loading dungeon run...</div>
+                <div className="text-xs text-slate-400">Waiting for simulation to start...</div>
             </div>
         );
     }
 
-    return (
-        <div className={`w-full h-full bg-[#2a1d17] relative flex flex-col font-pixel overflow-hidden ${shake ? 'animate-shake' : ''}`}>
-            {/* Flash Effect */}
-            <div className={`absolute inset-0 bg-white pointer-events-none z-50 transition-opacity duration-100 ${flash ? 'opacity-30' : 'opacity-0'}`} />
+    // Get events for current level
+    const currentLevelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
+    const currentLevelData = levelsProgress.find(l => l.level === currentLevel);
+    const completedLevels = levelsProgress.filter(l => l.status === 'completed').length;
 
-            {/* Combat Viewport */}
-            <div className="flex-1 relative overflow-hidden bg-[#1a120b] border-b-4 border-[#5c4033]">
+    // Get room type emoji
+    const getRoomEmoji = (roomType?: string) => {
+        if (!roomType) return '❓';
+        const type = roomType.toLowerCase();
+        if (type.includes('combat') || type.includes('boss')) return '⚔️';
+        if (type.includes('trap')) return '⚠️';
+        if (type.includes('treasure')) return '💰';
+        if (type.includes('safe')) return '💤';
+        return '🚪';
+    };
+
+    // Calculate visible levels for centered map view
+    const visibleLevels = useMemo(() => {
+        const levelsToShow = 9; // Show 4 above, current, 4 below
+        const startLevel = Math.max(1, currentLevel - 4);
+        const endLevel = Math.min(levelsProgress.length, startLevel + levelsToShow);
+        
+        const visible: Array<{ level: number; data: LevelProgress | null; isVisited: boolean }> = [];
+        for (let i = startLevel; i <= endLevel; i++) {
+            const levelData = levelsProgress[i - 1] || null;
+            visible.push({
+                level: i,
+                data: levelData,
+                isVisited: levelData ? levelData.events.length > 0 : false,
+            });
+        }
+        return visible;
+    }, [currentLevel, levelsProgress]);
+
+    // Format combat turn for display (similar to master-generator-tool.html)
+    const formatCombatTurn = (turn: any): string => {
+        const entityName = turn.entityName || 'Unknown';
+        const targetName = turn.targetName || 'Unknown';
+        let actionText = '';
+
+        if (turn.action?.actionType === 'attack' || turn.actionType === 'attack') {
+            const result = turn.result;
+            if (result) {
+                if (result.hit) {
+                    const critText = result.criticalHit ? ' (CRITICAL!)' : '';
+                    actionText = `attacks ${targetName} for ${result.damage || 0} damage${critText}`;
+                } else {
+                    actionText = `attacks ${targetName} but misses`;
+                }
+            } else {
+                actionText = `attacks ${targetName}`;
+            }
+        } else if (turn.action?.actionType === 'heal' || turn.actionType === 'heal') {
+            const result = turn.result;
+            if (result) {
+                actionText = `heals ${targetName} for ${result.amount || 0} HP`;
+            } else {
+                actionText = `heals ${targetName}`;
+            }
+        } else if (turn.action?.actionType === 'magic-attack' || turn.actionType === 'magic-attack') {
+            const result = turn.result;
+            if (result) {
+                actionText = `casts spell at ${targetName} for ${result.damage || 0} damage`;
+            } else {
+                actionText = `casts spell at ${targetName}`;
+            }
+        } else {
+            actionText = 'takes action';
+        }
+
+        return `Turn ${turn.turnNumber || '?'}: ${entityName} ${actionText}`;
+    };
+
+    // Extract combat turns from events
+    const combatTurns = useMemo(() => {
+        const turns: CombatTurn[] = [];
+        currentLevelEvents.forEach(event => {
+            if (event.combatTurns && Array.isArray(event.combatTurns)) {
+                event.combatTurns.forEach(turn => {
+                    turns.push({
+                        turnNumber: turn.turnNumber || turns.length + 1,
+                        entityName: turn.entityName || 'Unknown',
+                        targetName: turn.targetName,
+                        actionType: turn.action?.actionType || turn.actionType,
+                        result: turn.result,
+                    });
+                });
+            }
+        });
+        return turns.sort((a, b) => a.turnNumber - b.turnNumber);
+    }, [currentLevelEvents]);
+
+    // Get events to display (progressive reveal)
+    const displayedEvents = useMemo(() => {
+        const events: Array<{ type: string; content: React.ReactNode; isCombatTurn?: boolean }> = [];
+        let itemIndex = 0;
+        
+        // Room entry events (always show first)
+        const roomEnterEvents = currentLevelEvents.filter(e => e.type === 'room_enter');
+        roomEnterEvents.forEach((event, idx) => {
+            if (itemIndex < revealedEventCount) {
+                events.push({
+                    type: 'room_enter',
+                    content: (
+                        <div key={event.id || idx} className="p-3 bg-[#2a1d17] border-l-4 border-[#5c4033] rounded">
+                            <div className="flex items-start gap-2">
+                                <span className="text-lg shrink-0">🚪</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-mono text-sm text-[#eaddcf]">
+                                        {event.description}
+                                    </div>
+                                    <div className="text-xs text-[#8c7b63] mt-1">
+                                        {new Date(event.timestamp).toLocaleTimeString()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ),
+                });
+            }
+            itemIndex++;
+        });
+
+        // Combat turns (revealed one by one)
+        if (itemIndex < revealedEventCount && combatTurns.length > 0) {
+            // Show combat turns header on first turn
+            if (itemIndex === roomEnterEvents.length) {
+                events.push({
+                    type: 'header',
+                    content: (
+                        <div key="combat-header" className="text-xs font-bold text-[#ffd700] mb-2 border-b border-[#5c4033] pb-1">
+                            Combat Turns
+                        </div>
+                    ),
+                });
+            }
+            
+            const turnsToShow = Math.min(combatTurns.length, revealedEventCount - itemIndex);
+            combatTurns.slice(0, turnsToShow).forEach((turn, idx) => {
+                const isAttack = turn.actionType === 'attack';
+                const isHeal = turn.actionType === 'heal';
+                const isMagic = turn.actionType === 'magic-attack';
+                const result = turn.result;
+                const hit = result?.hit;
+
+                events.push({
+                    type: 'combat_turn',
+                    isCombatTurn: true,
+                    content: (
+                        <div
+                            key={`turn-${turn.turnNumber}-${idx}`}
+                            className={`p-2 bg-[#2a1d17] border-l-4 rounded text-xs font-mono ${
+                                hit === false
+                                    ? 'border-[#8c7b63] text-[#8c7b63]'
+                                    : isHeal
+                                    ? 'border-[#22c55e] text-[#22c55e]'
+                                    : hit
+                                    ? 'border-[#ef4444] text-[#ef4444]'
+                                    : 'border-[#5c4033] text-[#eaddcf]'
+                            }`}
+                        >
+                            {formatCombatTurn(turn)}
+                        </div>
+                    ),
+                });
+            });
+            itemIndex += turnsToShow;
+        }
+
+        // Other events (revealed after combat)
+        const otherEvents = currentLevelEvents.filter(e => e.type !== 'room_enter' && !e.combatTurns);
+        const remainingReveals = revealedEventCount - itemIndex;
+        otherEvents.slice(0, remainingReveals).forEach((event, idx) => {
+            const getEventColor = () => {
+                if (event.type.includes('victory') || event.type.includes('disarmed') || event.type === 'rest') {
+                    return 'text-[#22c55e]';
+                }
+                if (event.type.includes('defeat') || event.type.includes('triggered') || event.type === 'party_wipe') {
+                    return 'text-[#ef4444]';
+                }
+                if (event.type === 'treasure_found') {
+                    return 'text-[#ffd700]';
+                }
+                return 'text-[#eaddcf]';
+            };
+
+            const getEventIcon = () => {
+                if (event.type.includes('combat')) return '⚔️';
+                if (event.type.includes('trap')) return '⚠️';
+                if (event.type === 'treasure_found') return '💰';
+                if (event.type === 'rest') return '💤';
+                return '•';
+            };
+
+            events.push({
+                type: event.type,
+                content: (
+                    <div
+                        key={event.id || idx}
+                        className={`p-3 bg-[#2a1d17] border-l-4 ${
+                            event.type.includes('victory') || event.type.includes('disarmed')
+                                ? 'border-[#22c55e]'
+                                : event.type.includes('defeat') || event.type.includes('triggered')
+                                ? 'border-[#ef4444]'
+                                : event.type === 'treasure_found'
+                                ? 'border-[#ffd700]'
+                                : 'border-[#5c4033]'
+                        } rounded`}
+                    >
+                        <div className="flex items-start gap-2">
+                            <span className="text-lg shrink-0">{getEventIcon()}</span>
+                            <div className="flex-1 min-w-0">
+                                <div className={`font-mono text-sm ${getEventColor()}`}>
+                                    {event.description}
+                                </div>
+                                <div className="text-xs text-[#8c7b63] mt-1">
+                                    {new Date(event.timestamp).toLocaleTimeString()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ),
+            });
+        });
+
+        return events;
+    }, [currentLevelEvents, combatTurns, revealedEventCount]);
+
+    return (
+        <div className="w-full h-full bg-[#2a1d17] relative flex flex-col font-pixel overflow-hidden">
+            {/* Top Panel - Room Scene (1/2 height) */}
+            <div className="h-1/2 shrink-0 bg-[#1a120b] border-b-4 border-[#5c4033] relative overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-20" style={{
                     backgroundImage: 'radial-gradient(#4a3b32 2px, transparent 2px)',
                     backgroundSize: '20px 20px'
                 }} />
-
-                {/* Enemy Side */}
-                <div className="absolute top-1/4 left-10 flex flex-col items-center">
-                    <div className={`w-32 h-32 bg-green-600 border-4 border-green-800 shadow-xl transition-all duration-100 relative ${primaryEnemy.hp < primaryEnemy.maxHp ? 'animate-bounce' : ''}`}>
-                        <div className="absolute inset-0 border-4 border-green-400 opacity-50"></div>
-                        <div className="w-8 h-8 bg-black/40 absolute top-8 left-6"></div>
-                        <div className="w-8 h-8 bg-black/40 absolute top-8 right-6"></div>
-                        <div className="w-16 h-4 bg-black/40 absolute bottom-6 left-8"></div>
+                
+                {/* Room Title Overlay - Smaller text, cleaned up */}
+                <div className="absolute top-3 left-3 z-10">
+                    <div className="bg-[#2a1d17]/90 border-2 border-[#5c4033] rounded px-3 py-1.5">
+                        <div className="text-sm text-[#ffd700] font-bold">
+                            {dungeonInfo?.name || 'Loading...'} - Level {currentLevel}
+                        </div>
+                        <div className="text-xs text-[#8c7b63] flex items-center gap-2 mt-1">
+                            <span>Party: {selectedPartyTokenIds.length}</span>
+                            <span>•</span>
+                            <span className="text-[#22c55e]">XP: {totalXP}</span>
+                            <span>•</span>
+                            <span className="text-[#3b82f6]">Progress: {completedLevels}/{dungeonInfo?.depth || '?'}</span>
+                        </div>
                     </div>
-
-                    {/* Enemy HP Bar */}
-                    <div className="mt-4 w-40 bg-[#2a1d17] border-2 border-[#8c7b63] p-1 relative">
-                        <div className="h-3 bg-red-900 w-full absolute top-1 left-1" />
-                        <div
-                            className="h-3 bg-red-500 transition-all duration-300 relative z-10"
-                            style={{ width: `${Math.max(0, Math.min(100, (primaryEnemy.hp / primaryEnemy.maxHp) * 100))}%` }}
-                        />
-                    </div>
-                    <span className="mt-2 text-[#eaddcf] text-xs uppercase tracking-widest drop-shadow-md font-bold">
-                        {primaryEnemy.name} <span className="text-yellow-500">HP: {primaryEnemy.hp}/{primaryEnemy.maxHp}</span>
-                    </span>
                 </div>
 
-                {/* Party Side */}
-                <div className="absolute bottom-10 right-10 flex gap-6">
-                    {players.map((player) => (
-                        <div key={player.id} className="transition-all duration-300 flex flex-col items-center gap-2 opacity-80">
-                            {/* PFP / Sprite */}
-                            <div className="w-24 h-24 border-4 shadow-lg relative group transition-colors duration-300 border-[#8c7b63] bg-[#2a1d17]">
-                                {/* Placeholder Sprite */}
-                                <div className="w-full h-full flex items-center justify-center text-4xl">
-                                    ⚔️
-                                </div>
-                            </div>
-
-                            {/* HP Bar */}
-                            <div className="w-24 h-2 bg-[#2a1d17] border border-[#8c7b63] p-0.5">
-                                <div
-                                    className="h-full bg-emerald-500"
-                                    style={{ width: `${Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100))}%` }}
-                                />
-                            </div>
-
-                            <div className="text-[10px] uppercase font-bold tracking-wider text-[#eaddcf]">
-                                {player.name}
-                            </div>
+                {/* Room Scene Content - Placeholder for animations */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                    {currentLevelData?.roomType === 'combat' || currentLevelData?.roomType === 'boss' || currentLevelData?.roomType === 'mid_boss' ? (
+                        <div className="text-center">
+                            <div className="text-6xl mb-4 animate-pulse">⚔️</div>
+                            <div className="text-lg text-[#eaddcf]">Combat in Progress...</div>
                         </div>
-                    ))}
+                    ) : currentLevelData?.roomType === 'trap' ? (
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">⚠️</div>
+                            <div className="text-lg text-[#eaddcf]">Trap Encounter</div>
+                        </div>
+                    ) : currentLevelData?.roomType === 'treasure' ? (
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">💰</div>
+                            <div className="text-lg text-[#eaddcf]">Treasure Room</div>
+                        </div>
+                    ) : currentLevelData?.roomType === 'safe' ? (
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">💤</div>
+                            <div className="text-lg text-[#eaddcf]">Safe Room - Resting</div>
+                        </div>
+                    ) : (
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">🚪</div>
+                            <div className="text-lg text-[#eaddcf]">Exploring...</div>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Battle UI Box */}
-            <div className="h-1/3 bg-[#2a1d17] border-t-4 border-[#5c4033] p-6 flex gap-6">
-                <PixelBox className="flex-1 text-sm leading-loose font-mono" title="Combat Log" variant="paper">
-                    <div className="flex flex-col-reverse h-full overflow-hidden">
-                        {battleLog.map((log, i) => (
-                            <div key={i} className={`py-1 border-b border-amber-900/10 ${i === 0 ? 'text-amber-900 font-bold' : 'text-amber-900/60'}`}>
-                                {i === 0 ? '> ' : '  '}{log}
-                            </div>
-                        ))}
+            {/* Bottom Section - Two Columns */}
+            <div className="flex-1 min-h-0 flex gap-4 p-4 overflow-hidden">
+                {/* Left Column - Dungeon Map (Flowchart Style, Thinner) - Using MapScene styling */}
+                <PixelBox className="w-48 shrink-0 flex flex-col" title="Dungeon Map" variant="wood">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col items-center relative">
+                        {/* Connection Line (vertical gradient like MapScene) */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-1 h-[80%] bg-gradient-to-b from-amber-900/20 via-amber-700/40 to-amber-900/20 rounded-full" />
+                        </div>
+
+                        {/* Nodes Container (matching MapScene gap-12) */}
+                        <div className="flex flex-col gap-12 z-10 w-full items-center py-8">
+                            {visibleLevels.map((item, index) => {
+                                const isCurrent = item.level === currentLevel;
+                                const isCompleted = item.data?.status === 'completed';
+                                const isVisited = item.isVisited;
+                                
+                                // For current level, check if we have any events to determine room type
+                                let roomTypeForEmoji = item.data?.roomType;
+                                if (isCurrent && !roomTypeForEmoji) {
+                                    // Check current level events for room_enter to get room type
+                                    const currentLevelEvents = levelsProgress.find(l => l.level === currentLevel)?.events || [];
+                                    const roomEnterEvent = currentLevelEvents.find(e => e.type === 'room_enter');
+                                    if (roomEnterEvent) {
+                                        roomTypeForEmoji = roomEnterEvent.roomType;
+                                    }
+                                }
+                                
+                                // Current level should always show the actual room type if we have it, otherwise ?
+                                const roomEmoji = isCurrent 
+                                    ? (roomTypeForEmoji ? getRoomEmoji(roomTypeForEmoji) : '❓')
+                                    : (item.isVisited ? getRoomEmoji(item.data?.roomType) : '❓');
+
+                                return (
+                                    <div key={item.level} className="group relative flex items-center justify-center">
+                                        {/* Level number to the side - positioned outside the circle */}
+                                        <div className={`absolute -left-10 text-right shrink-0 w-8 ${
+                                            isCurrent ? 'text-[#ffd700]' : isCompleted ? 'text-[#22c55e]' : 'text-[#8c7b63]'
+                                        }`}>
+                                            <span className="text-sm font-bold">{item.level}.</span>
+                                        </div>
+
+                                        {/* Circle with emoji inside - matching MapScene (w-16 h-16, border-4, text-2xl) */}
+                                        <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center shrink-0 relative shadow-xl transition-all duration-300 ${
+                                            isCurrent
+                                                ? 'bg-[#eaddcf] border-amber-500 scale-110 shadow-[0_0_30px_rgba(245,158,11,0.4)] animate-pulse-slow'
+                                                : isCompleted
+                                                ? 'bg-[#2a1d17] border-[#22c55e]'
+                                                : isVisited
+                                                ? 'bg-[#2a1d17] border-[#8c7b63]'
+                                                : 'bg-[#2a1d17] border-[#5c4033] opacity-40'
+                                        }`}>
+                                            {/* Emoji with vertical offset to center it better */}
+                                            <span className={`text-2xl drop-shadow-md leading-none flex items-center justify-center ${isCurrent ? '' : !isVisited ? 'blur-[1px]' : ''}`} style={{ marginTop: '-2px' }}>
+                                                {roomEmoji}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </PixelBox>
 
-                <div className="w-48 flex flex-col gap-3 justify-center">
-                    <PixelButton variant="primary" disabled className="w-full py-3 text-lg shadow-md">Attack</PixelButton>
-                    <PixelButton variant="neutral" disabled className="w-full py-2 opacity-50">Magic</PixelButton>
-                    <PixelButton variant="neutral" disabled className="w-full py-2 opacity-50">Item</PixelButton>
+                {/* Right Column - Current Room Details (Wider) */}
+                <PixelBox className="flex-1 min-w-0 flex flex-col" title={`Level ${currentLevel} - Room Details`} variant="paper">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+                        {currentLevelEvents.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-[#8c7b63]">
+                                <div className="text-center">
+                                    <div className="text-4xl mb-4">🚪</div>
+                                    <div>Entering level {currentLevel}...</div>
+                                    <div className="text-xs mt-2">Waiting for events...</div>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Display events progressively */}
+                                {displayedEvents.map((eventItem, idx) => (
+                                    <React.Fragment key={idx}>
+                                        {eventItem.content}
+                                    </React.Fragment>
+                                ))}
+                            </>
+                        )}
+                    </div>
+                </PixelBox>
+            </div>
+
+            {/* Bottom Status Bar */}
+            <div className="h-14 shrink-0 bg-[#1a120b] border-t-4 border-[#5c4033] px-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    {runStatus && (
+                        <div className="text-sm text-[#8c7b63]">
+                            Status: <span className={`font-bold ${
+                                runStatus.result === 'victory' ? 'text-[#22c55e]' :
+                                runStatus.result === 'defeat' ? 'text-[#ef4444]' :
+                                runStatus.status === 'timeout' ? 'text-[#ef4444]' :
+                                'text-[#ffd700]'
+                            }`}>
+                                {runStatus.result || runStatus.status || 'In Progress'}
+                            </span>
+                            {events.length > 0 && (
+                                <span className="text-xs ml-2 text-[#8c7b63]">
+                                    ({events.length} events, {dungeonEvents.length} parsed)
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    <PixelButton variant="neutral" onClick={() => switchView(GameView.MAP)}>
+                        Back to Map
+                    </PixelButton>
                 </div>
             </div>
         </div>

@@ -45,8 +45,21 @@ export const MapScene: React.FC = () => {
     useEffect(() => {
         const fetchMap = async () => {
             try {
-                // Default to abandoned-cellar for now
-                const res = await fetch('/api/map?id=abandoned-cellar');
+                // Fetch a random dungeon from available dungeons
+                const dungeonsRes = await fetch('/api/dungeons');
+                if (!dungeonsRes.ok) throw new Error('Failed to load dungeons');
+                const dungeonsData = await dungeonsRes.json();
+                
+                if (!dungeonsData.dungeons || dungeonsData.dungeons.length === 0) {
+                    throw new Error('No dungeons available');
+                }
+                
+                // Randomly select a dungeon
+                const randomIndex = Math.floor(Math.random() * dungeonsData.dungeons.length);
+                const selectedDungeon = dungeonsData.dungeons[randomIndex];
+                
+                // Fetch the map for the selected dungeon
+                const res = await fetch(`/api/map?id=${selectedDungeon.id}`);
                 if (!res.ok) throw new Error('Failed to load map');
                 const data = await res.json();
                 setMap(data);
@@ -129,6 +142,80 @@ export const MapScene: React.FC = () => {
     // Simple vertical layout for now, filtering for main rooms
     const mainRooms = map.rooms.filter(r => r.type !== 'corridor');
 
+    async function handleEnterArea() {
+        if (!authenticated || !address) {
+            setError('Please connect your wallet');
+            return;
+        }
+
+        // If no party selected, show party selector
+        if (selectedPartyTokenIds.length === 0 && !currentPartyId) {
+            setShowPartySelector(true);
+            return;
+        }
+
+        // Check availability/payment logic here or in handleCreateRun
+        if (stats && stats.remainingFreeRuns === 0) {
+            const confirmPay = confirm(`Daily free runs used. Pay ${runCostMon} MON (~$0.25) to start run?`);
+            if (!confirmPay) return;
+        }
+
+        // If we have a party selected, create run
+        if (selectedPartyTokenIds.length > 0) {
+            await handleCreateRun(selectedPartyTokenIds);
+        }
+    }
+
+    async function handleCreateRun(tokenIds: string[]) {
+        setCreatingRun(true);
+        setError(null);
+
+        try {
+            // Payment handling mock
+            let paymentHash: string | undefined = undefined;
+            if (stats && stats.remainingFreeRuns === 0) {
+                // Simulate payment tx
+                console.log("Processing payment...");
+                paymentHash = "0xmock_payment_hash_" + Date.now();
+            }
+
+            // If no specific dungeon selected, let the API randomly select one
+            const result = await runService.createRun({
+                dungeonId: map?.id || undefined, // Let API randomly select if not provided
+                party: tokenIds,
+                walletAddress: address as string,
+                paymentHash
+            });
+
+            setCurrentRunId(result.id);
+
+            // Refetch stats
+            try {
+                const res = await fetch(`/api/runs/stats?wallet=${address}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (e) {
+                console.error("Failed to refetch stats", e);
+            }
+
+            // Transition to battle view (will be handled by run status polling)
+            switchView(GameView.BATTLE);
+        } catch (err) {
+            console.error('Failed to create run:', err);
+            // Check if error is handling JSON or just message
+            let errMsg = 'Failed to create run';
+            if (err instanceof Error) {
+                errMsg = err.message;
+                // If locking error, it might be in the message
+            }
+            setError(errMsg);
+        } finally {
+            setCreatingRun(false);
+        }
+    }
+
     // Map Visualization
     return (
         <div className="w-full h-full bg-[#1a120b] flex flex-col items-center py-8 relative overflow-hidden font-pixel">
@@ -140,20 +227,14 @@ export const MapScene: React.FC = () => {
                 filter: 'sepia(1) contrast(1.2)'
             }} />
 
-            {/* Header */}
-            <div className="z-10 mb-8 text-center">
-                <h2 className="text-amber-500 text-lg font-bold tracking-[0.2em] drop-shadow-md uppercase">
-                    {map?.name || 'Unknown Location'}
-                </h2>
-                <div className="flex flex-col gap-1 items-center mt-2">
-                    <div className="text-amber-900/60 text-[10px] uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-full inline-block">
-                        {(map?.geographyType || 'Unknown').replace('_', ' ')} • Tier 1
-                    </div>
-                </div>
-            </div>
-
             {/* Map Area */}
-            <div className="flex-1 w-full max-w-md relative flex items-center justify-center">
+            <div className="flex-1 w-full max-w-md relative flex items-center justify-center min-h-0">
+                {/* TODO: This flowchart visualization is a placeholder and does not accurately represent the actual dungeon structure.
+                     The current implementation generates a simplified room list from dungeon depth, but the actual dungeon has:
+                     - A levelLayout array with specific room types per level
+                     - Mid-boss and final boss locations
+                     - Actual room connections and structure
+                     This needs to be updated to visualize the real dungeon structure from the dungeon.map.levelLayout data. */}
                 {/* Connection Lines */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-1 h-[80%] bg-gradient-to-b from-amber-900/20 via-amber-700/40 to-amber-900/20 rounded-full" />
@@ -264,7 +345,7 @@ export const MapScene: React.FC = () => {
                     <div className="w-full max-w-2xl">
                         <PartySelector
                             walletAddress={address}
-                            dungeonId={map?.id || 'abandoned-cellar'}
+                            dungeonId={map?.id}
                             onConfirm={async (tokenIds, mode, partyId) => {
                                 if (mode === 'public' && partyId) {
                                     // Show public lobby
@@ -301,78 +382,4 @@ export const MapScene: React.FC = () => {
             )}
         </div>
     );
-
-    async function handleEnterArea() {
-        if (!authenticated || !address) {
-            setError('Please connect your wallet');
-            return;
-        }
-
-        // If no party selected, show party selector
-        if (selectedPartyTokenIds.length === 0 && !currentPartyId) {
-            setShowPartySelector(true);
-            return;
-        }
-
-        // Check availability/payment logic here or in handleCreateRun
-        if (stats && stats.remainingFreeRuns === 0) {
-            const confirmPay = confirm(`Daily free runs used. Pay ${runCostMon} MON (~$0.25) to start run?`);
-            if (!confirmPay) return;
-        }
-
-        // If we have a party selected, create run
-        if (selectedPartyTokenIds.length > 0) {
-            await handleCreateRun(selectedPartyTokenIds);
-        }
-    }
-
-    async function handleCreateRun(tokenIds: string[]) {
-        setCreatingRun(true);
-        setError(null);
-
-        try {
-            // Payment handling mock
-            let paymentHash: string | undefined = undefined;
-            if (stats && stats.remainingFreeRuns === 0) {
-                // Simulate payment tx
-                console.log("Processing payment...");
-                paymentHash = "0xmock_payment_hash_" + Date.now();
-            }
-
-            // If no specific dungeon selected, let the API randomly select one
-            const result = await runService.createRun({
-                dungeonId: map?.id || undefined, // Let API randomly select if not provided
-                party: tokenIds,
-                walletAddress: address as string,
-                paymentHash
-            });
-
-            setCurrentRunId(result.id);
-
-            // Refetch stats
-            try {
-                const res = await fetch(`/api/runs/stats?wallet=${address}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setStats(data);
-                }
-            } catch (e) {
-                console.error("Failed to refetch stats", e);
-            }
-
-            // Transition to battle view (will be handled by run status polling)
-            switchView(GameView.BATTLE);
-        } catch (err) {
-            console.error('Failed to create run:', err);
-            // Check if error is handling JSON or just message
-            let errMsg = 'Failed to create run';
-            if (err instanceof Error) {
-                errMsg = err.message;
-                // If locking error, it might be in the message
-            }
-            setError(errMsg);
-        } finally {
-            setCreatingRun(false);
-        }
-    }
 };

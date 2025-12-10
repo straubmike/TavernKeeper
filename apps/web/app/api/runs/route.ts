@@ -109,15 +109,17 @@ export async function POST(request: NextRequest) {
 
     // 5. Enqueue simulation job
     // Sending resolved UUID (finalDungeonId) to worker
-    await runQueue.add('simulate-run', {
+    console.log(`[API] Enqueuing job for run ${run.id} with dungeon ${finalDungeonId}`);
+    const job = await runQueue.add('run-simulation', {
       runId: run.id,
       dungeonId: finalDungeonId,
       party,
       seed: run.seed as string,
       startTime: new Date(run.start_time as string).getTime(),
     });
+    console.log(`[API] Job enqueued with ID: ${job.id}`);
 
-    return NextResponse.json({ id: run.id, status: 'queued' });
+    return NextResponse.json({ id: run.id, status: 'queued', jobId: job.id });
   } catch (error) {
     console.error('Error creating run:', error);
     return NextResponse.json(
