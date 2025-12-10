@@ -411,7 +411,7 @@ export const TheOffice: React.FC<{
 
                                     await sdk.actions.composeCast({
                                         text: shareText,
-                                        embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+                                        embeds: ['https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper'],
                                     });
                                     console.log('✅ Compose cast composer opened for USER account');
                                     console.log('✅ Compose cast prompt completed');
@@ -646,7 +646,7 @@ export const TheOffice: React.FC<{
 
             await sdk.actions.composeCast({
                 text: shareText,
-                embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+                embeds: ['https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper'],
             });
 
             console.log('✅ Test compose cast composer opened for USER account');

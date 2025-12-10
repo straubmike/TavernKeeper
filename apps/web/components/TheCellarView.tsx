@@ -175,7 +175,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
 
                                             await sdk.actions.composeCast({
                                                 text: shareText,
-                                                embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
+                                                embeds: ['https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper'],
                                             });
                                             console.log('✅ Compose cast composer opened for USER account');
                                         } catch (error: any) {
