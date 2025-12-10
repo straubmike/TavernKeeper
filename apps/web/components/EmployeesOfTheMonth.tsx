@@ -47,14 +47,60 @@ export default function EmployeesOfTheMonth() {
         const fetchTopStakers = async () => {
             try {
                 const response = await fetch('/api/staking/top-stakers');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.stakers && Array.isArray(data.stakers)) {
-                        setTopStakers(data.stakers);
+                console.log('[EmployeesOfTheMonth] API Response status:', response.status);
+
+                const data = await response.json();
+                console.log('[EmployeesOfTheMonth] API Data:', data);
+                console.log('[EmployeesOfTheMonth] Stakers array:', data.stakers);
+                console.log('[EmployeesOfTheMonth] Stakers count:', data.stakers?.length || 0);
+
+                // API always returns 200, but may have error field - still try to use stakers if available
+                if (data.error) {
+                    console.warn('[EmployeesOfTheMonth] API returned error:', data.error);
+                }
+
+                if (data.stakers && Array.isArray(data.stakers)) {
+                    // Convert string amounts back to BigInt for component use
+                    // Always show stakers even if conversion fails - use fallback values
+                    const stakersWithBigInt = data.stakers.map((staker: any) => {
+                        try {
+                            return {
+                                address: staker.address || '',
+                                amount: staker.amount ? BigInt(staker.amount) : 0n,
+                                weightedStake: staker.weightedStake ? BigInt(staker.weightedStake) : 0n,
+                                username: staker.username || undefined,
+                            };
+                        } catch (err) {
+                            console.error('[EmployeesOfTheMonth] Error converting staker:', staker, err);
+                            // Return staker with fallback values instead of null
+                            return {
+                                address: staker.address || '',
+                                amount: 0n,
+                                weightedStake: 0n,
+                                username: staker.username || undefined,
+                            };
+                        }
+                    }).filter((s: any) => s && s.address); // Only filter out if no address
+
+                    console.log('[EmployeesOfTheMonth] Processed stakers:', stakersWithBigInt.length);
+                    if (stakersWithBigInt.length > 0) {
+                        setTopStakers(stakersWithBigInt);
+                    } else {
+                        console.warn('[EmployeesOfTheMonth] All stakers were filtered out');
+                        setTopStakers([]);
                     }
+                } else {
+                    console.warn('[EmployeesOfTheMonth] No stakers array in response:', data);
+                    setTopStakers([]);
                 }
             } catch (error) {
-                console.error('Error fetching top stakers:', error);
+                console.error('[EmployeesOfTheMonth] Error fetching top stakers:', error);
+                // Try to get more info about the error
+                if (error instanceof Error) {
+                    console.error('[EmployeesOfTheMonth] Error message:', error.message);
+                    console.error('[EmployeesOfTheMonth] Error stack:', error.stack);
+                }
+                setTopStakers([]);
             } finally {
                 setIsLoading(false);
             }

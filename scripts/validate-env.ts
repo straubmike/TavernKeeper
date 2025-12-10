@@ -15,15 +15,68 @@ function loadEnvFile(): void {
   // Check if we're in Render
   const isRender = process.env.RENDER === 'true' || process.env.RENDER_SERVICE_NAME;
 
-  // Try to load from .env file - on Render, secret files from env groups are mounted as files
-  // Priority: Render secret files locations first, then local dev paths
+  if (isRender) {
+    console.log('🌐 Running on Render - checking for .env file from environment variable group secret files');
+
+    // FIRST: Check what's actually in /etc/secrets directory
+    try {
+      if (fs.existsSync('/etc/secrets')) {
+        const secrets = fs.readdirSync('/etc/secrets');
+        console.log(`📁 Contents of /etc/secrets: ${secrets.length > 0 ? secrets.join(', ') : 'empty'}`);
+
+        // Look for .env file (could be .env or env or any variation)
+        for (const file of secrets) {
+          const filePath = `/etc/secrets/${file}`;
+          console.log(`   Checking: ${filePath}`);
+
+          if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            if (stats.isFile()) {
+              console.log(`   ✅ Found file: ${file} (${stats.size} bytes)`);
+
+              // Try to read it as .env
+              try {
+                const content = fs.readFileSync(filePath, 'utf8');
+                console.log(`   📄 Reading file: ${filePath}`);
+                const lines = content.split('\n');
+                let loadedCount = 0;
+
+                for (const line of lines) {
+                  const trimmed = line.trim();
+                  if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+                    const [key, ...valueParts] = trimmed.split('=');
+                    const value = valueParts.join('=').trim().replace(/^["']|["']$/g, ''); // Remove quotes
+                    if (key && value && !process.env[key]) {
+                      process.env[key] = value;
+                      loadedCount++;
+                    }
+                  }
+                }
+                console.log(`✅ Loaded ${loadedCount} environment variables from ${filePath}`);
+                return;
+              } catch (readError) {
+                console.log(`   ⚠️  Error reading ${filePath}: ${readError instanceof Error ? readError.message : String(readError)}`);
+              }
+            }
+          }
+        }
+      } else {
+        console.log(`   ⚠️  /etc/secrets directory does not exist`);
+      }
+    } catch (e) {
+      console.log(`   ⚠️  Error checking /etc/secrets: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  // Try other potential paths
   const envPaths: string[] = [];
 
   if (isRender) {
-    // Render secret files from environment variable groups
-    envPaths.push('/etc/secrets/.env');
+    // Render secret files from environment variable groups (already checked /etc/secrets above)
     envPaths.push('/opt/render/.secrets/.env');
-    envPaths.push(path.join(process.env.RENDER_PROJECT_ROOT || '', '.secrets', '.env'));
+    if (process.env.RENDER_PROJECT_ROOT) {
+      envPaths.push(path.join(process.env.RENDER_PROJECT_ROOT, '.secrets', '.env'));
+    }
   }
 
   // Local development paths
@@ -31,12 +84,9 @@ function loadEnvFile(): void {
   envPaths.push(path.join(__dirname, '../.env')); // Script relative
   envPaths.push(path.join(process.cwd(), '..', '.env')); // Parent directory
 
-  if (isRender) {
-    console.log('🌐 Running on Render - checking for .env file from environment variable group secret files');
-  }
-
   for (const envPath of envPaths) {
     try {
+      console.log(`   Checking: ${envPath}`);
       if (fs.existsSync(envPath)) {
         console.log(`📄 Found .env file at: ${envPath}`);
         const content = fs.readFileSync(envPath, 'utf8');
@@ -56,40 +106,25 @@ function loadEnvFile(): void {
         }
         console.log(`✅ Loaded ${loadedCount} environment variables from .env file`);
         return;
-      } else if (isRender && envPath === '/etc/secrets/.env') {
-        // Debug: Check what's in /etc/secrets if .env not found
-        try {
-          if (fs.existsSync('/etc/secrets')) {
-            const secrets = fs.readdirSync('/etc/secrets');
-            console.log(`   Checking /etc/secrets directory... found: ${secrets.join(', ')}`);
-            // Try to find .env with different casing or location
-            for (const file of secrets) {
-              if (file.toLowerCase() === '.env' || file === 'env') {
-                const altPath = `/etc/secrets/${file}`;
-                console.log(`   Trying alternative path: ${altPath}`);
-                if (fs.existsSync(altPath)) {
-                  envPaths.unshift(altPath); // Add to front of list to try next
-                }
-              }
-            }
-          }
-        } catch (e) {
-          // Ignore errors checking /etc/secrets
-        }
       }
     } catch (error) {
-      // Continue to next path if this one fails
-      if (isRender && envPath === '/etc/secrets/.env') {
-        console.log(`   Error checking ${envPath}: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      console.log(`   ⚠️  Error checking ${envPath}: ${error instanceof Error ? error.message : String(error)}`);
       continue;
     }
   }
 
   if (isRender) {
-    console.log(`⚠️  No .env file found in expected locations`);
-    console.log(`   If using an environment variable group with a .env secret file, it should be at /etc/secrets/.env`);
-    console.log(`   Make sure the environment variable group is linked to this service`);
+    console.log(`⚠️  No .env file found in any expected locations`);
+    console.log(`\n📌 IMPORTANT: According to Render documentation:`);
+    console.log(`   Secret files are available at RUNTIME, NOT during builds.`);
+    console.log(`   If you have a .env file as a secret file in your environment group,`);
+    console.log(`   it will NOT be available during the build phase.`);
+    console.log(`\n✅ SOLUTION: Add environment variables directly to the environment group:`);
+    console.log(`   1. Go to Environment Groups in Render dashboard`);
+    console.log(`   2. Edit your "TavernKeeper" group`);
+    console.log(`   3. Add each variable as an Environment Variable (not a secret file)`);
+    console.log(`   4. Or use "Add from .env" to bulk-add from your .env file`);
+    console.log(`\n   See: https://render.com/docs/configure-environment-variables#environment-groups`);
   } else {
     console.log(`⚠️  No .env file found in expected locations`);
   }

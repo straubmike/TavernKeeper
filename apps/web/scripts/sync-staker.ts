@@ -11,10 +11,52 @@
  *   npx tsx apps/web/scripts/sync-staker.ts --all
  */
 
+// Load environment variables FIRST before importing anything that uses them
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load from root .env file
+const rootEnvPath = path.resolve(__dirname, '../../../.env');
+const envResult = dotenv.config({ path: rootEnvPath });
+
+if (envResult.error) {
+    console.warn('⚠️  Warning: Could not load root .env file from:', rootEnvPath);
+    // Try current directory as fallback
+    dotenv.config();
+} else {
+    console.log('✅ Loaded .env from:', rootEnvPath);
+}
+
+// Verify Supabase config is loaded
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.SUPABASE_PROJECT_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL;
+
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_API_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_API_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ CRITICAL: Supabase environment variables not found!');
+    console.error('   Looking for:');
+    console.error('     - NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL or SUPABASE_PROJECT_URL or NEXT_PUBLIC_SUPABASE_PROJECT_URL');
+    console.error('     - NEXT_PUBLIC_SUPABASE_ANON_KEY or SUPABASE_ANON_KEY or SUPABASE_API_KEY or NEXT_PUBLIC_SUPABASE_KEY or NEXT_PUBLIC_SUPABASE_API_KEY');
+    console.error(`   Found URL: ${supabaseUrl ? '✅' : '❌'}`);
+    console.error(`   Found Key: ${supabaseKey ? '✅' : '❌'}`);
+    console.error(`   .env path checked: ${rootEnvPath}`);
+    process.exit(1);
+}
+
+console.log('✅ Supabase configuration loaded\n');
+
 import { createPublicClient, http, formatEther } from 'viem';
 import { monad } from '../lib/chains';
 import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
 import { supabase } from '../lib/supabase';
+import { getUserByAddress } from '../lib/services/neynarService';
 
 const KEEP_STAKING_ABI = [
     {
@@ -94,6 +136,37 @@ async function syncStaker(address: string): Promise<void> {
 
         console.log(`   Weighted Stake: ${formatEther(weightedStake)} KEEP\n`);
 
+        // Check if we already have username for this address
+        const { data: existing } = await supabase
+            .from('stakers')
+            .select('username, username_fetched_at')
+            .eq('address', address.toLowerCase())
+            .single();
+
+        let username: string | undefined;
+        let displayName: string | undefined;
+        let farcasterFid: number | undefined;
+
+        // Only fetch username if we don't have it yet
+        if (!existing?.username || !existing?.username_fetched_at) {
+            console.log('   Fetching Farcaster username from Neynar...');
+            try {
+                const userData = await getUserByAddress(address);
+                if (userData) {
+                    username = userData.username;
+                    displayName = userData.displayName;
+                    farcasterFid = userData.fid;
+                    console.log(`   ✅ Found username: ${username || 'N/A'}`);
+                } else {
+                    console.log('   ℹ️  No Farcaster account found for this address');
+                }
+            } catch (error) {
+                console.log('   ⚠️  Could not fetch username (will try again later)');
+            }
+        } else {
+            console.log(`   ℹ️  Username already cached: ${existing.username}`);
+        }
+
         // Update Supabase
         const { error } = await supabase.from('stakers').upsert(
             {
@@ -104,6 +177,13 @@ async function syncStaker(address: string): Promise<void> {
                 lock_multiplier: stakeInfo.lockMultiplier.toString(),
                 last_verified_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
+                // Only update username fields if we fetched new data
+                ...(username !== undefined && {
+                    username,
+                    display_name: displayName,
+                    farcaster_fid: farcasterFid,
+                    username_fetched_at: new Date().toISOString(),
+                }),
             },
             { onConflict: 'address' }
         );

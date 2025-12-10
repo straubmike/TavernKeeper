@@ -59,16 +59,27 @@ export async function getUserByAddress(address: string): Promise<{
             // If bulk endpoint fails, try alternative endpoint
             console.warn(`Bulk endpoint returned ${response.status}, trying alternative method`);
 
-            // Try using SDK method as fallback
+            // Try using SDK method as fallback (using correct method from docs)
             try {
                 const client = getNeynarClient();
-                const sdkResponse = await client.fetchBulkUsersByEthereumAddress([normalizedAddress]);
+                const sdkResponse = await client.fetchBulkUsersByEthOrSolAddress({ addresses: [normalizedAddress] });
 
+                // SDK response format: { result: { user: {...} } } or { result: { users: [...] } }
+                if (sdkResponse?.result?.user) {
+                    const user = sdkResponse.result.user;
+                    return {
+                        fid: user.fid,
+                        username: user.username || undefined,
+                        displayName: user.display_name || undefined,
+                    };
+                }
+
+                // Alternative format: direct address key mapping
                 const addressKey = Object.keys(sdkResponse).find(
                     key => key.toLowerCase() === normalizedAddress
                 );
 
-                if (addressKey && sdkResponse[addressKey] && sdkResponse[addressKey].length > 0) {
+                if (addressKey && sdkResponse[addressKey] && Array.isArray(sdkResponse[addressKey]) && sdkResponse[addressKey].length > 0) {
                     const user = sdkResponse[addressKey][0];
                     return {
                         fid: user.fid,

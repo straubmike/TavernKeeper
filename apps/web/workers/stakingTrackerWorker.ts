@@ -10,6 +10,7 @@ import { monad } from '../lib/chains';
 import { CONTRACT_REGISTRY } from '../lib/contracts/registry';
 import { CONTRACT_ADDRESSES } from '../lib/contracts/addresses';
 import { supabase } from '../lib/supabase';
+import { getUserByAddress } from '../lib/services/neynarService';
 
 const KEEP_STAKING_ABI = [
     {
@@ -71,6 +72,7 @@ function calculateWeightedStake(amount: bigint, lockMultiplier: bigint): bigint 
 
 /**
  * Update staker in Supabase
+ * Fetches username from Neynar if not already stored
  */
 async function updateStakerInSupabase(
     address: string,
@@ -85,6 +87,32 @@ async function updateStakerInSupabase(
     const weightedStake = calculateWeightedStake(stakeInfo.amount, stakeInfo.lockMultiplier);
     const lockExpiry = stakeInfo.lockExpiry > 0n ? new Date(Number(stakeInfo.lockExpiry) * 1000).toISOString() : null;
 
+    // Check if we already have username for this address
+    const { data: existing } = await supabase
+        .from('stakers')
+        .select('username, username_fetched_at')
+        .eq('address', address.toLowerCase())
+        .single();
+
+    let username: string | undefined;
+    let displayName: string | undefined;
+    let farcasterFid: number | undefined;
+
+    // Only fetch username if we don't have it yet
+    if (!existing?.username || !existing?.username_fetched_at) {
+        try {
+            const userData = await getUserByAddress(address);
+            if (userData) {
+                username = userData.username;
+                displayName = userData.displayName;
+                farcasterFid = userData.fid;
+            }
+        } catch (error) {
+            console.error(`Error fetching username for ${address}:`, error);
+            // Continue without username - we'll try again next time
+        }
+    }
+
     await supabase.from('stakers').upsert(
         {
             address: address.toLowerCase(),
@@ -94,6 +122,13 @@ async function updateStakerInSupabase(
             lock_multiplier: stakeInfo.lockMultiplier.toString(),
             last_verified_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            // Only update username fields if we fetched new data
+            ...(username !== undefined && {
+                username,
+                display_name: displayName,
+                farcaster_fid: farcasterFid,
+                username_fetched_at: new Date().toISOString(),
+            }),
         },
         { onConflict: 'address' }
     );
