@@ -383,23 +383,29 @@ export const TheOffice: React.FC<{
 
                                     // Get previous manager username if available
                                     const previousManagerData = await getOfficeManagerData(previousManagerAddress);
-                                    let shareText: string;
 
-                                    if (previousManagerData?.username && currentUsername) {
-                                        shareText = `@${currentUsername} just took the Office from @${previousManagerData.username}! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
-                                    } else if (currentUsername) {
-                                        shareText = `@${currentUsername} just took the Office! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
-                                    } else if (previousManagerData?.username) {
+                                    // Verify SDK context has user before composing cast
+                                    const sdkContext = await sdk.context;
+                                    if (!sdkContext?.user) {
+                                        console.warn('⚠️ Cannot compose cast - no user context in SDK');
+                                        return;
+                                    }
+
+                                    // Always use first person - this is FOR THE USER to compose their own cast
+                                    let shareText: string;
+                                    if (previousManagerData?.username) {
                                         shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
                                     } else {
                                         shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
                                     }
 
-                                    console.log('📝 Prompting user to compose cast...', {
+                                    console.log('📝 Prompting user to compose cast (FOR USER ACCOUNT):', {
                                         isMiniapp,
                                         doubleCheckMiniapp,
                                         hasUserContext: !!userContext,
-                                        username: currentUsername,
+                                        sdkUserFid: sdkContext.user.fid,
+                                        sdkUsername: sdkContext.user.username,
+                                        currentUsername,
                                         shareText
                                     });
 
@@ -407,6 +413,7 @@ export const TheOffice: React.FC<{
                                         text: shareText,
                                         embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
                                     });
+                                    console.log('✅ Compose cast composer opened for USER account');
                                     console.log('✅ Compose cast prompt completed');
                                 } catch (error: any) {
                                     // User cancelled or error - log for debugging but don't show error to user
@@ -606,28 +613,33 @@ export const TheOffice: React.FC<{
                 currentUsername = currentManagerData?.username;
             }
 
+            // Verify SDK context has user before composing cast
+            const sdkContext = await sdk.context;
+            if (!sdkContext?.user) {
+                alert('Cannot test compose cast - no user context in SDK. Make sure you are in the Farcaster miniapp.');
+                return;
+            }
+
             // Get previous manager username if available
             const previousManagerAddress = state.currentKing;
             const previousManagerData = previousManagerAddress && previousManagerAddress !== '0x0000000000000000000000000000000000000000'
                 ? await getOfficeManagerData(previousManagerAddress)
                 : null;
 
+            // Always use first person - this is FOR THE USER to compose their own cast
             let shareText: string;
-
-            if (previousManagerData?.username && currentUsername) {
-                shareText = `@${currentUsername} just took the Office from @${previousManagerData.username}! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
-            } else if (currentUsername) {
-                shareText = `@${currentUsername} just took the Office! 👑 Take it from them at tavernkeeper.xyz/miniapp`;
-            } else if (previousManagerData?.username) {
+            if (previousManagerData?.username) {
                 shareText = `I just took the Office from @${previousManagerData.username}! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
             } else {
                 shareText = `I just took the Office! 👑 Take it from me at tavernkeeper.xyz/miniapp`;
             }
 
-            console.log('🧪 Test compose cast:', {
+            console.log('🧪 Test compose cast (FOR USER ACCOUNT):', {
                 isMiniapp,
                 hasUserContext: !!userContext,
-                username: currentUsername,
+                sdkUserFid: sdkContext.user.fid,
+                sdkUsername: sdkContext.user.username,
+                currentUsername,
                 previousManager: previousManagerData?.username,
                 shareText
             });
@@ -637,7 +649,7 @@ export const TheOffice: React.FC<{
                 embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
             });
 
-            console.log('✅ Test compose cast completed');
+            console.log('✅ Test compose cast composer opened for USER account');
         } catch (error: any) {
             console.error('❌ Test compose cast failed:', {
                 error: error?.message || error,

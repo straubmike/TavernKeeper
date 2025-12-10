@@ -8,11 +8,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Load .env file if it exists (Render Secret Files)
+// Load .env file if it exists (Render Secret Files or local development)
 function loadEnvFile(): void {
   console.log('Current working directory:', process.cwd());
+
+  // Check if we're in Render (environment variables should already be in process.env)
+  const isRender = process.env.RENDER === 'true' || process.env.RENDER_SERVICE_NAME;
+
+  if (isRender) {
+    console.log('🌐 Running on Render - environment variables should be available from environment variable groups');
+    console.log('   Make sure your environment variable group is attached to this service');
+    // Don't try to load from file on Render when using env groups
+    return;
+  }
+
+  // For local development, try to load from .env file
   const envPaths = [
-    '/etc/secrets/.env', // Render secret files location
+    '/etc/secrets/.env', // Render secret files location (legacy)
     path.join(process.cwd(), '.env'), // App root
     path.join(__dirname, '../.env'), // Script relative
     path.join(process.cwd(), '..', '.env'), // Parent directory
@@ -22,15 +34,6 @@ function loadEnvFile(): void {
     try {
       if (fs.existsSync(envPath)) {
         console.log(`📄 Found .env file at: ${envPath}`);
-      } else if (envPath.startsWith('/etc/secrets')) {
-        console.log(`Checking ${envPath}... not found.`);
-        if (fs.existsSync('/etc/secrets')) {
-          console.log('Contents of /etc/secrets:', fs.readdirSync('/etc/secrets'));
-        } else {
-          console.log('/etc/secrets directory does not exist');
-        }
-      }
-      if (fs.existsSync(envPath)) {
         const content = fs.readFileSync(envPath, 'utf8');
         const lines = content.split('\n');
         let loadedCount = 0;
@@ -54,7 +57,7 @@ function loadEnvFile(): void {
       continue;
     }
   }
-  console.log(`⚠️  No .env file found in expected locations`);
+  console.log(`⚠️  No .env file found in expected locations (this is OK if using Render environment variable groups)`);
 }
 
 // Load .env file before validation
@@ -130,6 +133,46 @@ function validateEnv(service: 'web' | 'worker' | 'discord-bot'): boolean {
   const missing: string[] = [];
   const present: string[] = [];
   const warnings: string[] = [];
+
+  // Debug: Check if we're on Render and show available env vars (masked)
+  const isRender = process.env.RENDER === 'true' || process.env.RENDER_SERVICE_NAME;
+  if (isRender) {
+    console.log(`\n🌐 Running on Render (Service: ${process.env.RENDER_SERVICE_NAME || 'unknown'})`);
+    const allEnvKeys = Object.keys(process.env).sort();
+    console.log(`📋 Found ${allEnvKeys.length} environment variables in process.env`);
+
+    // Show all non-sensitive env var names for debugging
+    const nonSensitiveKeys = allEnvKeys.filter(k =>
+      !k.includes('SECRET') &&
+      !k.includes('KEY') &&
+      !k.includes('TOKEN') &&
+      !k.includes('PASSWORD') &&
+      !k.includes('PRIVATE')
+    );
+    console.log(`   Non-sensitive variables found: ${nonSensitiveKeys.length > 0 ? nonSensitiveKeys.join(', ') : 'none'}`);
+
+    // Check for specific variables we're looking for
+    const lookingFor = ['DATABASE_URL', 'NEXTAUTH_SECRET', 'NEXTAUTH_URL', 'OPENAI_API_KEY',
+                        'NEXT_PUBLIC_MONAD_CHAIN_ID', 'NEXT_PUBLIC_MONAD_RPC_URL',
+                        'SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_PROJECT_URL',
+                        'NEXT_PUBLIC_SUPABASE_PROJECT_URL', 'SUPABASE_ANON_KEY',
+                        'NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+    const foundLookingFor = lookingFor.filter(k => process.env[k]);
+    const missingLookingFor = lookingFor.filter(k => !process.env[k]);
+
+    if (foundLookingFor.length > 0) {
+      console.log(`   ✅ Found some target variables: ${foundLookingFor.join(', ')}`);
+    }
+    if (missingLookingFor.length > 0) {
+      console.log(`   ❌ Missing target variables: ${missingLookingFor.join(', ')}`);
+    }
+
+    if (allEnvKeys.length < 10) {
+      console.log(`\n⚠️  Very few environment variables found during build phase`);
+      console.log(`   This might mean environment variable groups are only available at runtime, not during builds`);
+      console.log(`   Consider: 1) Attaching the group to the service, 2) Adding variables directly to the service, or 3) Using Render Secret Files`);
+    }
+  }
 
   console.log(`\n🔍 Validating environment variables for: ${service}`);
   console.log('='.repeat(60));
@@ -223,8 +266,39 @@ function validateEnv(service: 'web' | 'worker' | 'discord-bot'): boolean {
   if (missing.length > 0) {
     console.log(`\n❌ BUILD FAILED: Missing required environment variables:`);
     missing.forEach(v => console.log(`   - ${v}`));
-    console.log(`\n💡 Set these in Render dashboard: Service → Environment → Add variable`);
-    console.log(`   Or add them to your .env file for local development.\n`);
+
+    if (isRender) {
+      // Check if we're in a build context (buildCommand) vs runtime
+      const isBuildPhase = process.env.RENDER_BUILD_COMMAND || !process.env.RENDER_EXTERNAL_URL;
+
+      console.log(`\n💡 To fix this on Render:`);
+
+      if (isBuildPhase) {
+        console.log(`   ⚠️  You're in the BUILD phase - environment variable groups may not be available yet`);
+        console.log(`   Solutions:`);
+        console.log(`   1. Add variables DIRECTLY to the service (not just in the group):`);
+        console.log(`      - Go to service → Environment tab`);
+        console.log(`      - Click "Add Environment Variable"`);
+        console.log(`      - Add each missing variable above`);
+        console.log(`   2. OR use Render Secret Files for build-time variables`);
+        console.log(`   3. OR ensure the environment variable group is properly attached:`);
+        console.log(`      - Go to service → Environment tab`);
+        console.log(`      - Check that your env var group is listed under "Environment Variable Groups"`);
+        console.log(`      - If not, click "Link Environment Variable Group" and select your group`);
+      } else {
+        console.log(`   1. Go to your service in Render dashboard`);
+        console.log(`   2. Click "Environment" tab`);
+        console.log(`   3. If using an Environment Variable Group:`);
+        console.log(`      - Make sure the group is attached to this service`);
+        console.log(`      - Verify all required variables are in the group`);
+        console.log(`   4. If not using a group, add variables directly:`);
+        console.log(`      - Click "Add Environment Variable"`);
+        console.log(`      - Add each missing variable above`);
+      }
+    } else {
+      console.log(`\n💡 Add these to your .env file for local development`);
+    }
+    console.log(``);
     return false;
   }
 

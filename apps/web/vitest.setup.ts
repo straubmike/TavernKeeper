@@ -6,10 +6,26 @@ import path from 'path';
 // Load environment variables from root .env file
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Mock environment variables for testing
-process.env.SUPABASE_PROJECT_URL = 'https://test.supabase.co';
-process.env.SUPABASE_API_KEY = 'test-key';
-process.env.REDIS_URL = 'redis://localhost:6379';
+// Only set mock environment variables if real ones aren't present
+// This allows integration tests to use real Supabase credentials
+if (!process.env.SUPABASE_PROJECT_URL &&
+    !process.env.SUPABASE_URL &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL) {
+  process.env.SUPABASE_PROJECT_URL = 'https://test.supabase.co';
+}
+
+if (!process.env.SUPABASE_API_KEY &&
+    !process.env.SUPABASE_ANON_KEY &&
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    !process.env.NEXT_PUBLIC_SUPABASE_KEY &&
+    !process.env.NEXT_PUBLIC_SUPABASE_API_KEY) {
+  process.env.SUPABASE_API_KEY = 'test-key';
+}
+
+if (!process.env.REDIS_URL) {
+  process.env.REDIS_URL = 'redis://localhost:6379';
+}
 // process.env.NODE_ENV = 'test';
 
 // Suppress console.error for expected error tests

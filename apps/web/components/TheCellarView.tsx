@@ -150,19 +150,24 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                 if (doubleCheckMiniapp) {
                                     setTimeout(async () => {
                                         try {
+                                            // Verify SDK context has user before composing cast
+                                            const sdkContext = await sdk.context;
+                                            if (!sdkContext?.user) {
+                                                console.warn('⚠️ Cannot compose cast for raid - no user context in SDK');
+                                                return;
+                                            }
+
                                             const username = context?.user?.username;
                                             const monFormatted = parseFloat(monProfitFormatted).toFixed(2);
                                             const keepFormatted = parseFloat(keepProfitFormatted).toFixed(2);
 
-                                            let shareText: string;
-                                            if (username) {
-                                                shareText = `@${username} just raided The Cellar and claimed ${monFormatted} MON + ${keepFormatted} KEEP! 🔥 Raid it yourself at tavernkeeper.xyz/miniapp`;
-                                            } else {
-                                                shareText = `I just raided The Cellar and claimed ${monFormatted} MON + ${keepFormatted} KEEP! 🔥 Raid it yourself at tavernkeeper.xyz/miniapp`;
-                                            }
+                                            // Always use first person - this is FOR THE USER to compose their own cast
+                                            const shareText = `I just raided The Cellar and claimed ${monFormatted} MON + ${keepFormatted} KEEP! 🔥 Raid it yourself at tavernkeeper.xyz/miniapp`;
 
-                                            console.log('📝 Prompting user to compose cast for raid...', {
+                                            console.log('📝 Prompting user to compose cast for raid (FOR USER ACCOUNT):', {
                                                 username,
+                                                sdkUserFid: sdkContext.user.fid,
+                                                sdkUsername: sdkContext.user.username,
                                                 monProfit: monFormatted,
                                                 keepProfit: keepFormatted,
                                                 shareText
@@ -172,7 +177,7 @@ export default function TheCellarView({ onBackToOffice, monBalance = "0", keepBa
                                                 text: shareText,
                                                 embeds: [{ url: 'https://farcaster.xyz/miniapps/dDsKsz-XG5KU/tavernkeeper' }],
                                             });
-                                            console.log('✅ Compose cast prompt completed for raid');
+                                            console.log('✅ Compose cast composer opened for USER account');
                                         } catch (error: any) {
                                             console.warn('⚠️ Compose cast failed for raid (user may have cancelled):', {
                                                 error: error?.message || error,
