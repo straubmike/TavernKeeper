@@ -28,7 +28,8 @@
     "test:notifications": "tsx scripts/test-notifications.ts",
     "test:broadcast-notifications": "tsx scripts/test-broadcast-notifications.ts",
     "sync:stakers": "tsx scripts/discover-and-sync-stakers.ts",
-    "sync:staker": "tsx scripts/sync-staker.ts"
+    "sync:staker": "tsx scripts/sync-staker.ts",
+    "check:world": "tsx scripts/check-world-status.ts"
   },
   "dependencies": {
     "@base-org/account": "^1.0.0",

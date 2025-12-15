@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Monster Stat Block System - Type Definitions
  * 
  * Simplified monster stat blocks for combat encounters.

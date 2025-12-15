@@ -1,22 +1,23 @@
-﻿/**
+/**
  * Attack Resolution System
  * 
  * Handles attack rolls, damage calculation, and hit determination.
  */
 
 import type { CombatEntity, Weapon, AttackResult } from '../types/combat';
+import { SeededRNG } from '../../../../lib/utils/seededRNG';
 
 /**
- * Roll a d20
+ * Roll a d20 using seeded RNG
  */
-export function rollD20(): number {
-  return Math.floor(Math.random() * 20) + 1;
+export function rollD20(rng: SeededRNG): number {
+  return rng.range(1, 20);
 }
 
 /**
- * Roll dice (e.g., "2d6" or "2d4+2" returns sum of dice + modifier)
+ * Roll dice using seeded RNG (e.g., "2d6" or "2d4+2" returns sum of dice + modifier)
  */
-export function rollDice(diceString: string): { total: number; rolls: number[] } {
+export function rollDice(diceString: string, rng: SeededRNG): { total: number; rolls: number[] } {
   // Match patterns like "2d6", "2d4+2", "1d4+1"
   const match = diceString.match(/(\d+)d(\d+)(?:\+(\d+))?/);
   if (!match) {
@@ -29,7 +30,7 @@ export function rollDice(diceString: string): { total: number; rolls: number[] }
   const rolls: number[] = [];
 
   for (let i = 0; i < count; i++) {
-    rolls.push(Math.floor(Math.random() * sides) + 1);
+    rolls.push(rng.range(1, sides));
   }
 
   return {
@@ -51,10 +52,11 @@ export function calculateModifier(score: number): number {
 export function resolveAttack(
   attacker: CombatEntity,
   target: CombatEntity,
-  weapon: Weapon
+  weapon: Weapon,
+  rng: SeededRNG
 ): AttackResult {
   // Roll d20
-  const attackRoll = rollD20();
+  const attackRoll = rollD20(rng);
   const isCritical = attackRoll === 20;
 
   // Determine which stat to use for attack
@@ -69,8 +71,9 @@ export function resolveAttack(
   }
 
   const attackModifier = calculateModifier(attackStat);
+  const proficiencyBonus = attacker.proficiencyBonus || 0; // All heroes proficient with weapons
   const weaponModifier = weapon.attackModifier || 0;
-  const attackTotal = attackRoll + attackModifier + weaponModifier;
+  const attackTotal = attackRoll + attackModifier + proficiencyBonus + weaponModifier;
 
   // Check if hit (attack total > target AC, or critical hit)
   const hit = isCritical || attackTotal > target.ac;
@@ -80,7 +83,7 @@ export function resolveAttack(
 
   if (hit) {
     // Roll damage
-    const damageResult = rollDice(weapon.damageDice);
+    const damageResult = rollDice(weapon.damageDice, rng);
     damageRoll = damageResult.rolls;
     
     // Add modifiers
@@ -98,7 +101,7 @@ export function resolveAttack(
     
     // Critical hits: roll damage dice again and add
     if (isCritical) {
-      const critResult = rollDice(weapon.damageDice);
+      const critResult = rollDice(weapon.damageDice, rng);
       damage += critResult.total;
       damageRoll = [...damageRoll, ...critResult.rolls];
     }
@@ -114,6 +117,12 @@ export function resolveAttack(
     damage,
     damageRoll,
     criticalHit: isCritical,
+    targetHpBefore: target.currentHp, // Target HP before damage (for display)
+    targetHpAfter: hit && damage !== undefined ? Math.max(0, target.currentHp - damage) : target.currentHp, // Target HP after damage
+    targetMaxHp: target.maxHp, // Target max HP (for display)
+    attackModifier, // Stat modifier (for display)
+    proficiencyBonus, // Proficiency bonus (for display)
+    weaponModifier, // Weapon modifier (for display)
   };
 }
 

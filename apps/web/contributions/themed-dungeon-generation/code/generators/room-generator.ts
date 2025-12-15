@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Room Generator
  * 
  * Generates rooms for dungeon levels (pre-generated during dungeon creation).
@@ -16,6 +16,16 @@ import type {
   ThemedDungeon,
   TrapSubtype,
 } from '../types/dungeon-generation';
+import { 
+  createMonsterInstance,
+  type MonsterStatBlock,
+} from '../../monster-stat-blocks/code/services/monsterService';
+import { 
+  getMonstersByTheme as getMonsterEntriesByTheme,
+  getRegularMonsters,
+  type MonsterRegistryEntry,
+} from '../../../monster-stat-blocks/code/data/monster-registry';
+import type { ChallengeRating } from '../../monster-stat-blocks/code/types/monster-stats';
 
 /**
  * Create a seeded RNG function
@@ -188,7 +198,79 @@ export class RoomGenerator {
   }
 
   /**
-   * Generate a combat encounter
+   * Calculate appropriate CR range for a dungeon level
+   * Level 1 = CR 0-1 (appropriate for level 1 party)
+   * Level 99 = CR 15-20 (difficult for level 15 party)
+   */
+  private calculateCRRangeForLevel(level: number): { minCR: number; maxCR: number } {
+    // Formula: baseCR scales with level, with wider range at higher levels
+    // Level 1: CR 0-1
+    // Level 99: CR 15-20
+    const baseCR = Math.floor(level / 6.6);
+    const minCR = Math.max(0, baseCR);
+    // Wider range at higher levels (1-2 CR spread early, 5 CR spread later)
+    const rangeSize = level < 10 ? 1 : (level < 30 ? 2 : 5);
+    const maxCR = Math.min(30, baseCR + rangeSize);
+    
+    return { minCR, maxCR };
+  }
+
+  /**
+   * Determine monster count based on dungeon level (gradient progression)
+   * Early levels: 1 monster (easiest)
+   * Mid levels: 1-2 monsters
+   * Late levels: 1-3 monsters (more variety)
+   */
+  private determineMonsterCount(level: number, rng: () => number): number {
+    if (level <= 10) {
+      // Early levels: always 1 monster (easiest encounters)
+      return 1;
+    } else if (level <= 30) {
+      // Mid levels: 1-2 monsters
+      return Math.floor(rng() * 2) + 1;
+    } else {
+      // Late levels: 1-3 monsters (more variety at higher levels)
+      return Math.floor(rng() * 3) + 1;
+    }
+  }
+
+  /**
+   * Adjust CR range downward when multiple monsters are present
+   * This accounts for D&D 5e encounter multipliers:
+   * - 1 monster: 1x (no adjustment)
+   * - 2 monsters: 1.5x (divide CR by 1.5)
+   * - 3+ monsters: 2x (divide CR by 2)
+   * 
+   * This ensures effective encounter difficulty stays consistent
+   * regardless of monster count.
+   */
+  private adjustCRForMonsterCount(
+    minCR: number,
+    maxCR: number,
+    monsterCount: number
+  ): { minCR: number; maxCR: number } {
+    if (monsterCount === 1) {
+      // No adjustment needed for single monster
+      return { minCR, maxCR };
+    } else if (monsterCount === 2) {
+      // 2 monsters = 1.5x multiplier, so divide CR by 1.5
+      return {
+        minCR: Math.max(0, minCR / 1.5),
+        maxCR: maxCR / 1.5,
+      };
+    } else {
+      // 3+ monsters = 2x multiplier, so divide CR by 2
+      return {
+        minCR: Math.max(0, minCR / 2),
+        maxCR: maxCR / 2,
+      };
+    }
+  }
+
+  /**
+   * Generate a combat encounter with CR-scaled monsters
+   * Difficulty is fixed to dungeon level (not party level/size)
+   * Multiple monsters are accounted for to maintain consistent difficulty
    */
   private generateCombatEncounter(
     level: number,
@@ -196,17 +278,78 @@ export class RoomGenerator {
     difficulty: number,
     rng: () => number
   ): RoomEncounter {
-    const monsterType = dungeon.theme.monsterTypes[
-      Math.floor(rng() * dungeon.theme.monsterTypes.length)
-    ];
-
-    const monsterCount = Math.floor(rng() * 3) + 1; // 1-3 monsters
+    // STEP 1: Determine monster count FIRST (gradient based on level)
+    const monsterCount = this.determineMonsterCount(level, rng);
+    
+    // STEP 2: Calculate base CR range for this dungeon level
+    const baseCRRange = this.calculateCRRangeForLevel(level);
+    
+    // STEP 3: Adjust CR range downward for multiple monsters
+    // This ensures effective encounter difficulty stays consistent
+    const { minCR, maxCR } = this.adjustCRForMonsterCount(
+      baseCRRange.minCR,
+      baseCRRange.maxCR,
+      monsterCount
+    );
+    
+    // STEP 4: Get theme ID (should match monster registry theme values)
+    const monsterTheme = dungeon.theme.id as any;
+    
+    // STEP 5: Get all monster entries for this theme, filter by adjusted CR and exclude bosses
+    const themeMonsterEntries = getMonsterEntriesByTheme(monsterTheme);
+    const availableEntries = themeMonsterEntries.filter(entry => 
+      !entry.isBoss && 
+      entry.statBlock.cr >= minCR && 
+      entry.statBlock.cr <= maxCR
+    );
+    
+    // STEP 6: Fallback to generic non-boss monsters if theme has no matches
+    let selectedMonster: MonsterStatBlock | null = null;
+    if (availableEntries.length > 0) {
+      const selectedEntry = availableEntries[Math.floor(rng() * availableEntries.length)];
+      selectedMonster = selectedEntry.statBlock;
+    } else {
+      // Fallback: get any non-boss monster in adjusted CR range from generic theme
+      const genericEntries = getMonsterEntriesByTheme('generic').filter(entry =>
+        !entry.isBoss &&
+        entry.statBlock.cr >= minCR &&
+        entry.statBlock.cr <= maxCR
+      );
+      if (genericEntries.length > 0) {
+        const selectedEntry = genericEntries[Math.floor(rng() * genericEntries.length)];
+        selectedMonster = selectedEntry.statBlock;
+      } else {
+        // Last resort: get any regular monster in adjusted CR range
+        const regularMonsters = getRegularMonsters().filter(entry =>
+          entry.statBlock.cr >= minCR &&
+          entry.statBlock.cr <= maxCR
+        );
+        if (regularMonsters.length > 0) {
+          const selectedEntry = regularMonsters[Math.floor(rng() * regularMonsters.length)];
+          selectedMonster = selectedEntry.statBlock;
+        }
+      }
+    }
+    
+    // STEP 7: If still no monster found, use a default low-CR monster
+    if (!selectedMonster) {
+      selectedMonster = {
+        name: 'Goblin',
+        hp: 7,
+        ac: 15,
+        cr: 0.25,
+        xp: 25,
+        strength: 8,
+        dexterity: 14,
+        wisdom: 8,
+      };
+    }
 
     return {
       id: `combat-${dungeon.seed}-${level}`,
       type: 'combat',
-      name: `${monsterCount > 1 ? `${monsterCount} ` : ''}${monsterType}${monsterCount > 1 ? 's' : ''}`,
-      description: `You encounter ${monsterCount > 1 ? `${monsterCount} ` : 'a '}${monsterType.toLowerCase()}${monsterCount > 1 ? 's' : ''} in this room. ${dungeon.theme.atmosphere}`,
+      name: `${monsterCount > 1 ? `${monsterCount} ` : ''}${selectedMonster.name}${monsterCount > 1 ? 's' : ''}`,
+      description: `You encounter ${monsterCount > 1 ? `${monsterCount} ` : 'a '}${selectedMonster.name.toLowerCase()}${monsterCount > 1 ? 's' : ''} in this room. ${dungeon.theme.atmosphere}`,
       difficulty,
       rewards: [
         {
@@ -216,14 +359,19 @@ export class RoomGenerator {
         },
         {
           type: 'experience',
-          amount: difficulty * 50,
-          description: `${difficulty * 50} experience points`,
+          amount: selectedMonster.xp * monsterCount,
+          description: `${selectedMonster.xp * monsterCount} experience points`,
         },
       ],
       metadata: {
-        monsterType,
+        monsterType: selectedMonster.name,
         monsterCount,
         theme: dungeon.theme.id,
+        cr: selectedMonster.cr,
+        minCR: baseCRRange.minCR, // Store base CR range in metadata
+        maxCR: baseCRRange.maxCR,
+        adjustedMinCR: minCR, // Store adjusted CR range for debugging
+        adjustedMaxCR: maxCR,
       },
     };
   }
@@ -392,3 +540,4 @@ export class RoomGenerator {
     return `${base} ${additions[roomType] || ''}`;
   }
 }
+

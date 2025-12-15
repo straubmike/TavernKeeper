@@ -199,7 +199,7 @@ export async function joinParty(
 
         if (!runError && run) {
             // Enqueue simulation
-            await runQueue.add('simulate-run', {
+            await runQueue.add('run-simulation', {
                 runId: run.id,
                 dungeonId: party.dungeon_id,
                 party: allTokenIds,

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Inventory Tracking Service
  * 
  * Service for managing player inventory (equipped and non-equipped items).

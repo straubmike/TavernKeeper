@@ -1,6 +1,6 @@
-﻿# Themed Dungeon Generation System - Design Document
+# Themed Dungeon Generation System - Design Document
 
-## ΓÜá∩╕Å Implementation Note
+## ⚠️ Implementation Note
 
 **The PRIMARY implementation is TypeScript in `code/` directory.**
 
@@ -37,10 +37,10 @@ Bosses are generated upfront (not on-demand) because:
 ### 3. Boss Theme Influence
 
 Bosses influence theme selection:
-- **Necromancer/Lich** ΓåÆ Prefers Undead theme
-- **Fire Dragon/Fire Lord** ΓåÆ Prefers Fire theme
-- **Ice Dragon/Frost Giant** ΓåÆ Prefers Ice theme
-- **Demon Lord** ΓåÆ Prefers Abyssal theme
+- **Necromancer/Lich** → Prefers Undead theme
+- **Fire Dragon/Fire Lord** → Prefers Fire theme
+- **Ice Dragon/Frost Giant** → Prefers Ice theme
+- **Demon Lord** → Prefers Abyssal theme
 - And so on...
 
 This creates cohesive dungeon experiences where the boss and theme match.
@@ -263,8 +263,8 @@ room2 = getRoomForLevel(dungeon, 25)
 6. Player enters level 1
 7. Room generated on-demand for level 1
 8. Player progresses, rooms generated as needed
-9. Player reaches boss level ΓåÆ Boss room (pre-generated)
-10. Player reaches final boss ΓåÆ Final boss room
+9. Player reaches boss level → Boss room (pre-generated)
+10. Player reaches final boss → Final boss room
 
 ### Storage Considerations
 
@@ -283,3 +283,4 @@ room2 = getRoomForLevel(dungeon, 25)
 6. **Difficulty Scaling**: More sophisticated difficulty curves
 7. **Loot Integration**: Integrate with item generation system
 8. **World Content Integration**: Link to world-content-hierarchy
+

@@ -1,4 +1,4 @@
-﻿# Integration with World History and Standout Mortals
+# Integration with World History and Standout Mortals
 
 ## Overview
 
@@ -17,46 +17,46 @@ The themed dungeon generator integrates with the world generation system to ensu
 
 ```
 World Generator
-  ΓööΓöÇ> Level 6.5: Standout Mortals Generated
-      Γö£ΓöÇ> Necromancer standout mortals created
-      Γöé   ΓööΓöÇ> World Event: "necromancer built tower" at location X
-      Γöé       ΓööΓöÇ> Event links: necromancer ID ΓåÆ location ID
-      Γöé
-      ΓööΓöÇ> Other standout mortals created
-          ΓööΓöÇ> Full history: born to organization, race, powers, etc.
+  └─> Level 6.5: Standout Mortals Generated
+      ├─> Necromancer standout mortals created
+      │   └─> World Event: "necromancer built tower" at location X
+      │       └─> Event links: necromancer ID → location ID
+      │
+      └─> Other standout mortals created
+          └─> Full history: born to organization, race, powers, etc.
 ```
 
 ### 2. Map Generation Phase
 
 ```
 Map Generator
-  ΓööΓöÇ> Generate dungeon at location X
-      ΓööΓöÇ> Check world context:
-          Γö£ΓöÇ> Is there a necromancer tower event at location X?
-          Γöé   ΓööΓöÇ> YES: Use necromancer builder, force necromancer-tower theme
-          Γöé
-          ΓööΓöÇ> Are there evil standout mortals at location X?
-              ΓööΓöÇ> 40% chance to use one as final boss
+  └─> Generate dungeon at location X
+      └─> Check world context:
+          ├─> Is there a necromancer tower event at location X?
+          │   └─> YES: Use necromancer builder, force necromancer-tower theme
+          │
+          └─> Are there evil standout mortals at location X?
+              └─> 40% chance to use one as final boss
 ```
 
 ### 3. Dungeon Generation Phase
 
 ```
 Themed Dungeon Generator
-  ΓööΓöÇ> generateProvenance(seed, depth, rng, worldContext)
-      ΓööΓöÇ> If necromancer tower event exists:
-          Γö£ΓöÇ> Use NECROMANCER_BUILDER
-          Γö£ΓöÇ> Link to necromancer mortal ID
-          ΓööΓöÇ> Force 'necromancer-tower' theme
+  └─> generateProvenance(seed, depth, rng, worldContext)
+      └─> If necromancer tower event exists:
+          ├─> Use NECROMANCER_BUILDER
+          ├─> Link to necromancer mortal ID
+          └─> Force 'necromancer-tower' theme
   
-  ΓööΓöÇ> generateBosses(seed, depth, age, rng, worldContext, provenance)
-      ΓööΓöÇ> If builderMortalId exists:
-          Γö£ΓöÇ> Use that mortal as final boss
-          ΓööΓöÇ> Record event: "became dungeon boss" in mortal's history
+  └─> generateBosses(seed, depth, age, rng, worldContext, provenance)
+      └─> If builderMortalId exists:
+          ├─> Use that mortal as final boss
+          └─> Record event: "became dungeon boss" in mortal's history
       
-      ΓööΓöÇ> If evil mortals at location:
-          Γö£ΓöÇ> 40% chance to use one as final boss
-          ΓööΓöÇ> Record event: "became dungeon boss" in mortal's history
+      └─> If evil mortals at location:
+          ├─> 40% chance to use one as final boss
+          └─> Record event: "became dungeon boss" in mortal's history
 ```
 
 ## Data Structures
@@ -234,3 +234,4 @@ If `worldContext` is not provided:
 - Bosses are generated normally (not from standout mortals)
 - No events are recorded
 - System works as before
+

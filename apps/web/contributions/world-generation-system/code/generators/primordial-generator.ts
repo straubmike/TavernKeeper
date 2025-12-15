@@ -32,10 +32,13 @@ export class PrimordialGenerator {
     const primordials: PrimordialBeing[] = [];
 
     types.forEach((type, index) => {
+      // Use context RNG for deterministic generation (matching HTML tool behavior)
       const name = generateName(
         NameTemplates.primordial[type],
         context.seed,
-        index
+        index,
+        undefined, // No usedNames tracking for primordials
+        context.rng // Use the seeded RNG from context
       );
 
       const primordial: PrimordialBeing = {
@@ -66,14 +69,12 @@ export class PrimordialGenerator {
    */
   private getDomain(type: PrimordialType): string {
     const domains: Record<PrimordialType, string> = {
-      space: 'The emptiness and expanse between all things',
-      time: 'The flow and progression of moments',
+      space: 'The emptiness and expanse between all things, the nothingness and absence',
+      time: 'The flow and progression of moments, the infinite and endless',
       light: 'Illumination, vision, and clarity',
       dark: 'Shadow, concealment, and the unknown',
       order: 'Structure, pattern, and stability',
       chaos: 'Entropy, disorder, and change',
-      void: 'Nothingness and absence',
-      eternity: 'The infinite and endless',
     };
     return domains[type] || 'Unknown domain';
   }
@@ -83,14 +84,12 @@ export class PrimordialGenerator {
    */
   private getInfluence(type: PrimordialType): string[] {
     const influences: Record<PrimordialType, string[]> = {
-      space: ['distance', 'location', 'separation', 'containment'],
-      time: ['past', 'present', 'future', 'duration'],
+      space: ['distance', 'location', 'separation', 'containment', 'emptiness', 'absence', 'nothing'],
+      time: ['past', 'present', 'future', 'duration', 'infinity', 'endlessness', 'permanence', 'timelessness'],
       light: ['vision', 'clarity', 'truth', 'warmth'],
       dark: ['secrets', 'mystery', 'fear', 'rest'],
       order: ['law', 'structure', 'predictability', 'stability'],
       chaos: ['change', 'randomness', 'creativity', 'destruction'],
-      void: ['emptiness', 'absence', 'nothing', 'void'],
-      eternity: ['infinity', 'endlessness', 'permanence', 'timelessness'],
     };
     return influences[type] || [];
   }

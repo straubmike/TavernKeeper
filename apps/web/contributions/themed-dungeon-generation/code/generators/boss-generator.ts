@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Boss Generator
  * 
  * Generates mid-bosses and final bosses for dungeons.
@@ -258,3 +258,4 @@ export class BossGenerator {
     return historyList[Math.floor(rng() * historyList.length)];
   }
 }
+

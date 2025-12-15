@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dungeon Builders and Purposes
  * 
  * Defines who built dungeons and why, with proper categorization.
@@ -400,3 +400,4 @@ export function getDifficultyMultiplier(age: number): number {
       return 1.6; // 60% harder
   }
 }
+

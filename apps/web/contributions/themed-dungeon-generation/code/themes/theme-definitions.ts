@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Theme Definitions
  * 
  * Defines the available dungeon themes and their properties.
@@ -272,3 +272,4 @@ export function getThemesByBossInfluence(bossType: string): DungeonTheme[] {
 export function getAllThemeIds(): string[] {
   return DUNGEON_THEMES.map((theme) => theme.id);
 }
+

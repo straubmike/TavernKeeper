@@ -8,12 +8,24 @@ const getSupabaseConfig = () => {
     process.env.NEXT_PUBLIC_SUPABASE_PROJECT_URL ||
     '';
 
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_API_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_API_KEY ||
-    '';
+  // In server-side contexts (workers, API routes), prefer service role key to bypass RLS
+  // Service role key bypasses RLS policies, which is needed for workers
+  const isServerSide = typeof window === 'undefined';
+  const hasServiceRoleKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (isServerSide && hasServiceRoleKey) {
+    // Use service role key in server context (workers, API routes)
+    // This bypasses RLS policies
+  }
+  
+  const key = (isServerSide && hasServiceRoleKey)
+    ? process.env.SUPABASE_SERVICE_ROLE_KEY!
+    : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_API_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_API_KEY ||
+      '';
 
   return { url, key };
 };

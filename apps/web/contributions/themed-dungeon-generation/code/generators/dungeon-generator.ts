@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Themed Dungeon Generator
  * 
  * PRIMARY IMPLEMENTATION - This is the main TypeScript code that should be
@@ -887,3 +887,4 @@ export class ThemedDungeonGenerator {
     };
   }
 }
+

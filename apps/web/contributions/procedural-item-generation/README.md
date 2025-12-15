@@ -164,9 +164,6 @@ contributions/procedural-item-generation/
 ├── README.md (this file)
 ├── DESIGN.md (design overview)
 ├── INTEGRATION_NOTES.md (class restrictions guide)
-├── tools/
-│   ├── item-generator-tool.html        # Standalone HTML test tool
-│   └── README.md                        # Tool documentation
 ├── examples/
 │   └── usage-examples.ts                # Generation examples
 └── code/
@@ -177,6 +174,8 @@ contributions/procedural-item-generation/
     │   ├── item-generator.ts            # Main generator (weapons + armor)
     │   └── index.ts                     # Exports
     └── README.md                        # Implementation documentation
+
+Note: The standalone HTML test tool has been moved to contributions/tools/item-generator/
 ```
 
 ## Integration Example

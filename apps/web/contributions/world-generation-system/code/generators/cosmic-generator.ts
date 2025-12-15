@@ -31,14 +31,24 @@ export class CosmicGenerator {
       'life',
       'fire',
       'earth',
+      'ice',
+      'magic',
     ];
 
     const creators: CosmicCreator[] = [];
 
     elements.forEach((element, index) => {
-      // Assign to a primordial (deterministic)
-      const primordialIndex = index % context.primordials.length;
-      const createdBy = context.primordials[primordialIndex].id;
+      // Assign to a primordial
+      let createdBy: string;
+      if (element === 'ice' || element === 'magic') {
+        // Ice and magic get random primordial creators
+        const randomIndex = Math.floor(context.rng() * context.primordials.length);
+        createdBy = context.primordials[randomIndex].id;
+      } else {
+        // Other elements use deterministic round-robin assignment
+        const primordialIndex = index % context.primordials.length;
+        createdBy = context.primordials[primordialIndex].id;
+      }
 
       const name = generateName(
         NameTemplates.cosmic[element],

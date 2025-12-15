@@ -1,4 +1,4 @@
-﻿# Room Generation System Breakdown
+# Room Generation System Breakdown
 
 ## Overview
 This document breaks down how rooms are generated for dungeons in the master generator tool.
@@ -84,7 +84,7 @@ Themes are determined by the **dungeon's purpose**, not by level depth:
 
 **c) Ambush Room (20%)**
 - Appears to be a safe room
-- If perception check is failed ΓåÆ encounter starts
+- If perception check is failed → encounter starts
 - Enemies go first with advantage
 - Has encounters (themed by boss)
 - Name: "Ambush Room"
@@ -127,10 +127,10 @@ Encounters are themed based on the dungeon's creator (boss):
 - Spellcaster, Elemental, Golem
 
 **Organization Race-Based:**
-- Orc organization ΓåÆ Orcs, Goblins, Trolls
-- Human organization ΓåÆ Bandits, Mercenaries, Guards, Knights
-- Elf organization ΓåÆ Elf Warriors, Archers, Mages
-- Dwarf organization ΓåÆ Dwarf Warriors, Defenders
+- Orc organization → Orcs, Goblins, Trolls
+- Human organization → Bandits, Mercenaries, Guards, Knights
+- Elf organization → Elf Warriors, Archers, Mages
+- Dwarf organization → Dwarf Warriors, Defenders
 
 **Default (No Boss Info):**
 - Skeleton, Zombie, Goblin, Orc, Troll, Giant Spider
@@ -148,20 +148,20 @@ Currently includes flavor features that may be removed later:
 
 ## What Was Removed
 
-1. Γ¥î Level-based theme system (Sewers ΓåÆ Crypt ΓåÆ Catacombs)
-2. Γ¥î Corridor, Entrance, Boss Chamber as separate room types
-3. Γ¥î Special level rules (Level 1 = entrance, Level 100 = boss, etc.)
-4. Γ¥î Loot generation system
-5. Γ¥î Difficulty calculation
-6. Γ¥î Generic trap list (replaced with trap room subtypes)
+1. ❌ Level-based theme system (Sewers → Crypt → Catacombs)
+2. ❌ Corridor, Entrance, Boss Chamber as separate room types
+3. ❌ Special level rules (Level 1 = entrance, Level 100 = boss, etc.)
+4. ❌ Loot generation system
+5. ❌ Difficulty calculation
+6. ❌ Generic trap list (replaced with trap room subtypes)
 
 ## Current System Summary
 
 **Room Generation Flow:**
 1. Determine theme from dungeon purpose
 2. Roll for room type (60% combat, 20% safe, 20% trap)
-3. If safe ΓåÆ roll subtype (50% regular, 50% treasure)
-4. If trap ΓåÆ roll subtype (20% each: mechanical, magical, ambush, trapped_treasure, puzzle)
+3. If safe → roll subtype (50% regular, 50% treasure)
+4. If trap → roll subtype (20% each: mechanical, magical, ambush, trapped_treasure, puzzle)
 5. Get boss info to theme encounters
 6. Generate encounters (if applicable)
 7. Generate features (optional flavor)

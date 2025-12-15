@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Adventurer Tracking System - Usage Examples
  * 
  * Examples showing how to integrate and use the adventurer tracking system.
@@ -23,10 +23,31 @@ import type {
   RestorationOptions,
   TrapType,
 } from '../code/types/adventurer-stats';
+import { 
+  calculateProficiencyBonus 
+} from '../code/types/adventurer-stats';
 import { getHeroByTokenId } from '../../../../lib/services/heroOwnership';
 
 /**
  * Example 1: Initialize adventurer from hero NFT
+ * 
+ * NOTE: When heroes are minted, they should be initialized with a base weapon
+ * via the inventory-tracking service. After calling this function, you should:
+ * 
+ * 1. Generate a base weapon (common rarity, appropriate for hero class):
+ *    - Warrior: Longsword
+ *    - Mage: Staff
+ *    - Rogue: Dagger
+ *    - Cleric: Mace
+ * 
+ * 2. Add to inventory via inventoryService.addItemToInventory()
+ * 
+ * 3. Equip via inventoryService.equipItem() with slot 'main_hand'
+ * 
+ * This ensures all heroes start with appropriate equipment and the combat system
+ * can retrieve their weapons from inventory rather than using defaults.
+ * 
+ * See: apps/web/contributions/inventory-tracking for the inventory system.
  */
 export async function initializeAdventurerFromHero(
   tokenId: string,
@@ -110,7 +131,23 @@ export async function initializeAdventurerFromHero(
     },
   };
 
-  const stats = baseStats[heroClass as keyof typeof baseStats] || baseStats.warrior;
+  const baseStatBlock = baseStats[heroClass as keyof typeof baseStats] || baseStats.warrior;
+  
+  // Calculate proficiency bonus from level (default level 1 = +2)
+  const level = 1; // Default level for new characters
+  const proficiencyBonus = calculateProficiencyBonus(level);
+  
+  // Random chance (35%) to assign Perception proficiency
+  const perceptionProficient = Math.random() < 0.35;
+  
+  // Add proficiency fields to stats
+  const stats = {
+    ...baseStatBlock,
+    proficiencyBonus,
+    skillProficiencies: {
+      perception: perceptionProficient,
+    },
+  };
 
   const heroId: HeroIdentifier = {
     tokenId,
@@ -123,6 +160,7 @@ export async function initializeAdventurerFromHero(
     walletAddress: walletAddress.toLowerCase(),
     name: hero.name,
     class: heroClass as any,
+    level,
     stats,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -333,7 +371,7 @@ export async function levelUpAdventurer(
   const hitDie = hitDice[adventurer.class];
   
   // Calculate HP gain from Constitution (D&D 5e)
-  // HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) ├ù (level - 1)
+  // HP = (Hit Die + CON modifier) + (Hit Die Average + CON modifier) × (level - 1)
   const conModifier = Math.floor((adventurer.stats.constitution - 10) / 2);
   const hitDieAverage = Math.floor(hitDie / 2) + 1; // Average of hit die
   

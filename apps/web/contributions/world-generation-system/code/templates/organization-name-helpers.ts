@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Organization Name Helpers
  * 
  * Helper functions for generating complete organization names from templates
@@ -150,3 +150,4 @@ function simpleHash(str: string): number {
   }
   return Math.abs(hash);
 }
+

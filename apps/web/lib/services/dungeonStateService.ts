@@ -93,6 +93,32 @@ export const dungeonStateService = {
     },
 
     /**
+     * Unlock heroes after a run completes or fails
+     */
+    async unlockHeroes(heroes: { contractAddress: string; tokenId: string }[]) {
+        if (heroes.length === 0) return;
+
+        const now = new Date().toISOString();
+        const tokenIds = heroes.map(h => h.tokenId);
+
+        // Update hero states to idle
+        const { error } = await supabase
+            .from('hero_states')
+            .update({
+                status: 'idle',
+                locked_until: null,
+                current_run_id: null,
+                updated_at: now
+            })
+            .in('token_id', tokenIds);
+
+        if (error) {
+            console.warn('Error unlocking heroes (ignoring):', error.message);
+            // Don't throw, just log and continue
+        }
+    },
+
+    /**
      * Increment user daily run count
      */
     async incrementUserDailyRun(walletAddress: string) {

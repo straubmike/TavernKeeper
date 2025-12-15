@@ -1,19 +1,23 @@
-﻿# Integration with Map Generator System
+# Integration with Map Generator System
+
+**⚠️ DEPRECATED:** This file documents integration with the map-generator-system, which has been removed. This documentation is kept for historical reference only and should not be used for new development.
 
 ## Overview
 
-The themed dungeon generator is integrated with the map generator system. The map generator acts as the "atrium" that coordinates all systems, and it calls the themed dungeon generator for richer dungeon provenance and boss generation.
+The themed dungeon generator was previously integrated with the map generator system. The map generator acted as the "atrium" that coordinated all systems, and it called the themed dungeon generator for richer dungeon provenance and boss generation.
+
+**Note:** The map-generator-system has been deleted. Dungeon generation now happens directly through the themed-dungeon-generation system and world-generation-system.
 
 ## Integration Flow
 
 ```
 Map Generator (Atrium)
-  ΓööΓöÇ> RichContentGenerator.generateDungeonContent(dungeon, themedGenerator)
-       Γö£ΓöÇ> ThemedDungeonGenerator.generateProvenance()
-       Γöé   ΓööΓöÇ> Returns: builder, purpose, age, history, originalDepth
-       Γöé
-       ΓööΓöÇ> ThemedDungeonGenerator.generateBosses(seed, depth, age)
-           ΓööΓöÇ> Returns: finalBoss, midBosses (with age-based difficulty)
+  └─> RichContentGenerator.generateDungeonContent(dungeon, themedGenerator)
+       ├─> ThemedDungeonGenerator.generateProvenance()
+       │   └─> Returns: builder, purpose, age, history, originalDepth
+       │
+       └─> ThemedDungeonGenerator.generateBosses(seed, depth, age)
+           └─> Returns: finalBoss, midBosses (with age-based difficulty)
 ```
 
 ## What the Map Generator Uses
@@ -27,8 +31,8 @@ The map generator calls `ThemedDungeonGenerator.generateProvenance()` which prov
   - 8 Dungeon-like constructions (built as dungeons)
   
 - **Builder-Matched Purposes**: Each builder has 5 specific purposes
-  - Example: Gnomish Workshop ΓåÆ mechanical workshop, invention laboratory, etc.
-  - Example: Dark Necromancer Cult ΓåÆ necromantic research, undead laboratory, etc.
+  - Example: Gnomish Workshop → mechanical workshop, invention laboratory, etc.
+  - Example: Dark Necromancer Cult → necromantic research, undead laboratory, etc.
 
 - **Age**: 50, 100, 200, 500, or 1000 years ago
 
@@ -62,8 +66,8 @@ The map generator calls `ThemedDungeonGenerator.generateBosses()` which provides
 
 The `RichContentGenerator` automatically converts formats:
 
-- Themed generator's `Boss` ΓåÆ `RichDungeonContent['mainBoss']`
-- Themed generator's `DungeonProvenance` ΓåÆ `RichDungeonContent['provenance']`
+- Themed generator's `Boss` → `RichDungeonContent['mainBoss']`
+- Themed generator's `DungeonProvenance` → `RichDungeonContent['provenance']`
 
 ## Usage Example
 
@@ -134,3 +138,4 @@ The map generator uses `ThemedDungeonGeneratorInterface` (defined in `map-genera
 - Bosses are aligned with provenance through age-based difficulty
 - All generation remains deterministic (seed-based)
 - The integration is optional - map generator can work without it (backward compatible)
+

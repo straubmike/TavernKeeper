@@ -1,4 +1,4 @@
-﻿# Integration Requirements for World History Integration
+# Integration Requirements for World History Integration
 
 ## Summary
 
@@ -6,7 +6,7 @@ The themed dungeon generator has been updated to support full integration with w
 
 ## What Has Been Done
 
-Γ£à **Themed Dungeon Generator:**
+✅ **Themed Dungeon Generator:**
 - Expanded `DungeonWorldContext` to include full standout mortal data (race, organization, createdAt, etc.)
 - Updated `convertStandoutMortalToBoss()` to preserve full history and link to original mortal
 - Added event recording when standout mortals become dungeon bosses
@@ -43,11 +43,13 @@ The themed dungeon generator has been updated to support full integration with w
 2. **Ensure standout mortals include full WorldContent data:**
    - Already includes: `id`, `name`, `description`, `parentId`, `createdAt`, `discoveredAt`
    - Already includes: `race`, `organization`, `location`, `powers`, `level`, `age`, `alignment`
-   - Γ£à This is already correct
+   - ✅ This is already correct
 
 ### 2. Map Generator System
 
-**Location:** `apps/web/contributions/map-generator-system/code/generators/map-generator.ts` and `rich-content-generator.ts`
+**⚠️ DEPRECATED:** The map-generator-system has been removed. This section is kept for historical reference only.
+
+**Location:** ~~`apps/web/contributions/map-generator-system/code/generators/map-generator.ts` and `rich-content-generator.ts`~~ (DELETED)
 
 **Required Changes:**
 
@@ -157,7 +159,7 @@ The `recordEntityEvent` callback needs to:
 ### World Generator
 - [ ] Create world events when necromancer standout mortals are generated
 - [ ] Store world events in accessible location (GeneratedWorld or WorldManager)
-- [ ] Ensure standout mortals include full WorldContent data (Γ£à already done)
+- [ ] Ensure standout mortals include full WorldContent data (✅ already done)
 
 ### Map Generator
 - [ ] Query world context for standout mortals at dungeon location
@@ -202,3 +204,4 @@ The `recordEntityEvent` callback needs to:
 - The themed dungeon generator is **backward compatible** - if `worldContext` is not provided, it works as before
 - All generation remains **deterministic** and **seed-based**
 - The integration is **optional** - dungeons can still be generated without world context
+

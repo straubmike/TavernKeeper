@@ -1,21 +1,22 @@
-﻿/**
+/**
  * Turn Order System
  * 
  * Handles initiative and turn order determination based on DEX.
  */
 
 import type { CombatEntity } from '../types/combat';
+import { SeededRNG } from '../../../../lib/utils/seededRNG';
 
 /**
  * Sort entities by dexterity for turn order (highest DEX goes first)
- * If DEX is tied, randomize between tied entities
+ * If DEX is tied, use seeded RNG to break ties deterministically
  */
-export function determineTurnOrder(entities: CombatEntity[]): string[] {
+export function determineTurnOrder(entities: CombatEntity[], rng: SeededRNG): string[] {
   // Create array with entity ID and DEX for sorting
   const entityDex = entities.map(entity => ({
     id: entity.id,
     dexterity: entity.dexterity,
-    random: Math.random(), // For tie-breaking
+    random: rng.random(), // For tie-breaking (deterministic)
   }));
 
   // Sort by DEX (descending), then by random for ties

@@ -120,6 +120,15 @@ export async function syncUserHeroes(walletAddress: string) {
                         console.error('Error upserting hero:', error);
                     } else {
                         syncedHeroes.push(heroData);
+                        
+                        // Initialize adventurer stats if not already initialized
+                        try {
+                            const { initializeAdventurerOnSync } = await import('./heroAdventurerInit');
+                            await initializeAdventurerOnSync(tokenId, walletAddress, contractAddress);
+                        } catch (initError) {
+                            console.warn(`Failed to initialize adventurer stats for hero ${tokenId}:`, initError);
+                            // Non-fatal - continue syncing other heroes
+                        }
                     }
                 }
             } catch (e) {

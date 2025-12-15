@@ -1,4 +1,4 @@
-﻿# Inventory Tracking System
+# Inventory Tracking System
 
 ## What This Does
 
@@ -109,16 +109,16 @@ None - this is an additive feature. Existing item systems (on-chain ERC-1155) re
 
 ```
 contributions/inventory-tracking/
-Γö£ΓöÇΓöÇ README.md (this file)
-Γö£ΓöÇΓöÇ code/
-Γöé   Γö£ΓöÇΓöÇ types/
-Γöé   Γöé   ΓööΓöÇΓöÇ inventory.ts            # Inventory types and interfaces
-Γöé   Γö£ΓöÇΓöÇ database/
-Γöé   Γöé   ΓööΓöÇΓöÇ migration.sql           # Database schema
-Γöé   ΓööΓöÇΓöÇ services/
-Γöé       ΓööΓöÇΓöÇ inventoryService.ts    # Service for managing inventory
-ΓööΓöÇΓöÇ examples/
-    ΓööΓöÇΓöÇ usage-examples.ts           # Code examples showing integration
+├── README.md (this file)
+├── code/
+│   ├── types/
+│   │   └── inventory.ts            # Inventory types and interfaces
+│   ├── database/
+│   │   └── migration.sql           # Database schema
+│   └── services/
+│       └── inventoryService.ts    # Service for managing inventory
+└── examples/
+    └── usage-examples.ts           # Code examples showing integration
 ```
 
 ## Integration Example
@@ -200,3 +200,40 @@ console.log(`Unequipped: ${summary.unequippedItems}`);
   2. Update item generation to create individual armor pieces
   3. Update UI to show separate armor slots
   4. No major refactoring needed - the structure is already in place
+
+- **CRITICAL: Hero Minting & Base Weapon Initialization**: 
+  
+  **IMPORTANT**: When heroes are minted, they MUST be initialized with a base weapon equipped. Without this, heroes will use unarmed strikes (1 damage) in combat and cannot progress.
+  
+  **Required Steps**:
+  1. Generate a base weapon (common rarity, appropriate for hero class) using the procedural item generation system:
+     - Warriors → Longsword
+     - Mages → Staff  
+     - Rogues → Dagger
+     - Clerics → Mace
+  2. Add to inventory via `addItemToInventory()` with the wallet address
+  3. Equip via `equipItem()` with slot `'main_hand'`
+  
+  **Example**:
+  ```typescript
+  import { ItemGenerator } from '@/lib/services/itemGenerator';
+  import { addItemToInventory, equipItem } from '@/lib/services/inventoryService';
+  
+  const generator = new ItemGenerator();
+  const baseWeapon = generator.generateItem({
+    context: 'dungeon_loot',
+    level: 1,
+    classPreference: heroClass,
+    rarityModifier: 100, // Common rarity
+  });
+  
+  await addItemToInventory(walletAddress, baseWeapon, 1, 'hero_mint');
+  await equipItem({
+    itemId: baseWeapon.id,
+    heroId: { tokenId, contractAddress, chainId },
+    slot: 'main_hand',
+    action: 'equip',
+  });
+  ```
+  
+  This ensures all heroes start with appropriate equipment and the combat system can retrieve their weapons from inventory rather than using defaults. See `apps/web/contributions/adventurer-tracking/README.md` section "CRITICAL: Initial Weapon Setup for Minted Heroes" for additional details and integration points.

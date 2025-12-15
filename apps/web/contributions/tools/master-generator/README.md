@@ -1,4 +1,4 @@
-﻿# Master Generation Tool
+# Master Generation Tool
 
 A comprehensive HTML tool that unifies all generation systems (World, Map, Dungeon, Item) into a single tabbed interface with full integration between systems.
 
@@ -48,9 +48,9 @@ The master tool provides a unified interface for testing and exploring all gener
 
 ### Integration
 
-- **World ΓåÆ Map**: Geography mapping, organization placement, world event detection
-- **Map ΓåÆ Dungeon**: Location selection from dungeon entrances, geography linkage
-- **World ΓåÆ Dungeon**: Standout mortals as bosses, world events in provenance, location-based filtering
+- **World → Map**: Geography mapping, organization placement, world event detection
+- **Map → Dungeon**: Location selection from dungeon entrances, geography linkage
+- **World → Dungeon**: Standout mortals as bosses, world events in provenance, location-based filtering
 - **Shared Context**: Real-time statistics panel showing integration across all systems
 
 ## Usage
@@ -66,55 +66,55 @@ The master tool provides a unified interface for testing and exploring all gener
 
 ```
 World Generation (Tab 1)
-  Γö£ΓöÇ Generates: 9 levels (Primordials ΓåÆ Family)
-  Γö£ΓöÇ Produces: Geography entities with IDs
-  Γö£ΓöÇ Produces: Organizations with IDs
-  Γö£ΓöÇ Produces: Standout Mortals with location (geography ID)
-  ΓööΓöÇ Stores: GeneratedWorld in shared context
-    Γåô
+  ├─ Generates: 9 levels (Primordials → Family)
+  ├─ Produces: Geography entities with IDs
+  ├─ Produces: Organizations with IDs
+  ├─ Produces: Standout Mortals with location (geography ID)
+  └─ Stores: GeneratedWorld in shared context
+    ↓
 Map Generation (Tab 2)
-  Γö£ΓöÇ Uses: World Geography entities (coordinate mapping)
-  Γö£ΓöÇ Uses: World Organizations (placed on map)
-  Γö£ΓöÇ Generates: MapCell[] with features at coordinates
-  ΓööΓöÇ Creates: Dungeon entrances with location IDs
-    Γåô
+  ├─ Uses: World Geography entities (coordinate mapping)
+  ├─ Uses: World Organizations (placed on map)
+  ├─ Generates: MapCell[] with features at coordinates
+  └─ Creates: Dungeon entrances with location IDs
+    ↓
 Dungeon Generation (Tab 3)
-  Γö£ΓöÇ Uses: buildDungeonWorldContext(world, locationId)
-  Γö£ΓöÇ Uses: Map location (coordinates, geography ID)
-  Γö£ΓöÇ Generates: Themed dungeon with bosses
-  ΓööΓöÇ Bosses can be standout mortals from world
-    Γåô
+  ├─ Uses: buildDungeonWorldContext(world, locationId)
+  ├─ Uses: Map location (coordinates, geography ID)
+  ├─ Generates: Themed dungeon with bosses
+  └─ Bosses can be standout mortals from world
+    ↓
 Item Generation (Tab 4)
-  ΓööΓöÇ Standalone (can use dungeon context for loot generation)
+  └─ Standalone (can use dungeon context for loot generation)
 ```
 
 ## Integration Features
 
-### World ΓåÆ Map Integration
+### World → Map Integration
 
 - **Geography Mapping**: Deterministic hash-based mapping of coordinates to geography entities
 - **Organization Placement**: Organizations from world context placed on map based on location
 - **World Events**: Necromancer tower construction events convert dungeons to towers
 
-### Map ΓåÆ Dungeon Integration
+### Map → Dungeon Integration
 
 - **Location Selection**: Dropdown populated from map dungeon entrances
 - **Geography Linkage**: Dungeon entrances store locationId linking to world geography
 - **Event Detection**: Tower names linked to necromancer builders from world events
 
-### World ΓåÆ Dungeon Integration
+### World → Dungeon Integration
 
 - **World Context Builder**: Filters standout mortals and world events by location
 - **Standout Mortals as Bosses**: 40% chance to use evil standout mortals as dungeon bosses
-- **Theme Auto-Adjustment**: Theme adjusts based on boss type (necromancer/lich ΓåÆ undead theme)
+- **Theme Auto-Adjustment**: Theme adjusts based on boss type (necromancer/lich → undead theme)
 - **Provenance System**: Uses world events for dungeon history (e.g., necromancer tower construction)
 
 ## File Structure
 
 ```
 apps/web/contributions/tools/master-generator/
-Γö£ΓöÇΓöÇ master-generator-tool.html    # Main tool file (all-in-one HTML, ~2600+ lines)
-ΓööΓöÇΓöÇ README.md                     # This file
+├── master-generator-tool.html    # Main tool file (all-in-one HTML, ~2600+ lines)
+└── README.md                     # This file
 ```
 
 ## Relationship to TypeScript Source Code

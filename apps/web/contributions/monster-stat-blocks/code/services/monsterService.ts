@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Monster Stat Block Service
  * 
  * Service for retrieving and managing monster stat blocks for combat encounters.
