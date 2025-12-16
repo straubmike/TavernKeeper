@@ -13,7 +13,7 @@ export default function OfficeTutorialPage() {
             details: [
                 'Each epoch starts with a high initial price',
                 'Price decreases linearly over 1 hour (3600 seconds)',
-                'Minimum price floor is 1 MON',
+                'Minimum price floor is 1000 MON',
                 'When someone takes office, they become the new Manager',
                 'Previous Manager receives 80% of the payment + accumulated KEEP tokens'
             ],
@@ -25,7 +25,7 @@ export default function OfficeTutorialPage() {
             details: [
                 'Price starts at initPrice (set by previous Manager)',
                 'Formula: price = initPrice - (initPrice × timePassed / 3600)',
-                'Price cannot go below 1 MON minimum',
+                'Price cannot go below 1000 MON minimum',
                 'The longer you wait, the cheaper it gets (but someone else might take it!)'
             ],
             visual: '💰'
@@ -97,7 +97,7 @@ export default function OfficeTutorialPage() {
             },
             {
                 title: 'Minimum Floor',
-                content: 'Prices cannot go below a minimum floor (1 MON for Office, configurable for Cellar).',
+                content: 'Prices cannot go below a minimum floor (1000 MON for Office, configurable for Cellar).',
                 example: 'Even after full epoch period, price stays at minimum floor'
             }
         ]

@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./TavernKeeperV3.sol";
+import "./TavernKeeperPausable.sol";
 
 /**
- * @title TavernKeeperSetMinPrice
- * @notice Upgrade to set minimum office price to 100 MON (v4.3.0) [CURRENT DEPLOYED]
- * @dev Overrides _getPriceFromCache and takeOffice to use 100 MON minimum instead of 1 MON
- *      Extends TavernKeeperV3 to preserve storage layout (migrationClaimed variable)
+ * @title TavernKeeperSetMinPrice1000
+ * @notice Upgrade to set minimum office price to 1000 MON (v4.5.0)
+ * @dev Overrides _getPriceFromCache and takeOffice to use 1000 MON minimum instead of 100 MON
+ *      Extends TavernKeeperPausable to preserve storage layout and pause functionality
  *
  * ════════════════════════════════════════════════════════════════════════════════
  * VERSION TRACKING - READ THIS BEFORE MAKING CHANGES
  * ════════════════════════════════════════════════════════════════════════════════
  *
- * VERSION: v4.3.0
- * DEPLOYED: 2025-01-10
- * IMPLEMENTATION: 0xb1F8A6bFfcEd97ee41d71a17A0aA5106253dBb6D
+ * VERSION: v4.5.0
+ * DEPLOYED: TBD
+ * IMPLEMENTATION: TBD
  * PROXY: 0x56B81A60Ae343342685911bd97D1331fF4fa2d29
  *
  * UPGRADE CHAIN:
- *   TavernKeeperV3 (v4.2.0) → TavernKeeperSetMinPrice (v4.3.0) [CURRENT]
+ *   TavernKeeperV3 (v4.2.0) → TavernKeeperSetMinPrice (v4.3.0) → TavernKeeperPausable (v4.4.0) → TavernKeeperSetMinPrice1000 (v4.5.0) [CURRENT]
  *
  * ⚠️  CRITICAL RULES FOR UPGRADES:
  *   1. ALWAYS check DEPLOYMENT_TRACKER.md to see what's actually deployed
@@ -35,14 +35,14 @@ import "./TavernKeeperV3.sol";
  *
  * ════════════════════════════════════════════════════════════════════════════════
  */
-contract TavernKeeperSetMinPrice is TavernKeeperV3 {
+contract TavernKeeperSetMinPrice1000 is TavernKeeperPausable {
 
-    uint256 private constant NEW_MIN_INIT_PRICE = 100 ether; // 100 MON
+    uint256 private constant NEW_MIN_INIT_PRICE = 1000 ether; // 1000 MON
 
     /**
-     * @notice Override _getPriceFromCache to use 100 MON minimum
+     * @notice Override _getPriceFromCache to use 1000 MON minimum
      */
-    function _getPriceFromCache(Slot0 memory slot0Cache) internal view virtual override returns (uint256) {
+    function _getPriceFromCache(Slot0 memory slot0Cache) internal view override returns (uint256) {
         uint256 timePassed = block.timestamp - slot0Cache.startTime;
 
         if (timePassed > EPOCH_PERIOD) {
@@ -54,14 +54,15 @@ contract TavernKeeperSetMinPrice is TavernKeeperV3 {
     }
 
     /**
-     * @notice Override takeOffice to use 100 MON minimum for new init price
+     * @notice Override takeOffice to use 1000 MON minimum for new init price
+     * @dev Still includes pause check via whenNotPaused modifier from parent
      */
     function takeOffice(
         uint256 epochId,
         uint256 deadline,
         uint256 maxPrice,
         string memory uri
-    ) public payable virtual override nonReentrant returns (uint256 price) {
+    ) public payable virtual override whenNotPaused nonReentrant returns (uint256 price) {
         if (block.timestamp > deadline) revert Expired();
 
         Slot0 memory slot0Cache = slot0;

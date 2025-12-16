@@ -148,7 +148,7 @@ contract TavernKeeperPausable is TavernKeeperSetMinPrice {
         uint256 deadline,
         uint256 maxPrice,
         string memory uri
-    ) public payable override whenNotPaused returns (uint256 price) {
+    ) public payable virtual override whenNotPaused returns (uint256 price) {
         return super.takeOffice(epochId, deadline, maxPrice, uri);
     }
 }

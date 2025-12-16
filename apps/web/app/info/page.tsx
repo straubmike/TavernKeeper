@@ -129,7 +129,7 @@ export default function InfoPage() {
                             <div className="text-center">
                                 <div className="text-4xl mb-3">💰</div>
                                 <h3 className="text-xl font-semibold text-yellow-400 mb-2">Floor Price</h3>
-                                <p className="text-gray-400">Reaches minimum floor (1 MON)</p>
+                                <p className="text-gray-400">Reaches minimum floor (1000 MON)</p>
                             </div>
                         </div>
                         <div className="bg-[#1a120b] rounded-lg p-6 border border-yellow-600/30">

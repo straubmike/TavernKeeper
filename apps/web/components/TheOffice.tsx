@@ -491,6 +491,28 @@ export const TheOffice: React.FC<{
             return;
         }
 
+        // Check cooldown status
+        if (address) {
+            const cooldownStatus = await tavernKeeperService.checkCooldown(address);
+            if (!cooldownStatus.canClaim) {
+                const hoursRemaining = Math.floor(cooldownStatus.timeRemaining / 3600);
+                const minutesRemaining = Math.floor((cooldownStatus.timeRemaining % 3600) / 60);
+                const secondsRemaining = cooldownStatus.timeRemaining % 60;
+
+                let timeMessage = '';
+                if (hoursRemaining > 0) {
+                    timeMessage = `${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''} ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`;
+                } else if (minutesRemaining > 0) {
+                    timeMessage = `${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''} ${secondsRemaining} second${secondsRemaining !== 1 ? 's' : ''}`;
+                } else {
+                    timeMessage = `${secondsRemaining} second${secondsRemaining !== 1 ? 's' : ''}`;
+                }
+
+                alert(`⏰ COOLDOWN ACTIVE\n\nYou can only claim the office once every 24 hours.\n\nTime remaining: ${timeMessage}\n\nPlease try again later!`);
+                return;
+            }
+        }
+
         // Check if user is trying to take office from themselves
         const currentKing = state.currentKing?.toLowerCase();
         const userAddress = address?.toLowerCase();
@@ -512,7 +534,7 @@ export const TheOffice: React.FC<{
             // Calculate Price
             const { parseEther, formatEther } = await import('viem');
             const currentPriceWei = parseEther(freshState.currentPrice);
-            const minPriceWei = parseEther('1.0');
+            const minPriceWei = parseEther('1000.0'); // Contract enforces 1000 MON minimum
             const effectivePriceWei = currentPriceWei < minPriceWei ? minPriceWei : currentPriceWei;
             const buffer = (effectivePriceWei * 5n) / 100n; // 5% buffer
             const safePrice = effectivePriceWei + buffer;
@@ -548,7 +570,32 @@ export const TheOffice: React.FC<{
         } catch (error) {
             console.error('Failed to take office:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            alert(`Failed to take office: ${errorMessage}`);
+
+            // Check for cooldown error specifically
+            if (errorMessage.includes('CooldownActive') || errorMessage.includes('cooldown')) {
+                // Try to extract time remaining from error if available
+                const timeMatch = errorMessage.match(/(\d+)/);
+                if (timeMatch) {
+                    const secondsRemaining = parseInt(timeMatch[1]);
+                    const hoursRemaining = Math.floor(secondsRemaining / 3600);
+                    const minutesRemaining = Math.floor((secondsRemaining % 3600) / 60);
+
+                    let timeMessage = '';
+                    if (hoursRemaining > 0) {
+                        timeMessage = `${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''} ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}`;
+                    } else if (minutesRemaining > 0) {
+                        timeMessage = `${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''}`;
+                    } else {
+                        timeMessage = `${secondsRemaining} second${secondsRemaining !== 1 ? 's' : ''}`;
+                    }
+
+                    alert(`⏰ COOLDOWN ACTIVE\n\nYou can only claim the office once every 24 hours.\n\nTime remaining: ${timeMessage}\n\nPlease try again later!`);
+                } else {
+                    alert(`⏰ COOLDOWN ACTIVE\n\nYou can only claim the office once every 24 hours.\n\nPlease try again later!`);
+                }
+            } else {
+                alert(`Failed to take office: ${errorMessage}`);
+            }
             setIsLoading(false);
         }
     };

@@ -591,6 +591,31 @@ export const CONTRACT_REGISTRY: Record<string, ContractConfig> = {
         stateMutability: 'view',
         type: 'function',
       },
+      // Cooldown functions (v4.6.0+)
+      {
+        inputs: [{ internalType: 'address', name: 'wallet', type: 'address' }],
+        name: 'canClaimOffice',
+        outputs: [
+          { name: 'canClaim', type: 'bool' },
+          { name: 'timeRemaining', type: 'uint256' },
+        ],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
+        inputs: [{ internalType: 'address', name: 'wallet', type: 'address' }],
+        name: 'getLastOfficeClaimTime',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
+      {
+        inputs: [],
+        name: 'COOLDOWN_PERIOD',
+        outputs: [{ name: '', type: 'uint256' }],
+        stateMutability: 'view',
+        type: 'function',
+      },
       // Whitelist functions (from compiled artifact)
       {
         inputs: [

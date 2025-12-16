@@ -1,4 +1,4 @@
-import { createPublicClient, formatEther, http, parseEther } from 'viem';
+import { createPublicClient, formatEther, http, parseEther, type Address } from 'viem';
 import { monad } from '../chains';
 import { CONTRACT_REGISTRY, getContractAddress } from '../contracts/registry';
 
@@ -17,6 +17,8 @@ export interface OfficeState {
     nextDps: string; // formatted string
     initPrice: string; // formatted string
     isPaused?: boolean; // Whether the office is paused
+    canClaimOffice?: boolean; // Whether user can claim (cooldown expired)
+    cooldownTimeRemaining?: number; // Seconds remaining in cooldown
     error?: string; // Error message if fetch failed
 }
 
@@ -95,6 +97,7 @@ export const tavernKeeperService = {
                 }).catch(() => false)), // Default to false if function doesn't exist
             ]);
 
+
             // Default values
             let slot0: any = {
                 miner: '0x0000000000000000000000000000000000000000',
@@ -147,6 +150,8 @@ export const tavernKeeperService = {
                 nextDps: formatEther(nextDps),
                 initPrice: formatEther(slot0.initPrice),
                 isPaused,
+                canClaimOffice: true, // Will be updated by checkCooldown if needed
+                cooldownTimeRemaining: 0,
                 error: undefined
             };
 
@@ -175,8 +180,52 @@ export const tavernKeeperService = {
                 startTime: 0,
                 nextDps: '0',
                 initPrice: '0',
+                canClaimOffice: true,
+                cooldownTimeRemaining: 0,
                 error: "Failed to connect to blockchain"
             };
+        }
+    },
+
+    /**
+     * Check if a wallet can claim the office (cooldown status)
+     * @param walletAddress The wallet address to check
+     * @returns Object with canClaim status and time remaining
+     */
+    async checkCooldown(walletAddress: string): Promise<{ canClaim: boolean; timeRemaining: number }> {
+        try {
+            const contractConfig = CONTRACT_REGISTRY.TAVERNKEEPER;
+            const contractAddress = getContractAddress(contractConfig);
+            if (!contractAddress) {
+                return { canClaim: true, timeRemaining: 0 };
+            }
+
+            const publicClient = createPublicClient({
+                chain: monad,
+                transport: http(),
+            });
+
+            // Try to call canClaimOffice (may not exist on older contracts)
+            try {
+                const [canClaim, timeRemaining] = await publicClient.readContract({
+                    address: contractAddress,
+                    abi: contractConfig.abi,
+                    functionName: 'canClaimOffice',
+                    args: [walletAddress as Address],
+                });
+
+                return {
+                    canClaim: canClaim as boolean,
+                    timeRemaining: Number(timeRemaining as bigint),
+                };
+            } catch (e) {
+                // Function doesn't exist on older contracts, assume can claim
+                return { canClaim: true, timeRemaining: 0 };
+            }
+        } catch (error) {
+            console.error("Error checking cooldown:", error);
+            // On error, assume can claim (fail open)
+            return { canClaim: true, timeRemaining: 0 };
         }
     },
 
@@ -201,7 +250,7 @@ export const tavernKeeperService = {
 
         // Calculate price with slippage
         const currentPriceWei = parseEther(state.currentPrice);
-        const minPriceWei = parseEther('1.0');
+        const minPriceWei = parseEther('1000.0'); // Contract enforces 1000 MON minimum
         const effectivePriceWei = currentPriceWei < minPriceWei ? minPriceWei : currentPriceWei;
         const buffer = (effectivePriceWei * 5n) / 100n;
         const safePrice = effectivePriceWei + buffer;
@@ -255,9 +304,9 @@ export const tavernKeeperService = {
         // The contract refunds any excess payment, so it is safe to send more.
         // We add 5% buffer to the current price to handle any price increase between fetch and tx.
         const currentPriceWei = parseEther(state.currentPrice);
-        const minPriceWei = parseEther('1.0');
+        const minPriceWei = parseEther('1000.0'); // Contract enforces 1000 MON minimum
 
-        // Enforce minimum price of 1 MON
+        // Enforce minimum price of 1000 MON
         const effectivePriceWei = currentPriceWei < minPriceWei ? minPriceWei : currentPriceWei;
 
         const buffer = (effectivePriceWei * 5n) / 100n;

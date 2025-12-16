@@ -329,9 +329,9 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                             <div className="bg-[#2a1d17] border border-[#5c4033] rounded p-0.5 flex flex-col items-center justify-center">
                                 <div className="text-[5px] text-[#fca5a5] uppercase tracking-widest mb-0.5">Price</div>
                                 <div className="text-[#f87171] font-bold text-[9px]">
-                                    <span className="text-purple-400">{Math.max(1.0, parseFloat(state.currentPrice || '1.0')).toFixed(3)}</span>
+                                    <span className="text-purple-400">{Math.max(1000.0, parseFloat(state.currentPrice || '1000.0')).toFixed(3)}</span>
                                     {monPriceUsd > 0 && (
-                                        <span className="text-green-400 text-[7px]"> ${(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * monPriceUsd).toFixed(2)}</span>
+                                        <span className="text-green-400 text-[7px]"> ${(Math.max(1000.0, parseFloat(state.currentPrice || '1000.0')) * monPriceUsd).toFixed(2)}</span>
                                     )}
                                 </div>
                             </div>
@@ -532,14 +532,14 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-zinc-400 text-sm">Office Price (You'll Pay):</span>
                                         <span className="text-xl font-bold text-orange-400">
-                                            {Math.max(1.0, parseFloat(state.currentPrice || '1.0')).toFixed(4)} MON
+                                            {Math.max(1000.0, parseFloat(state.currentPrice || '1000.0')).toFixed(4)} MON
                                         </span>
                                     </div>
                                     {monPriceUsd > 0 && (
                                         <div className="flex justify-between items-center">
                                             <span className="text-zinc-400 text-xs">USD Value:</span>
                                             <span className="text-green-400 text-sm font-semibold">
-                                                ${(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * monPriceUsd).toFixed(2)}
+                                                ${(Math.max(1000.0, parseFloat(state.currentPrice || '1000.0')) * monPriceUsd).toFixed(2)}
                                             </span>
                                         </div>
                                     )}
@@ -548,7 +548,7 @@ export const TheOfficeView: React.FC<TheOfficeViewProps> = ({
                                             <div className="flex justify-between items-center mb-1">
                                                 <span className="text-zinc-400 text-xs">Previous Owner Will Receive (80%):</span>
                                                 <span className="text-yellow-400 text-sm font-semibold">
-                                                    {(Math.max(1.0, parseFloat(state.currentPrice || '1.0')) * 0.8).toFixed(4)} MON
+                                                    {(Math.max(1000.0, parseFloat(state.currentPrice || '1000.0')) * 0.8).toFixed(4)} MON
                                                 </span>
                                             </div>
                                         )}
