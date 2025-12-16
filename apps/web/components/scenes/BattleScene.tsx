@@ -534,7 +534,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
                     revealedCountsByLevelRef.current.set(currentLevel, prev);
                     return prev;
                 });
-            }, 6000); // 6 seconds per item
+            }, 3000); // 3 seconds per item
         }
 
         return () => {
@@ -819,10 +819,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
         const visible: Array<{ level: number; data: LevelProgress | null; isVisited: boolean }> = [];
         for (let i = startLevel; i <= endLevel; i++) {
             const levelData = levelsProgress[i - 1] || null;
+            // Only show level as visited if it has events AND it's less than or equal to current level
+            // This prevents "spoilers" where future levels show their room type before the user gets there
             visible.push({
                 level: i,
                 data: levelData,
-                isVisited: levelData ? levelData.events.length > 0 : false,
+                isVisited: levelData ? (levelData.events.length > 0 && i <= currentLevel) : false,
             });
         }
         return visible;
@@ -1213,11 +1215,13 @@ export const BattleScene: React.FC<BattleSceneProps> = ({ onComplete }) => {
 
                         <div className="relative z-10">
                             <div className="text-6xl mb-6 animate-bounce">
-                                {outcomeEvent?.type === 'party_wipe' || outcomeEvent?.type === 'combat_defeat' ? '💀' : '🏆'}
+                                {outcomeEvent?.type === 'party_wipe' || outcomeEvent?.type === 'combat_defeat' ? '💀' :
+                                    outcomeEvent?.type === 'error' ? '⚠️' : '🏆'}
                             </div>
-                            <div className={`text-4xl font-bold mb-2 tracking-widest ${outcomeEvent?.type === 'party_wipe' || outcomeEvent?.type === 'combat_defeat' ? 'text-[#ef4444]' : 'text-[#ffd700]'
+                            <div className={`text-4xl font-bold mb-2 tracking-widest ${outcomeEvent?.type === 'party_wipe' || outcomeEvent?.type === 'combat_defeat' || outcomeEvent?.type === 'error' ? 'text-[#ef4444]' : 'text-[#ffd700]'
                                 }`}>
-                                {outcomeEvent?.type === 'party_wipe' || outcomeEvent?.type === 'combat_defeat' ? 'DEFEAT' : 'VICTORY'}
+                                {outcomeEvent?.type === 'party_wipe' || outcomeEvent?.type === 'combat_defeat' ? 'DEFEAT' :
+                                    outcomeEvent?.type === 'error' ? 'ERROR' : 'VICTORY'}
                             </div>
                             <div className="text-[#8c7b63] mb-8 font-mono text-sm leading-relaxed">
                                 {outcomeEvent?.description || 'The adventure has ended.'}

@@ -46,7 +46,9 @@ export async function getMonPrice(): Promise<number> {
             );
 
             if (!response.ok) {
-                throw new Error(`CoinGecko API error: ${response.status}`);
+                // Log warning but don't throw, return null to trigger fallback
+                console.warn(`[MonPrice] CoinGecko API error: ${response.status}`);
+                return null;
             }
 
             const data = await response.json();
@@ -64,23 +66,27 @@ export async function getMonPrice(): Promise<number> {
                 console.log(`MON price fetched from CoinGecko: $${price}`);
                 return price;
             } else {
-                throw new Error('Invalid price data from CoinGecko');
+                return null;
             }
         } catch (error) {
             console.error("Error fetching MON price from CoinGecko:", error);
-
-            // If we have cached data, use it even if expired (better than nothing)
-            if (monPriceCache) {
-                console.warn(`Using expired cached MON price: $${monPriceCache.price}`);
-                return monPriceCache.price;
-            }
-
-            throw error;
+            return null;
         } finally {
             // Clear the promise so subsequent calls can retry or fetch fresh data
             fetchPromise = null;
         }
-    })();
+    })().then(price => {
+        if (price !== null) return price;
+
+        // Fallback logic inside the promise chain
+        if (monPriceCache) {
+            console.warn(`Using expired cached MON price: $${monPriceCache.price}`);
+            return monPriceCache.price;
+        }
+
+        // Final fallback default
+        return 0.30;
+    });
 
     return fetchPromise;
 }

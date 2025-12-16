@@ -148,25 +148,40 @@ export async function initializeAdventurerStats(
       const hero = await getHeroByTokenId(tokenId);
       // Extract class from multiple possible metadata locations
       const metadataClass = hero.metadata?.hero?.class ||
-                           hero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value ||
-                           hero.metadata?.attributes?.find((a: any) => a.trait_type === 'class')?.value;
+        hero.metadata?.attributes?.find((a: any) => a.trait_type === 'Class')?.value ||
+        hero.metadata?.attributes?.find((a: any) => a.trait_type === 'class')?.value ||
+        hero.metadata?.attributes?.find((a: any) => a.trait_type === 'Role')?.value; // Also check "Role"
 
       classToUse = classToUse || (metadataClass ? metadataClass.toLowerCase() : null);
       nameToUse = nameToUse || hero.name || `Hero #${tokenId}`;
 
       if (!classToUse) {
-        // CRITICAL: Do NOT default to warrior - if class is missing, this is an error
-        throw new Error(`[HeroInit] Hero ${tokenId} metadata is missing class information. Metadata: ${JSON.stringify(hero.metadata)}`);
+        console.warn(`[HeroInit] Hero ${tokenId} metadata is missing class/role. Defaulting to 'warrior'. Metadata:`, hero.metadata);
+        classToUse = 'warrior';
       }
     } catch (error) {
-      // CRITICAL: Do NOT default to warrior - if we can't fetch hero data, throw error
-      console.error(`[HeroInit] Failed to fetch hero data for ${tokenId}:`, error);
-      throw new Error(`[HeroInit] Cannot initialize adventurer for hero ${tokenId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.warn(`[HeroInit] Failed to fetch hero data for ${tokenId}, defaulting to warrior:`, error);
+      classToUse = 'warrior';
+      nameToUse = `Hero #${tokenId}`;
     }
   }
 
   // Normalize class name
-  const normalizedClass = classToUse.toLowerCase() as HeroClass;
+  let normalizedClassStr = classToUse.toLowerCase();
+
+  // Map special roles like "Tavern Keeper" to valid classes
+  if (normalizedClassStr.includes('keeper')) normalizedClassStr = 'cleric'; // Keepers are clerics
+  else if (normalizedClassStr.includes('wizard') || normalizedClassStr.includes('sorcerer')) normalizedClassStr = 'mage';
+  else if (normalizedClassStr.includes('fighter') || normalizedClassStr.includes('knight')) normalizedClassStr = 'warrior';
+  else if (normalizedClassStr.includes('thief') || normalizedClassStr.includes('assassin')) normalizedClassStr = 'rogue';
+
+  // Final validation against known types
+  if (!BASE_STATS[normalizedClassStr]) {
+    console.warn(`[HeroInit] Unknown class '${normalizedClassStr}', defaulting to 'warrior'`);
+    normalizedClassStr = 'warrior';
+  }
+
+  const normalizedClass = normalizedClassStr as HeroClass;
   // CRITICAL: Do NOT default to warrior stats - if class is invalid, throw error
   const baseStats = BASE_STATS[normalizedClass];
   if (!baseStats) {

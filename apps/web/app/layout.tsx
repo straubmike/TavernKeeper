@@ -14,7 +14,9 @@ const pressStart2P = Press_Start_2P({
   variable: '--font-press-start-2p',
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tavernkeeper.xyz';
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost'))
+  ? process.env.NEXT_PUBLIC_APP_URL
+  : 'https://tavernkeeper.xyz';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -71,7 +73,6 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL(appUrl),
   other: {
-    "fc:miniapp": JSON.stringify(frame),
     "fc:frame": JSON.stringify(frame)
   },
 };
