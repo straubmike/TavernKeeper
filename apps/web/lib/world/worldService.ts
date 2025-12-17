@@ -1,4 +1,4 @@
-import { WorldGenerator } from './generation/generators/world-generator';
+import { WorldGenerator } from '../../contributions/world-generation-system/code/generators/world-generator';
 import { WorldContentService } from './content/services/worldContentService';
 import { useGameStore } from '../stores/gameStore';
 import type { Geography } from './generation/types/world-generation';

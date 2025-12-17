@@ -192,13 +192,14 @@ export interface ThemedDungeon {
 /**
  * Layout for a single dungeon level
  * This is the data structure that gets stored and accessed deterministically
- * All rooms are pre-generated when the dungeon is created
+ * Boss rooms are pre-generated when the dungeon is created.
+ * Non-boss rooms are generated on-demand with random seeds.
  */
 export interface DungeonLevelLayout {
   level: number; // 1-based level number
   boss?: Boss; // If this level has a boss (pre-generated)
-  room: DungeonRoom; // Pre-generated room (deterministic)
-  roomTemplate: RoomTemplate; // Template for reference (kept for compatibility)
+  room?: DungeonRoom; // Pre-generated room (only for boss rooms)
+  roomTemplate: RoomTemplate; // Template for generating non-boss rooms on-demand
   metadata: Record<string, unknown>;
 }
 

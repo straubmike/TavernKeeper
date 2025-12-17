@@ -201,9 +201,8 @@ export class ThemedDungeonGenerator {
       bossInfluenceForTheme
     );
 
-    // Step 5: Create level layout structure with pre-generated rooms
-    // This is the list data structure for deterministic access
-    // All rooms are generated upfront, not on-demand
+    // Step 5: Create level layout structure
+    // Only boss rooms are pre-generated. Non-boss rooms are generated on-demand with random seeds.
     const levelLayout: DungeonLevelLayout[] = [];
 
     for (let level = 1; level <= depth; level++) {
@@ -231,11 +230,10 @@ export class ThemedDungeonGenerator {
         theme,
       };
 
-      // Pre-generate the room for this level (deterministic)
-      // If it's a boss level, generate boss room, otherwise generate regular room
-      let room: DungeonRoom;
+      // Only pre-generate boss rooms. Non-boss rooms are generated on-demand.
+      let room: DungeonRoom | undefined;
       if (boss) {
-        // Boss room
+        // Boss room - pre-generate (deterministic)
         room = {
           id: `room-boss-${seed}-${level}`,
           level,
@@ -270,46 +268,14 @@ export class ThemedDungeonGenerator {
             generatedAt: new Date().toISOString(),
           },
         };
-      } else {
-        // Regular room - generate deterministically based on seed and level
-        // Create a temporary dungeon object for room generation
-        // Note: We need provenance, but we're generating it earlier, so use a placeholder
-        const tempProvenance: DungeonProvenance = {
-          builder: 'unknown',
-          builderName: 'Unknown',
-          builderCategory: 'practical',
-          purpose: 'unknown',
-          age: 100,
-          originalDepth: depth,
-          history: 'Temporary dungeon for room generation',
-        };
-        const tempDungeon: ThemedDungeon = {
-          id: `dungeon-${seed}-temp`,
-          name: 'Temp',
-          seed,
-          depth,
-          theme,
-          finalBoss,
-          midBosses,
-          levelLayout: [],
-          provenance: tempProvenance,
-          metadata: {},
-        };
-        
-        const generatedRoom = this.roomGenerator.generateRoom({
-          level,
-          dungeon: tempDungeon,
-          builder: provenance.builderName,
-          builderFlavor: this.getBuilderFlavor(provenance.builder, seed, level),
-        });
-        room = generatedRoom.room;
       }
+      // Non-boss rooms are NOT pre-generated - they will be generated on-demand with random seeds
 
       levelLayout.push({
         level,
         boss,
-        room, // Pre-generated room
-        roomTemplate, // Keep for reference
+        room, // Only present for boss rooms
+        roomTemplate, // Used for generating non-boss rooms on-demand
         metadata: {
           generatedAt: new Date().toISOString(),
         },
@@ -632,8 +598,11 @@ export class ThemedDungeonGenerator {
   /**
    * Get a room for a specific level
    * 
-   * Rooms are pre-generated when the dungeon is created, so this just retrieves
-   * the pre-generated room from the level layout.
+   * Boss rooms are pre-generated and returned directly.
+   * Non-boss rooms are generated on-demand with a random seed (unique each time).
+   * 
+   * Note: Even if a non-boss room exists in levelLayout (from old data),
+   * we regenerate it with a random seed to ensure variety between runs.
    */
   getRoomForLevel(
     dungeon: ThemedDungeon,
@@ -645,10 +614,33 @@ export class ThemedDungeonGenerator {
       throw new Error(`Level ${level} not found in dungeon ${dungeon.id}`);
     }
 
-    // Return the pre-generated room
+    // If this is a boss room, return the pre-generated room
+    if (levelLayout.boss && levelLayout.room) {
+      // Verify it's actually a boss room type
+      if (levelLayout.room.type === 'boss' || levelLayout.room.type === 'mid_boss') {
+        return {
+          room: levelLayout.room,
+          encounter: levelLayout.room.encounter,
+        };
+      }
+    }
+
+    // Non-boss room - generate on-demand with a random seed
+    // This ensures each run of the same dungeon produces different non-boss rooms
+    // Even if a room exists in levelLayout from old data, we regenerate it
+    const randomSeed = `${Date.now()}-${Math.random()}-${level}`;
+    
+    const generatedRoom = this.roomGenerator.generateRoom({
+      level,
+      dungeon,
+      seed: randomSeed, // Use random seed for non-boss rooms
+      builder: dungeon.provenance.builderName,
+      builderFlavor: this.getBuilderFlavor(dungeon.provenance.builder, dungeon.seed, level),
+    });
+
     return {
-      room: levelLayout.room,
-      encounter: levelLayout.room.encounter,
+      room: generatedRoom.room,
+      encounter: generatedRoom.encounter,
     };
   }
 

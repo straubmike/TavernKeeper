@@ -45,86 +45,9 @@ The themed dungeon generator has been updated to support full integration with w
    - Already includes: `race`, `organization`, `location`, `powers`, `level`, `age`, `alignment`
    - ✅ This is already correct
 
-### 2. Map Generator System
+### 2. ~~Map Generator System~~ (REMOVED)
 
-**⚠️ DEPRECATED:** The map-generator-system has been removed. This section is kept for historical reference only.
-
-**Location:** ~~`apps/web/contributions/map-generator-system/code/generators/map-generator.ts` and `rich-content-generator.ts`~~ (DELETED)
-
-**Required Changes:**
-
-1. **When generating a dungeon**, query world context:
-   ```typescript
-   // In generateDungeonEntrance() or similar:
-   const worldContext: DungeonWorldContext = {
-     locationId: locationGeographyId, // Geography ID where dungeon is located
-     standoutMortals: worldGenerator.standoutMortals
-       .filter(m => m.location === locationGeographyId)
-       .map(m => ({
-         id: m.id,
-         name: m.name,
-         standoutType: m.standoutType,
-         location: m.location,
-         race: m.race, // FULL: Mortal race ID
-         organization: m.organization, // FULL: Organization ID if part of one
-         powers: m.powers,
-         level: m.level,
-         age: m.age,
-         alignment: m.alignment,
-         isBoss: m.isBoss,
-         // Full world content data
-         parentId: m.parentId,
-         createdAt: m.createdAt,
-         description: m.description,
-         metadata: m.metadata,
-       })),
-     worldEvents: worldGenerator.worldEvents
-       .filter(e => e.locationId === locationGeographyId)
-       .map(e => ({
-         type: e.type,
-         entityId: e.entityId,
-         locationId: e.locationId,
-         description: e.description,
-         year: e.year,
-         metadata: e.metadata,
-       })),
-     recordEntityEvent: (entityId, event) => {
-       // Record event in entity history
-       // This should update the standout mortal's entity history
-       // Implementation depends on how entity history is stored
-     },
-   };
-   ```
-
-2. **Pass world context to RichContentGenerator:**
-   ```typescript
-   // In rich-content-generator.ts, generateDungeonContent():
-   const richContent = this.generateDungeonContent(
-     dungeon,
-     themedDungeonGenerator,
-     worldContext // Pass full world context
-   );
-   ```
-
-3. **Ensure world context is passed to themed dungeon generator:**
-   ```typescript
-   // In rich-content-generator.ts:
-   const provenance = themedDungeonGenerator.generateProvenance(
-     dungeon.seed,
-     dungeon.maxDepth,
-     rng,
-     worldContext // Already being passed, but ensure it has full data
-   );
-   
-   const bosses = themedDungeonGenerator.generateBosses(
-     dungeon.seed,
-     dungeon.maxDepth,
-     provenance.age,
-     rng,
-     worldContext, // Already being passed
-     provenance
-   );
-   ```
+**Status:** The map-generator-system has been deleted. Dungeon generation now happens directly through the world-generation-system (Level 7.5) and themed-dungeon-generation systems.
 
 ### 3. World Event Storage
 
@@ -162,10 +85,7 @@ The `recordEntityEvent` callback needs to:
 - [ ] Ensure standout mortals include full WorldContent data (✅ already done)
 
 ### Map Generator
-- [ ] Query world context for standout mortals at dungeon location
-- [ ] Query world events for "built_tower" events at dungeon location
-- [ ] Pass full `DungeonWorldContext` to `RichContentGenerator.generateDungeonContent()`
-- [ ] Implement `recordEntityEvent` callback to record events in entity history
+- [x] ~~Map generator removed - integration now handled directly by world-generation-system~~
 
 ### Testing
 - [ ] Verify necromancer towers use necromancer builder and theme

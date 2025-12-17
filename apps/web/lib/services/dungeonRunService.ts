@@ -191,6 +191,22 @@ export async function executeDungeonRun(
     // 2. Initialize dungeon generator and get structure
     const dungeonGenerator = new ThemedDungeonGenerator();
     // Reconstruct dungeon from stored data
+    // Clear non-boss rooms from levelLayout - they should be generated on-demand with random seeds
+    const cleanedLevelLayout = (dungeonMap.levelLayout || []).map((layout: any) => {
+      // Only keep pre-generated rooms if they're boss rooms
+      if (layout.boss && layout.room && (layout.room.type === 'boss' || layout.room.type === 'mid_boss')) {
+        return layout; // Keep boss rooms
+      }
+      // Remove room from non-boss levels - will be generated on-demand
+      return {
+        level: layout.level,
+        boss: layout.boss,
+        room: undefined, // Clear non-boss rooms
+        roomTemplate: layout.roomTemplate,
+        metadata: layout.metadata,
+      };
+    });
+    
     const dungeon: ThemedDungeon = {
       id: dungeonMap.id || dungeonId,
       name: dungeonMap.name || 'Unknown Dungeon',
@@ -198,7 +214,7 @@ export async function executeDungeonRun(
       theme: dungeonMap.theme || { id: 'unknown', name: 'Unknown' },
       finalBoss: dungeonMap.finalBoss,
       midBosses: dungeonMap.midBosses || [],
-      levelLayout: dungeonMap.levelLayout || [],
+      levelLayout: cleanedLevelLayout,
       provenance: dungeonMap.provenance,
       seed: dungeonSeed,
       metadata: dungeonMap.metadata || {},
